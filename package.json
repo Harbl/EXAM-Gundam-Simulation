@@ -19,7 +19,8 @@
     "appId": "com.jake.gundamtcgsim",
     "productName": "Gundam TCG Sim",
     "win": {
-      "target": "nsis"
+      "target": "nsis",
+      "signAndEditExecutable": false
     },
     "files": [
       "electron/**/*",
