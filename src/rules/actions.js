@@ -42,6 +42,7 @@ function becomeBase(state, player, instance) {
 
 /** Pairs a Pilot with a Unit (3-3, 3-2-6), firing When Paired and, if linked, When Linked (13-2-9/11). */
 function pairPilot(state, player, unit, pilotInstance) {
+  if (unit.def.cannotBePaired) return unit;
   unit.pilot = pilotInstance;
   const idx = player.hand.indexOf(pilotInstance);
   if (idx !== -1) player.hand.splice(idx, 1);
@@ -50,7 +51,6 @@ function pairPilot(state, player, unit, pilotInstance) {
   if (linked) unit.isLinkUnit = true;
 
   fireCardEffect(state, player, unit, 'whenPaired', { pilot: pilotInstance });
-  fireCardEffect(state, player, pilotInstance, 'whenPaired', { unit });
   if (linked) fireCardEffect(state, player, unit, 'whenLinked', { pilot: pilotInstance });
 
   return unit;

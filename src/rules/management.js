@@ -3,6 +3,7 @@ const { LIMITS } = require('./constants');
 function getAP(instance) {
   let ap = instance.def.ap || 0;
   if (instance.pilot) ap += instance.pilot.def.apBonus || 0;
+  if (instance.isLinkUnit) ap += instance.def.duringLinkAp || 0;
   for (const buff of instance.buffs) ap += buff.ap || 0;
   return Math.max(0, ap);
 }
@@ -10,6 +11,7 @@ function getAP(instance) {
 function getHP(instance) {
   let hp = instance.def.hp || 0;
   if (instance.pilot) hp += instance.pilot.def.hpBonus || 0;
+  if (instance.isLinkUnit) hp += instance.def.duringLinkHp || 0;
   for (const buff of instance.buffs) hp += buff.hp || 0;
   return Math.max(0, hp);
 }
@@ -18,8 +20,13 @@ function getRemainingHP(instance) {
   return getHP(instance) - instance.damage;
 }
 
+/** Merges static keywords with any turn/battle-scoped keyword grants (e.g. a temporary <High-Maneuver>). */
 function getKeywords(instance) {
-  return Object.assign({}, instance.def.keywords, instance.grantedKeywords);
+  const granted = {};
+  for (const buff of instance.buffs) {
+    if (buff.keyword) granted[buff.keyword] = true;
+  }
+  return Object.assign({}, instance.def.keywords, instance.grantedKeywords, granted);
 }
 
 /** Battle/effect damage to a Unit, Base, or Shield instance. Does not by itself move destroyed cards to trash. */

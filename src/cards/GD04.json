@@ -1,0 +1,27 @@
+[
+  {
+    "number": "GD04-122",
+    "name": "Jaburo",
+    "type": "base",
+    "color": "blue",
+    "level": 4,
+    "cost": 1,
+    "ap": 0,
+    "hp": 5,
+    "traits": ["Earth Federation", "Stronghold"],
+    "effectRefs": { "burst": "jaburoBurst", "deploy": "jaburoDeploy", "activateMain": "jaburoActivateMain" }
+  },
+  {
+    "number": "GD04-017",
+    "name": "Zeong",
+    "type": "unit",
+    "color": "green",
+    "level": 6,
+    "cost": 5,
+    "ap": 4,
+    "hp": 3,
+    "traits": ["Zeon"],
+    "linkCondition": "Char Aznable",
+    "effectRefs": { "whenPaired": "zeongWhenPaired", "destroyed": "zeongDestroyed" }
+  }
+]

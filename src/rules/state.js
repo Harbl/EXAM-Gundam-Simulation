@@ -11,8 +11,9 @@ function createInstance(def, owner) {
     pilot: null, // paired Pilot instance, units only
     turnDeployed: null, // state.turnNumber when it entered the battle area
     isLinkUnit: false, // true if deployed with its link condition satisfied (can attack immediately)
-    buffs: [], // {ap, hp, scope: 'turn' | 'battle'}
-    grantedKeywords: {} // keywords gained from other cards' effects, merged over def.keywords
+    buffs: [], // {ap, hp, keyword, scope: 'turn' | 'battle'}
+    grantedKeywords: {}, // keywords gained from other cards' effects, merged over def.keywords
+    activationsUsed: {} // tracks "Once per Turn" activated abilities, cleared each start phase
   };
 }
 

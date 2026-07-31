@@ -4,15 +4,20 @@ const { enforceHandLimit } = require('./management');
 
 function runStartPhase(state) {
   const player = activePlayer(state);
-  for (const instance of player.battleArea) instance.rested = false;
-  if (player.base) player.base.rested = false;
+  for (const instance of player.battleArea) {
+    instance.rested = false;
+    instance.activationsUsed = {}; // clears "Once per Turn" activated-ability tracking (13-2-13)
+  }
+  if (player.base) {
+    player.base.rested = false;
+    player.base.activationsUsed = {};
+  }
   for (const resource of player.resourceArea) resource.rested = false;
   triggerEvent(state, 'startOfTurn', {});
 }
 
-/** 7-3-1-1: drawing your last card is itself lethal, not just being unable to draw. */
-function runDrawPhase(state) {
-  const player = activePlayer(state);
+/** 7-3-1-1: drawing your last card is itself lethal, not just being unable to draw. Shared by the draw phase and card effects that draw. */
+function drawCard(state, player) {
   if (player.deck.length === 0) {
     player.defeated = true;
     return;
@@ -21,6 +26,10 @@ function runDrawPhase(state) {
   if (player.deck.length === 0) {
     player.defeated = true;
   }
+}
+
+function runDrawPhase(state) {
+  drawCard(state, activePlayer(state));
 }
 
 function runResourcePhase(state) {
@@ -45,4 +54,4 @@ function passTurn(state) {
   state.turnNumber += 1;
 }
 
-module.exports = { runStartPhase, runDrawPhase, runResourcePhase, runEndPhase, passTurn };
+module.exports = { runStartPhase, runDrawPhase, runResourcePhase, runEndPhase, passTurn, drawCard };

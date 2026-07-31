@@ -1,0 +1,73 @@
+[
+  {
+    "number": "GD01-008",
+    "name": "Guntank",
+    "type": "unit",
+    "color": "blue",
+    "level": 2,
+    "cost": 1,
+    "ap": 1,
+    "hp": 2,
+    "traits": ["Earth Federation", "White Base Team"],
+    "effectRefs": { "deploy": "guntankDeploy" }
+  },
+  {
+    "number": "GD01-026",
+    "name": "Char's Zaku II",
+    "type": "unit",
+    "color": "green",
+    "level": 3,
+    "cost": 2,
+    "ap": 3,
+    "hp": 2,
+    "traits": ["Zeon"],
+    "effectRefs": { "destroyed": "charsZakuGD01026Destroyed" }
+  },
+  {
+    "number": "GD01-030",
+    "name": "Rick Dom",
+    "type": "unit",
+    "color": "green",
+    "level": 3,
+    "cost": 2,
+    "ap": 3,
+    "hp": 3,
+    "traits": ["Zeon"],
+    "keywords": { "breach": 2 }
+  },
+  {
+    "number": "GD01-018",
+    "name": "ReZEL",
+    "type": "unit",
+    "color": "blue",
+    "level": 3,
+    "cost": 2,
+    "ap": 4,
+    "hp": 3,
+    "traits": ["Earth Federation"],
+    "keywords": {},
+    "_note": "No ability text found across multiple independent sources despite repeated research; treated as a vanilla stat unit (Common rarity, consistent with that)."
+  },
+  {
+    "number": "GD01-100",
+    "name": "A Show of Resolve",
+    "type": "command",
+    "color": "blue",
+    "level": 4,
+    "cost": 3,
+    "effectRefs": { "command": "aShowOfResolveCommand" }
+  },
+  {
+    "number": "GD01-006",
+    "name": "Delta Plus",
+    "type": "unit",
+    "color": "blue",
+    "level": 4,
+    "cost": 3,
+    "ap": 4,
+    "hp": 3,
+    "traits": ["Earth Federation"],
+    "keywords": { "repair": 1 },
+    "duringLinkHp": 1
+  }
+]

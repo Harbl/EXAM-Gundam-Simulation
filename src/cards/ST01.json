@@ -1,0 +1,39 @@
+[
+  {
+    "number": "ST01-005",
+    "name": "GM",
+    "type": "unit",
+    "color": "blue",
+    "level": 2,
+    "cost": 1,
+    "ap": 2,
+    "hp": 2,
+    "traits": ["Earth Federation"],
+    "keywords": {}
+  },
+  {
+    "number": "ST01-010",
+    "name": "Amuro Ray",
+    "type": "pilot",
+    "color": "blue",
+    "level": 4,
+    "cost": 1,
+    "apBonus": 2,
+    "hpBonus": 1,
+    "traits": ["Earth Federation", "White Base Team", "Newtype"],
+    "effectRefs": { "burst": "amuroRayBurst", "whenPaired": "amuroRayWhenPaired" }
+  },
+  {
+    "number": "ST01-001",
+    "name": "Gundam",
+    "type": "unit",
+    "color": "blue",
+    "level": 4,
+    "cost": 3,
+    "ap": 3,
+    "hp": 4,
+    "traits": ["Earth Federation", "White Base Team"],
+    "keywords": { "repair": 2 },
+    "effectRefs": { "startOfTurn": "gundamDuringPairStartOfTurn" }
+  }
+]

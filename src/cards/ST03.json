@@ -1,0 +1,38 @@
+[
+  {
+    "number": "ST03-008",
+    "name": "Zaku II",
+    "type": "unit",
+    "color": "green",
+    "level": 2,
+    "cost": 1,
+    "ap": 1,
+    "hp": 2,
+    "traits": ["Zeon"],
+    "effectRefs": { "attack": "zakuIIAttackBuff" }
+  },
+  {
+    "number": "ST03-006",
+    "name": "Char's Zaku II",
+    "type": "unit",
+    "color": "green",
+    "level": 3,
+    "cost": 2,
+    "ap": 3,
+    "hp": 2,
+    "traits": ["Zeon"],
+    "effectRefs": { "destroyed": "charsZakuST03006Destroyed" }
+  },
+  {
+    "number": "ST03-011",
+    "name": "Char Aznable",
+    "type": "pilot",
+    "color": "green",
+    "level": 3,
+    "cost": 1,
+    "apBonus": 1,
+    "hpBonus": 1,
+    "traits": ["Zeon", "Newtype"],
+    "effectRefs": { "attack": "charAznableAttack" }
+  }
+]
