@@ -6,7 +6,7 @@
   "main": "electron/main.js",
   "scripts": {
     "start": "electron .",
-    "test": "node --test test/",
+    "test": "node --test",
     "sim": "node bin/simulate.js",
     "dist": "electron-builder --win"
   },
