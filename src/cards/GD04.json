@@ -158,5 +158,14 @@
     "traits": ["Earth Federation"],
     "linkCondition": "Lane Aim",
     "effectRefs": { "startOfTurn": "penelopeFlightFormStartOfTurn", "deploy": "penelopeFlightFormDeploy" }
+  },
+  {
+    "number": "GD04-101",
+    "name": "Kindhearted",
+    "type": "command",
+    "color": "blue",
+    "level": 3,
+    "cost": 1,
+    "effectRefs": { "burst": "kindheartedBurst", "command": "kindheartedCommand" }
   }
 ]

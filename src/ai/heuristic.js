@@ -115,8 +115,16 @@ function restEnemyByTrading(state, player, opponent, source, trait, enemyQualifi
  */
 function chooseAttackTarget(opponent, attacker) {
   const attackerAP = getAP(attacker);
+  // Wing Gundam ST02-001: "may choose an active enemy Unit that is Lv.X or lower as its attack
+  // target" -- normally only rested enemies are legal targets, so this widens the candidate pool.
+  const activeCap = attacker.def.activeTargetLevelCap;
   const goodTrades = opponent.battleArea
-    .filter((u) => u.rested && attackerAP >= getRemainingHP(u) && getAP(u) < getRemainingHP(attacker))
+    .filter(
+      (u) =>
+        (u.rested || (activeCap !== undefined && (u.def.level || 0) <= activeCap)) &&
+        attackerAP >= getRemainingHP(u) &&
+        getAP(u) < getRemainingHP(attacker)
+    )
     .sort((a, b) => getAP(b) - getAP(a));
   if (goodTrades[0]) return { type: 'unit', instance: goodTrades[0] };
   return attacker.def.cannotAttackPlayer ? null : { type: 'player' };
@@ -172,4 +180,4 @@ function runMainPhase(state, playerIdx, hooks = defaultHooks()) {
   runAttacks(state, playerIdx, hooks);
 }
 
-module.exports = { decideMulligan, runMainPhase, runCommands, runActivations, runAttacks, defaultHooks };
+module.exports = { decideMulligan, runMainPhase, runCommands, runActivations, runAttacks, chooseAttackTarget, defaultHooks };

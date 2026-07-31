@@ -165,5 +165,28 @@
     "hpBonus": 1,
     "traits": ["Neo Zeon", "Cyber-Newtype"],
     "effectRefs": { "burst": "maridaCruzBurst", "attack": "maridaCruzAttack" }
+  },
+  {
+    "number": "GD01-024",
+    "name": "Wing Gundam Zero",
+    "type": "unit",
+    "color": "green",
+    "level": 8,
+    "cost": 8,
+    "ap": 5,
+    "hp": 7,
+    "traits": ["G Team"],
+    "linkCondition": "Heero Yuy",
+    "keywords": { "highManeuver": true },
+    "effectRefs": { "deploy": "wingGundamZeroGD01024Deploy" }
+  },
+  {
+    "number": "GD01-120",
+    "name": "Naval Bombardment",
+    "type": "command",
+    "color": "white",
+    "level": 2,
+    "cost": 1,
+    "effectRefs": { "burst": "navalBombardmentBurst", "command": "navalBombardmentCommand" }
   }
 ]

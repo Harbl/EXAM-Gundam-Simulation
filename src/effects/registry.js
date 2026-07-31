@@ -1,4 +1,4 @@
-const { dealDamage, getAP, getHP, getRemainingHP, getKeywords, recoverHP, removeFromField, destroyCard } = require('../rules/management');
+const { dealDamage, getAP, getHP, getRemainingHP, getKeywords, isImmuneToEffectDestroy, recoverHP, removeFromField, destroyCard } = require('../rules/management');
 const { deployUnit, becomeBase } = require('../rules/actions');
 const { drawCard } = require('../rules/phases');
 const { resolveUnitBattleDamage, applyBreach } = require('../rules/combat');
@@ -705,7 +705,9 @@ function mikazukiAugusWhenPaired(state, player, unit, context) {
 // Unit's own Destroyed trigger, same as any other kill).
 function widespreadAnnihilationCommand(state, player) {
   for (const p of state.players) {
-    const toDestroy = p.battleArea.filter((u) => (u.def.level || 0) <= 4);
+    const toDestroy = p.battleArea.filter(
+      (u) => (u.def.level || 0) <= 4 && !(p !== player && isImmuneToEffectDestroy(u))
+    );
     for (const unit of toDestroy) {
       const wasPaired = !!unit.pilot;
       destroyCard(state, p, unit);
@@ -879,7 +881,7 @@ function gundamNT1WhenPaired(state, player, unit, context) {
     ? context.hooks.chooseUnit(candidates)
     : candidates.sort((a, b) => getRemainingHP(a) - getRemainingHP(b))[0];
   dealDamage(target, 1);
-  if (getRemainingHP(target) <= 0) {
+  if (getRemainingHP(target) <= 0 && !isImmuneToEffectDestroy(target)) {
     const wasPaired = !!target.pilot;
     destroyCard(state, opponent, target);
     fireCardEffect(state, opponent, target, 'destroyed', { wasPaired });
@@ -925,7 +927,7 @@ function sazabiAttack(state, player, unit, context) {
   if (ownCandidates.length === 0) return;
   const opponent = opponentOf(state, player);
   const targetInstance = context.target && context.target.type === 'unit' ? context.target.instance : null;
-  const enemyCandidates = opponent.battleArea.filter((u) => u !== targetInstance);
+  const enemyCandidates = opponent.battleArea.filter((u) => u !== targetInstance && !isImmuneToEffectDestroy(u));
   if (enemyCandidates.length === 0) return;
 
   const toSacrifice = [...ownCandidates].sort((a, b) => getRemainingHP(a) - getRemainingHP(b))[0];
@@ -1054,6 +1056,169 @@ function closeCombatBurst(state, player, instance, context) {
   closeCombatCommand(state, player, instance, context);
 }
 
+// --- Wing Gundam ST02-001 ---
+// <Breach 5> (data). This Unit may choose an active enemy Unit that is Lv.4 or lower as its attack
+// target (see `activeTargetLevelCap` in its card data, read by the AI's `chooseAttackTarget`
+// instead of a dedicated effect function -- there's no separate "declare attack" hook to attach to).
+
+// --- Wing Gundam (Bird Mode) ST02-002 ---
+// [Deploy] Place 1 EX Resource (same one-liner as Nu Gundam GD05-020's Deploy, just unconditional).
+function wingGundamBirdModeDeploy(state, player) {
+  player.resourceArea.push(createInstance(EX_RESOURCE_DEF, player.id));
+}
+
+// --- Wing Gundam Zero GD01-024 ---
+// <High-Maneuver> (data). [Deploy] Deal 3 damage to all Units that are Lv.5 or lower (both players').
+function wingGundamZeroGD01024Deploy(state, player) {
+  for (const p of [player, opponentOf(state, player)]) {
+    for (const u of p.battleArea) {
+      if ((u.def.level || 0) <= 5) dealDamage(u, 3);
+    }
+  }
+}
+
+// --- Wing Gundam Zero (EW) GD05-067 ---
+// While a rested enemy Unit is in play, this Unit gains <Suppression> (re-evaluated each start of
+// turn, the same turn-granularity approximation as Freedom Gundam ST09-004's Base-gated version).
+// [Attack] Choose 1 enemy Unit. Rest it.
+function wingGundamZeroEWStartOfTurn(state, player, instance) {
+  const opponent = opponentOf(state, player);
+  instance.grantedKeywords.suppression = opponent.battleArea.some((u) => u.rested);
+}
+function wingGundamZeroEWAttack(state, player, unit, context) {
+  const opponent = opponentOf(state, player);
+  const target = context.hooks && context.hooks.chooseUnit
+    ? context.hooks.chooseUnit(opponent.battleArea)
+    : [...opponent.battleArea].sort((a, b) => getAP(b) - getAP(a))[0];
+  if (target) target.rested = true;
+}
+
+// --- Heero Yuy GD05-098 (Pilot) ---
+// [Burst] Add this card to your hand. [When this Unit destroys an enemy shield area card with
+// damage, choose 1 enemy Unit. It gets AP-2 during this turn.]
+function heeroYuy098Burst(state, player, instance) {
+  player.hand.push(instance);
+}
+function heeroYuy098DestroysShield(state, player, unit) {
+  const opponent = opponentOf(state, player);
+  const target = [...opponent.battleArea].sort((a, b) => getAP(b) - getAP(a))[0];
+  if (target) target.buffs.push({ ap: -2, scope: 'turn' });
+}
+
+// --- Heero Yuy ST02-010 (Pilot) ---
+// [Burst] Add this card to your hand. [During Link] This Unit gets AP+1 and HP+1 (see
+// `duringLinkAp`/`duringLinkHp` on its card data -- getAP/getHP already read those off a Pilot,
+// same fields a Unit's own card data can carry).
+function heeroYuy010Burst(state, player, instance) {
+  player.hand.push(instance);
+}
+
+// --- Naval Bombardment GD01-120 (Command) ---
+// [Burst] Choose 1 enemy Unit. It gets AP-3 during this turn. [Action] Choose 1 friendly Unit with
+// <Blocker>. It gets AP+3 during this turn. (Two genuinely different abilities on one card, unlike
+// the usual "Burst just activates Main" shorthand used elsewhere.)
+function navalBombardmentBurst(state, player) {
+  const opponent = opponentOf(state, player);
+  const target = [...opponent.battleArea].sort((a, b) => getAP(b) - getAP(a))[0];
+  if (target) target.buffs.push({ ap: -3, scope: 'turn' });
+}
+function navalBombardmentCommand(state, player, instance, context) {
+  const candidates = player.battleArea.filter((u) => getKeywords(u).blocker);
+  if (candidates.length === 0) return;
+  const target = context.hooks && context.hooks.chooseUnit
+    ? context.hooks.chooseUnit(candidates)
+    : candidates.sort((a, b) => getAP(b) - getAP(a))[0];
+  target.buffs.push({ ap: 3, scope: 'turn' });
+}
+
+// --- Peacemillion GD03-125 (Base) ---
+// [Burst] Deploy this card. [Deploy] Add 1 of your Shields to your hand (shared one-liners).
+// [Once per Turn] During your turn, when a friendly (Operation Meteor)/(G Team) Unit that is Lv.6
+// or higher destroys an enemy Unit with battle damage, that friendly Unit may recover 2 HP. (Reacts
+// to ANY qualifying friendly Unit's kill, not just its own -- combat.js's fireDestroysEnemy
+// broadcasts a `friendlyUnitDestroysEnemy` event to the attacking player's whole field for exactly
+// this kind of Base-wide reactive text.)
+function peacemillionBurst(state, player, instance) {
+  becomeBase(state, player, instance);
+}
+function peacemillionDeploy(state, player) {
+  simpleBaseDeployAddShield(state, player);
+}
+function peacemillionFriendlyUnitDestroysEnemy(state, player, instance, context) {
+  if (instance.activationsUsed.recoverOnKill) return;
+  if (state.players[state.activePlayerIdx] !== player) return;
+  const attacker = context.attacker;
+  const traits = attacker.def.traits || [];
+  if ((attacker.def.level || 0) < 6) return;
+  if (!traits.includes('Operation Meteor') && !traits.includes('G Team')) return;
+  recoverHP(attacker, 2);
+  instance.activationsUsed.recoverOnKill = true;
+}
+
+// --- Kindhearted GD04-101 (Command) ---
+// [Burst] Activate this card's Main. [Main/Action] During this turn, friendly Units can't be
+// destroyed by enemy effects. Then, draw 1. (New `effectDestroyImmune` turn-buff, checked at the
+// handful of spots where an effect destroys an opponent's Unit outright: Widespread Annihilation's
+// board wipe, Gundam NT-1's When-Paired kill, and Sazabi's Attack sacrifice.)
+function kindheartedCommand(state, player) {
+  for (const u of player.battleArea) u.buffs.push({ effectDestroyImmune: true, scope: 'turn' });
+  drawCard(state, player);
+}
+function kindheartedBurst(state, player) {
+  kindheartedCommand(state, player);
+}
+
+// --- M1 Astray Shrike GD05-015 ---
+// [Deploy] Choose 1 rested enemy Unit. Deal 1 damage to it.
+function m1AstrayShrikeDeploy(state, player, instance, context) {
+  const candidates = opponentOf(state, player).battleArea.filter((u) => u.rested);
+  if (candidates.length === 0) return;
+  const target = context.hooks && context.hooks.chooseUnit
+    ? context.hooks.chooseUnit(candidates)
+    : candidates.sort((a, b) => getRemainingHP(a) - getRemainingHP(b))[0];
+  dealDamage(target, 1);
+}
+
+// --- Isaribi ST05-015 (Base) ---
+// [Burst] Deploy this card. [Deploy] Add 1 of your Shields to your hand (shared one-liners).
+// [Activate*Main] Rest this Base: Choose 1 of your damaged Units. It gets AP+2 during this turn.
+function isaribiBurst(state, player, instance) {
+  becomeBase(state, player, instance);
+}
+function isaribiDeploy(state, player) {
+  simpleBaseDeployAddShield(state, player);
+}
+function isaribiActivateMain(state, player, instance, context) {
+  if (instance.rested) return false;
+  const damaged = player.battleArea.filter((u) => u.damage > 0);
+  if (damaged.length === 0) return false;
+  const target = context.hooks && context.hooks.chooseUnit
+    ? context.hooks.chooseUnit(damaged)
+    : damaged.sort((a, b) => getRemainingHP(a) - getRemainingHP(b))[0];
+  instance.rested = true;
+  target.buffs.push({ ap: 2, scope: 'turn' });
+  return true;
+}
+
+// --- Haow Gundam GD05-036 ---
+// Link Condition [Master Asia]. [When Paired] You may choose 1 of your other active (MF) Units.
+// Rest it. If you do, deal 2 damage to all enemy Units whose Lv. is equal to or lower than that
+// Unit's Lv.
+function haowGundamWhenPaired(state, player, unit, context) {
+  const candidates = player.battleArea.filter((u) => u !== unit && !u.rested && (u.def.traits || []).includes('MF'));
+  if (candidates.length === 0) return;
+  const chosen = context.hooks && context.hooks.chooseUnit
+    ? context.hooks.chooseUnit(candidates)
+    : candidates.sort((a, b) => getAP(b) - getAP(a))[0];
+  if (!chosen) return;
+  chosen.rested = true;
+  const level = chosen.def.level || 0;
+  const opponent = opponentOf(state, player);
+  for (const u of opponent.battleArea) {
+    if ((u.def.level || 0) <= level) dealDamage(u, 2);
+  }
+}
+
 module.exports = {
   guntankDeploy,
   zakuIIAttackBuff,
@@ -1150,5 +1315,24 @@ module.exports = {
   maridaCruzBurst,
   maridaCruzAttack,
   closeCombatCommand,
-  closeCombatBurst
+  closeCombatBurst,
+  wingGundamBirdModeDeploy,
+  wingGundamZeroGD01024Deploy,
+  wingGundamZeroEWStartOfTurn,
+  wingGundamZeroEWAttack,
+  heeroYuy098Burst,
+  heeroYuy098DestroysShield,
+  heeroYuy010Burst,
+  navalBombardmentBurst,
+  navalBombardmentCommand,
+  peacemillionBurst,
+  peacemillionDeploy,
+  peacemillionFriendlyUnitDestroysEnemy,
+  kindheartedCommand,
+  kindheartedBurst,
+  m1AstrayShrikeDeploy,
+  isaribiBurst,
+  isaribiDeploy,
+  isaribiActivateMain,
+  haowGundamWhenPaired
 };

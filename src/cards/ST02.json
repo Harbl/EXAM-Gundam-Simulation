@@ -10,5 +10,46 @@
     "hp": 5,
     "traits": ["OZ", "Stronghold"],
     "effectRefs": { "burst": "corsicaBaseBurst", "deploy": "corsicaBaseDeploy" }
+  },
+  {
+    "number": "ST02-001",
+    "name": "Wing Gundam",
+    "type": "unit",
+    "color": "green",
+    "level": 6,
+    "cost": 4,
+    "ap": 4,
+    "hp": 5,
+    "traits": ["Operation Meteor"],
+    "linkCondition": "Heero Yuy",
+    "keywords": { "breach": 5 },
+    "activeTargetLevelCap": 4
+  },
+  {
+    "number": "ST02-002",
+    "name": "Wing Gundam (Bird Mode)",
+    "type": "unit",
+    "color": "green",
+    "level": 3,
+    "cost": 3,
+    "ap": 2,
+    "hp": 2,
+    "traits": ["Operation Meteor"],
+    "linkCondition": "Heero Yuy",
+    "effectRefs": { "deploy": "wingGundamBirdModeDeploy" }
+  },
+  {
+    "number": "ST02-010",
+    "name": "Heero Yuy",
+    "type": "pilot",
+    "color": "green",
+    "level": 4,
+    "cost": 1,
+    "apBonus": 2,
+    "hpBonus": 1,
+    "duringLinkAp": 1,
+    "duringLinkHp": 1,
+    "traits": ["Operation Meteor"],
+    "effectRefs": { "burst": "heeroYuy010Burst" }
   }
 ]

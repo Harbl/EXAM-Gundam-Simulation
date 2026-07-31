@@ -366,5 +366,66 @@
     "hpBonus": 2,
     "traits": ["Neo Zeon", "Newtype"],
     "effectRefs": { "burst": "charAznableGD05093Burst", "whenLinked": "charAznableGD05093WhenLinked" }
+  },
+  {
+    "number": "GD05-014",
+    "name": "Javelin",
+    "type": "unit",
+    "color": "blue",
+    "level": 2,
+    "cost": 1,
+    "ap": 2,
+    "hp": 2,
+    "traits": ["Earth Federation", "League Militaire"]
+  },
+  {
+    "number": "GD05-067",
+    "name": "Wing Gundam Zero (EW)",
+    "type": "unit",
+    "color": "white",
+    "level": 6,
+    "cost": 5,
+    "ap": 5,
+    "hp": 4,
+    "traits": ["G Team"],
+    "linkCondition": "Heero Yuy",
+    "effectRefs": { "startOfTurn": "wingGundamZeroEWStartOfTurn", "attack": "wingGundamZeroEWAttack" }
+  },
+  {
+    "number": "GD05-098",
+    "name": "Heero Yuy",
+    "type": "pilot",
+    "color": "white",
+    "level": 4,
+    "cost": 1,
+    "apBonus": 2,
+    "hpBonus": 1,
+    "traits": ["G Team", "Operation Meteor"],
+    "effectRefs": { "burst": "heeroYuy098Burst", "destroysShield": "heeroYuy098DestroysShield" }
+  },
+  {
+    "number": "GD05-015",
+    "name": "M1 Astray Shrike",
+    "type": "unit",
+    "color": "blue",
+    "level": 2,
+    "cost": 1,
+    "ap": 1,
+    "hp": 2,
+    "traits": ["Orb"],
+    "effectRefs": { "deploy": "m1AstrayShrikeDeploy" }
+  },
+  {
+    "number": "GD05-036",
+    "name": "Haow Gundam",
+    "type": "unit",
+    "color": "red",
+    "level": 6,
+    "cost": 4,
+    "ap": 4,
+    "hp": 4,
+    "traits": ["MF"],
+    "linkCondition": "Master Asia",
+    "effectRefs": { "whenPaired": "haowGundamWhenPaired" }
   }
 ]

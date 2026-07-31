@@ -38,5 +38,21 @@
     "traits": ["Tekkadan", "Gundam Frame"],
     "linkCondition": "Mikazuki Augus",
     "effectRefs": { "activateMain": "gundamBarbatosLupusActivateMain" }
+  },
+  {
+    "number": "GD03-125",
+    "name": "Peacemillion",
+    "type": "base",
+    "color": "green",
+    "level": 6,
+    "cost": 1,
+    "ap": 0,
+    "hp": 6,
+    "traits": ["G Team", "Warship"],
+    "effectRefs": {
+      "burst": "peacemillionBurst",
+      "deploy": "peacemillionDeploy",
+      "friendlyUnitDestroysEnemy": "peacemillionFriendlyUnitDestroysEnemy"
+    }
   }
 ]

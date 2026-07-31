@@ -3,7 +3,10 @@ const { LIMITS } = require('./constants');
 function getAP(instance) {
   let ap = instance.def.ap || 0;
   if (instance.pilot) ap += instance.pilot.def.apBonus || 0;
-  if (instance.isLinkUnit) ap += instance.def.duringLinkAp || 0;
+  if (instance.isLinkUnit) {
+    ap += instance.def.duringLinkAp || 0;
+    if (instance.pilot) ap += instance.pilot.def.duringLinkAp || 0;
+  }
   for (const buff of instance.buffs) ap += buff.ap || 0;
   return Math.max(0, ap);
 }
@@ -11,9 +14,17 @@ function getAP(instance) {
 function getHP(instance) {
   let hp = instance.def.hp || 0;
   if (instance.pilot) hp += instance.pilot.def.hpBonus || 0;
-  if (instance.isLinkUnit) hp += instance.def.duringLinkHp || 0;
+  if (instance.isLinkUnit) {
+    hp += instance.def.duringLinkHp || 0;
+    if (instance.pilot) hp += instance.pilot.def.duringLinkHp || 0;
+  }
   for (const buff of instance.buffs) hp += buff.hp || 0;
   return Math.max(0, hp);
+}
+
+/** Kindhearted GD04-101's "can't be destroyed by enemy effects" grant (13-2-x style immunity). */
+function isImmuneToEffectDestroy(instance) {
+  return instance.buffs.some((b) => b.effectDestroyImmune);
 }
 
 function getRemainingHP(instance) {
@@ -155,6 +166,7 @@ module.exports = {
   getHP,
   getRemainingHP,
   getKeywords,
+  isImmuneToEffectDestroy,
   dealDamage,
   recoverHP,
   destroyCard,

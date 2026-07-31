@@ -91,6 +91,7 @@ function resolveDamageStep(state, attackingPlayer, defendingPlayer, attacker, ta
     const destroyedShields = [];
     for (let i = 0; i < hitCount; i++) destroyedShields.push(destroyTopShield(defendingPlayer));
     for (const shield of destroyedShields) resolveBurst(state, defendingPlayer, shield, hooks);
+    if (destroyedShields.length > 0) fireCardEffect(state, attackingPlayer, attacker, 'destroysShield', {});
     return;
   }
 
@@ -155,6 +156,12 @@ function fireDestroysEnemy(state, attackingPlayer, attacker) {
       .filter((u) => getRemainingHP(u) <= 5)
       .sort((a, b) => getAP(b) - getAP(a))[0];
     if (target) target.rested = true;
+  }
+  // Broadcast to the attacking player's own field (e.g. Peacemillion GD03-125's Base ability),
+  // distinct from the attacker's own "destroysEnemy" text fired just above.
+  for (const c of [...attackingPlayer.battleArea, attackingPlayer.base].filter(Boolean)) {
+    const handler = c.def.effects && c.def.effects.friendlyUnitDestroysEnemy;
+    if (handler) handler(state, attackingPlayer, c, { attacker });
   }
 }
 

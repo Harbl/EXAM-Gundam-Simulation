@@ -34,5 +34,17 @@
     "hp": 3,
     "traits": ["Teiwaz"],
     "keywords": {}
+  },
+  {
+    "number": "ST05-015",
+    "name": "Isaribi",
+    "type": "base",
+    "color": "purple",
+    "level": 3,
+    "cost": 1,
+    "ap": 0,
+    "hp": 5,
+    "traits": ["Tekkadan", "Warship"],
+    "effectRefs": { "burst": "isaribiBurst", "deploy": "isaribiDeploy", "activateMain": "isaribiActivateMain" }
   }
 ]
