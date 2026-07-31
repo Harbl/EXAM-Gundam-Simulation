@@ -54,6 +54,16 @@ function playerIndexOf(state, player) {
   return state.players.indexOf(player);
 }
 
+function isCardTracked(player, instance) {
+  return (
+    player.hand.includes(instance) ||
+    player.battleArea.includes(instance) ||
+    player.trash.includes(instance) ||
+    player.shields.includes(instance) ||
+    player.base === instance
+  );
+}
+
 function shuffle(cards) {
   for (let i = cards.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1));
@@ -69,5 +79,6 @@ module.exports = {
   activePlayer,
   standbyPlayer,
   playerIndexOf,
+  isCardTracked,
   shuffle
 };

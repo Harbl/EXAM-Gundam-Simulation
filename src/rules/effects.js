@@ -17,6 +17,16 @@ function triggerEvent(state, eventName, context) {
   }
 }
 
+/**
+ * Fires a card's own printed ability for a self-scoped trigger (Deploy/Attack/Destroyed/When
+ * Paired/When Linked -- 13-2-6..13-2-12): these activate on the specific card itself, not as a
+ * broadcast to everything on the field the way "at the start/end of turn" effects do.
+ */
+function fireCardEffect(state, player, instance, eventName, context = {}) {
+  const handler = instance.def.effects && instance.def.effects[eventName];
+  if (handler) handler(state, player, instance, context);
+}
+
 /** <Repair(amount)>: at the end of your turn, this Unit recovers `amount` HP (13-1-1). */
 function applyRepairAtEndOfTurn(player) {
   for (const instance of player.battleArea) {
@@ -53,6 +63,7 @@ function clearBattleBuffs(player) {
 
 module.exports = {
   triggerEvent,
+  fireCardEffect,
   applyRepairAtEndOfTurn,
   activateSupport,
   clearTurnBuffs,

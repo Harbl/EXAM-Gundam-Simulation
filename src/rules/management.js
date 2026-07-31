@@ -55,11 +55,12 @@ function destroyIfDead(state, player, instance) {
   return false;
 }
 
-/** Reveals and destroys the top Shield, returning it (caller handles Burst). Assumes at least one Shield is present. */
+/**
+ * Removes the top Shield for the caller to reveal/resolve Burst on (5-10-3). Does NOT move it to
+ * trash -- that only happens by default if nothing (e.g. a Burst effect) relocates it elsewhere.
+ */
 function destroyTopShield(player) {
-  const shield = player.shields.shift();
-  player.trash.push(shield);
-  return shield;
+  return player.shields.shift();
 }
 
 function enforceBattleAreaLimit(player, chooseToTrash) {

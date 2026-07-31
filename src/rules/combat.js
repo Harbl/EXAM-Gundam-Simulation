@@ -6,7 +6,8 @@ const {
   destroyTopShield,
   checkDefeat
 } = require('./management');
-const { triggerEvent, clearBattleBuffs } = require('./effects');
+const { fireCardEffect, clearBattleBuffs } = require('./effects');
+const { isCardTracked } = require('./state');
 
 /**
  * Resolves one full attack (8-1 through 8-6): attack, block, action, damage, battle-end steps.
@@ -21,7 +22,7 @@ function resolveAttack(state, attackerPlayerIdx, attacker, declaredTarget, hooks
   // --- Attack step (8-2) ---
   attacker.rested = true;
   let target = declaredTarget;
-  triggerEvent(state, 'attack', { attacker, target });
+  fireCardEffect(state, attackingPlayer, attacker, 'attack', { target });
 
   const attackerStillIn = () => attackingPlayer.battleArea.includes(attacker);
   const targetStillIn = () =>
@@ -59,6 +60,14 @@ function resolveAttack(state, attackerPlayerIdx, attacker, declaredTarget, hooks
   checkDefeat(state);
 }
 
+/** Destroys a card if its HP has hit 0, firing its own Destroyed effect (13-2-8) if so. */
+function destroyAndFireEffect(state, player, instance) {
+  const wasPaired = !!instance.pilot;
+  const destroyed = destroyIfDead(state, player, instance);
+  if (destroyed) fireCardEffect(state, player, instance, 'destroyed', { wasPaired });
+  return destroyed;
+}
+
 function resolveDamageStep(state, attackingPlayer, defendingPlayer, attacker, target, hooks) {
   const attackerAP = getAP(attacker);
   const keywords = getKeywords(attacker);
@@ -71,7 +80,7 @@ function resolveDamageStep(state, attackingPlayer, defendingPlayer, attacker, ta
     }
     if (defendingPlayer.base) {
       dealDamage(defendingPlayer.base, attackerAP);
-      const destroyed = destroyIfDead(state, defendingPlayer, defendingPlayer.base);
+      const destroyed = destroyAndFireEffect(state, defendingPlayer, defendingPlayer.base);
       if (destroyed && keywords.breach) applyBreach(state, defendingPlayer, keywords.breach, hooks);
       return;
     }
@@ -89,21 +98,21 @@ function resolveDamageStep(state, attackingPlayer, defendingPlayer, attacker, ta
 
   if (keywords.firstStrike) {
     dealDamage(defender, attackerAP);
-    const defenderDied = destroyIfDead(state, defendingPlayer, defender);
+    const defenderDied = destroyAndFireEffect(state, defendingPlayer, defender);
     if (defenderDied) {
       if (keywords.breach) applyBreach(state, defendingPlayer, keywords.breach, hooks);
       return; // 13-1-5-2: a Unit destroyed by First Strike deals no return damage.
     }
     dealDamage(attacker, defenderAP);
-    destroyIfDead(state, attackingPlayer, attacker);
+    destroyAndFireEffect(state, attackingPlayer, attacker);
     return;
   }
 
   // Simultaneous mutual damage (8-5-3-2).
   dealDamage(defender, attackerAP);
   dealDamage(attacker, defenderAP);
-  const defenderDied = destroyIfDead(state, defendingPlayer, defender);
-  destroyIfDead(state, attackingPlayer, attacker);
+  const defenderDied = destroyAndFireEffect(state, defendingPlayer, defender);
+  destroyAndFireEffect(state, attackingPlayer, attacker);
   if (defenderDied && keywords.breach) applyBreach(state, defendingPlayer, keywords.breach, hooks);
 }
 
@@ -111,19 +120,25 @@ function resolveDamageStep(state, attackingPlayer, defendingPlayer, attacker, ta
 function applyBreach(state, defendingPlayer, amount, hooks) {
   if (defendingPlayer.base) {
     dealDamage(defendingPlayer.base, amount);
-    destroyIfDead(state, defendingPlayer, defendingPlayer.base);
+    destroyAndFireEffect(state, defendingPlayer, defendingPlayer.base);
   } else if (defendingPlayer.shields.length > 0) {
     const shield = destroyTopShield(defendingPlayer);
     resolveBurst(state, defendingPlayer, shield, hooks);
   }
 }
 
-/** Reveals a destroyed Shield and, if it has a Burst effect, lets its owner choose to activate it (5-10-3, 13-2-5). */
+/**
+ * Reveals a destroyed Shield and, if it has a Burst effect, lets its owner choose to activate it
+ * (5-10-3, 13-2-5). The effect fully controls the card's fate (e.g. "add this card to your hand");
+ * it only falls through to the trash by default if nothing relocated it.
+ */
 function resolveBurst(state, defendingPlayer, shieldInstance, hooks) {
   const burstEffect = shieldInstance.def.effects && shieldInstance.def.effects.burst;
-  if (!burstEffect) return;
-  const activate = hooks && hooks.chooseBurst ? hooks.chooseBurst(shieldInstance) : false;
+  const activate = burstEffect && hooks && hooks.chooseBurst ? hooks.chooseBurst(shieldInstance) : false;
   if (activate) burstEffect(state, defendingPlayer, shieldInstance);
+  if (!isCardTracked(defendingPlayer, shieldInstance)) {
+    defendingPlayer.trash.push(shieldInstance);
+  }
 }
 
 module.exports = { resolveAttack };
