@@ -1,0 +1,14 @@
+[
+  {
+    "number": "ST02-016",
+    "name": "Corsica Base",
+    "type": "base",
+    "color": "blue",
+    "level": 3,
+    "cost": 3,
+    "ap": 0,
+    "hp": 5,
+    "traits": ["OZ", "Stronghold"],
+    "effectRefs": { "burst": "corsicaBaseBurst", "deploy": "corsicaBaseDeploy" }
+  }
+]

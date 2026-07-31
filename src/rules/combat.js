@@ -93,14 +93,25 @@ function resolveDamageStep(state, attackingPlayer, defendingPlayer, attacker, ta
   }
 
   // target.type === 'unit'
-  const defender = target.instance;
+  resolveUnitBattleDamage(state, attackingPlayer, defendingPlayer, attacker, target.instance, hooks);
+}
+
+/**
+ * The 8-5-3 Unit-vs-Unit damage exchange (First Strike pre-empting return damage, Breach on a
+ * defender kill). Factored out so effects like Nu Gundam GD05-017's "begin a battle ... only
+ * perform the damage step" can reuse the same rules instead of re-declaring an attack.
+ */
+function resolveUnitBattleDamage(state, attackingPlayer, defendingPlayer, attacker, defender, hooks) {
+  const attackerAP = getAP(attacker);
   const defenderAP = getAP(defender);
+  const keywords = getKeywords(attacker);
 
   if (keywords.firstStrike) {
     dealDamage(defender, attackerAP);
     const defenderDied = destroyAndFireEffect(state, defendingPlayer, defender);
     if (defenderDied) {
       if (keywords.breach) applyBreach(state, defendingPlayer, keywords.breach, hooks);
+      fireDestroysEnemy(state, attackingPlayer, attacker);
       return; // 13-1-5-2: a Unit destroyed by First Strike deals no return damage.
     }
     dealDamage(attacker, defenderAP);
@@ -113,7 +124,17 @@ function resolveDamageStep(state, attackingPlayer, defendingPlayer, attacker, ta
   dealDamage(attacker, defenderAP);
   const defenderDied = destroyAndFireEffect(state, defendingPlayer, defender);
   destroyAndFireEffect(state, attackingPlayer, attacker);
-  if (defenderDied && keywords.breach) applyBreach(state, defendingPlayer, keywords.breach, hooks);
+  if (defenderDied) {
+    if (keywords.breach) applyBreach(state, defendingPlayer, keywords.breach, hooks);
+    fireDestroysEnemy(state, attackingPlayer, attacker);
+  }
+}
+
+/** Fires a "this Unit destroys an enemy Unit with battle damage" trigger (e.g. Amuro Ray GD05-085), skipped if the attacker didn't survive to receive it. */
+function fireDestroysEnemy(state, attackingPlayer, attacker) {
+  if (attackingPlayer.battleArea.includes(attacker)) {
+    fireCardEffect(state, attackingPlayer, attacker, 'destroysEnemy', {});
+  }
 }
 
 /** <Breach(amount)> (13-1-2): damages the enemy Base, or top Shield if there's no Base. */
@@ -141,4 +162,4 @@ function resolveBurst(state, defendingPlayer, shieldInstance, hooks) {
   }
 }
 
-module.exports = { resolveAttack };
+module.exports = { resolveAttack, resolveUnitBattleDamage };

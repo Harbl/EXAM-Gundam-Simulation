@@ -26,13 +26,17 @@ function getKeywords(instance) {
   for (const buff of instance.buffs) {
     if (buff.keyword) granted[buff.keyword] = true;
   }
-  return Object.assign({}, instance.def.keywords, instance.grantedKeywords, granted);
+  const duringPair = instance.pilot ? instance.def.duringPairKeywords : null;
+  return Object.assign({}, instance.def.keywords, duringPair, instance.grantedKeywords, granted);
 }
 
-/** Battle/effect damage to a Unit, Base, or Shield instance. Does not by itself move destroyed cards to trash. */
+/** Battle/effect damage to a Unit, Base, or Shield instance, honoring any <Reduce> buffs (5-21: reduced to 0 is neither dealt nor received). */
 function dealDamage(instance, amount) {
   if (amount <= 0) return;
-  instance.damage += amount;
+  const reduction = instance.buffs.reduce((sum, b) => sum + (b.damageReduction || 0), 0);
+  const reduced = Math.max(0, amount - reduction);
+  if (reduced <= 0) return;
+  instance.damage += reduced;
 }
 
 function recoverHP(instance, amount) {
