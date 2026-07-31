@@ -10,9 +10,22 @@ const MAX_TURNS = 60; // safety cap against a stalemate/decking-out loop that ne
  * sides (7-1-1: start/draw/resource/main/end phases, repeated until someone wins or MAX_TURNS).
  */
 function playGame(deckA, deckB) {
-  const state = initializeGame(deckA, deckB, { decideMulligan });
-  const hooks = defaultHooks();
+  const mulliganLog = [];
+  const trackedDecideMulligan = (hand) => {
+    const shouldMulligan = decideMulligan(hand);
+    mulliganLog.push(shouldMulligan);
+    return shouldMulligan;
+  };
 
+  const state = initializeGame(deckA, deckB, { decideMulligan: trackedDecideMulligan });
+  // 6-2-1-6/7: mulligan() runs for the first player, then the second, in that order.
+  const firstIdx = state.activePlayerIdx;
+  const mulliganed = [null, null];
+  mulliganed[firstIdx] = mulliganLog[0];
+  mulliganed[1 - firstIdx] = mulliganLog[1];
+  const openingCurve = state.players.map(handCurve);
+
+  const hooks = defaultHooks();
   while (state.winner === null && state.turnNumber <= MAX_TURNS) {
     runStartPhase(state);
     runDrawPhase(state);
@@ -27,14 +40,24 @@ function playGame(deckA, deckB) {
     passTurn(state);
   }
 
-  return summarize(state);
+  return summarize(state, mulliganed, openingCurve);
 }
 
-function summarize(state) {
+/** Whether the (post-mulligan) opening hand had a playable card by turn 1/2/3, for curve-quality stats. */
+function handCurve(player) {
+  const cheapestCost = Math.min(
+    ...player.hand.filter((c) => c.def.type !== 'resource').map((c) => c.def.cost || 0)
+  );
+  return { turn1: cheapestCost <= 1, turn2: cheapestCost <= 2, turn3: cheapestCost <= 3 };
+}
+
+function summarize(state, mulliganed, openingCurve) {
   return {
     winner: state.winner,
     turns: state.turnNumber,
-    timedOut: state.winner === null
+    timedOut: state.winner === null,
+    mulliganed,
+    openingCurve
   };
 }
 

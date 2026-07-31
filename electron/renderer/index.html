@@ -4,19 +4,202 @@
 <meta charset="utf-8">
 <title>Gundam TCG Sim</title>
 <style>
-  html, body {
-    margin: 0;
-    height: 100%;
-    background: #000;
-    color: #fff;
-    font-family: sans-serif;
-    display: flex;
-    align-items: center;
-    justify-content: center;
+  :root {
+    --red: #9B1B1E;
+    --grey: #333333;
+    --black: #000000;
+    --gold: #C9A951;
+    --white: #FFFFFF;
   }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: linear-gradient(180deg, #0a0a0a, var(--black));
+    color: var(--white);
+    font-family: Arial, Helvetica, sans-serif;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+  }
+  header {
+    padding: 10px 16px;
+    background: var(--grey);
+    border-bottom: 2px solid var(--red);
+    font-family: 'Arial Narrow', Arial, sans-serif;
+    font-weight: bold;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    display: flex;
+    justify-content: space-between;
+  }
+  header .status { color: var(--gold); }
+  main {
+    flex: 1;
+    display: flex;
+    gap: 16px;
+    padding: 16px;
+    overflow: auto;
+  }
+  .panel {
+    flex: 1;
+    background: #111;
+    border: 1px solid var(--grey);
+    border-left: 3px solid var(--red);
+    padding: 14px;
+    min-width: 0;
+  }
+  h2 {
+    margin: 0 0 10px;
+    font-size: 14px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--gold);
+    border-bottom: 1px solid var(--grey);
+    padding-bottom: 6px;
+  }
+  label { display: block; font-size: 12px; margin: 10px 0 4px; color: #ccc; }
+  textarea, input[type=number] {
+    width: 100%;
+    background: #000;
+    color: var(--white);
+    border: 1px solid var(--grey);
+    padding: 6px;
+    font-family: monospace;
+    font-size: 12px;
+  }
+  textarea { height: 160px; resize: vertical; }
+  .buttons { display: flex; gap: 10px; margin-top: 14px; }
+  button {
+    flex: 1;
+    padding: 10px;
+    font-weight: bold;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    border: none;
+    clip-path: polygon(8px 0, 100% 0, calc(100% - 8px) 100%, 0 100%);
+    cursor: pointer;
+  }
+  #runBtn { background: var(--red); color: var(--white); }
+  #runBtn:disabled { background: #4a1315; color: #888; cursor: not-allowed; }
+  #cancelBtn { background: transparent; color: var(--white); border: 1px solid var(--grey); }
+  #cancelBtn:disabled { color: #555; border-color: #222; cursor: not-allowed; }
+
+  .progressTrack { background: #222; border: 1px solid var(--grey); height: 14px; margin-top: 14px; }
+  .progressFill { background: var(--red); height: 100%; width: 0%; }
+  #progressText { font-size: 12px; color: #ccc; margin-top: 6px; }
+
+  #results { font-size: 13px; }
+  #results table { width: 100%; border-collapse: collapse; margin-top: 8px; }
+  #results td, #results th { padding: 4px 6px; border-bottom: 1px solid var(--grey); text-align: left; }
+  #error { color: var(--red); font-weight: bold; margin-top: 10px; white-space: pre-wrap; }
+  .dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 6px; }
+  .dot.ready { background: #3ac13a; }
+  .dot.busy { background: var(--gold); }
+  .dot.alert { background: var(--red); }
 </style>
 </head>
 <body>
-  <div>Gundam TCG Sim — engine and UI under construction.</div>
+
+<header>
+  <div>SIM STATUS // GUNDAM-OS</div>
+  <div class="status"><span class="dot ready" id="statusDot"></span><span id="statusText">READY</span></div>
+</header>
+
+<main>
+  <div class="panel">
+    <h2>Deck A</h2>
+    <textarea id="deckA" placeholder="4 GM ST01-005&#10;4 Guntank GD01-008&#10;...&#10;6 Blue Resource / 4 Green Resource"></textarea>
+    <h2 style="margin-top:16px">Deck B</h2>
+    <textarea id="deckB" placeholder="Paste the opposing decklist here"></textarea>
+    <label for="games">Games to simulate</label>
+    <input type="number" id="games" value="100" min="1" max="10000" />
+    <div class="buttons">
+      <button id="runBtn">Launch Simulation</button>
+      <button id="cancelBtn" disabled>Cancel</button>
+    </div>
+    <div class="progressTrack"><div class="progressFill" id="progressFill"></div></div>
+    <div id="progressText"></div>
+  </div>
+
+  <div class="panel">
+    <h2>Results</h2>
+    <div id="results">No batch run yet.</div>
+    <div id="error"></div>
+  </div>
+</main>
+
+<script>
+  const runBtn = document.getElementById('runBtn');
+  const cancelBtn = document.getElementById('cancelBtn');
+  const progressFill = document.getElementById('progressFill');
+  const progressText = document.getElementById('progressText');
+  const resultsEl = document.getElementById('results');
+  const errorEl = document.getElementById('error');
+  const statusDot = document.getElementById('statusDot');
+  const statusText = document.getElementById('statusText');
+
+  function setStatus(mode, text) {
+    statusDot.className = 'dot ' + mode;
+    statusText.textContent = text;
+  }
+
+  function pct(x) { return (x * 100).toFixed(1) + '%'; }
+
+  runBtn.addEventListener('click', () => {
+    const deckAText = document.getElementById('deckA').value;
+    const deckBText = document.getElementById('deckB').value;
+    const games = Number(document.getElementById('games').value) || 100;
+
+    errorEl.textContent = '';
+    resultsEl.textContent = 'Running...';
+    progressFill.style.width = '0%';
+    progressText.textContent = '';
+    runBtn.disabled = true;
+    cancelBtn.disabled = false;
+    setStatus('busy', 'RUNNING');
+
+    window.sim.run(deckAText, deckBText, games);
+  });
+
+  cancelBtn.addEventListener('click', () => {
+    window.sim.cancel();
+    setStatus('alert', 'CANCELLED');
+    runBtn.disabled = false;
+    cancelBtn.disabled = true;
+  });
+
+  window.sim.onProgress(({ completed, games, elapsedMs }) => {
+    const fraction = completed / games;
+    progressFill.style.width = (fraction * 100).toFixed(1) + '%';
+    const etaMs = completed > 0 ? (elapsedMs / completed) * (games - completed) : 0;
+    progressText.textContent =
+      `${completed} / ${games} games — elapsed ${(elapsedMs / 1000).toFixed(1)}s — ETA ${(etaMs / 1000).toFixed(1)}s`;
+  });
+
+  window.sim.onResult((stats) => {
+    runBtn.disabled = false;
+    cancelBtn.disabled = true;
+    setStatus('ready', 'COMPLETE');
+    resultsEl.innerHTML = `
+      <table>
+        <tr><th></th><th>Deck A</th><th>Deck B</th></tr>
+        <tr><td>Win rate</td><td>${pct(stats.deckA.winRate)}</td><td>${pct(stats.deckB.winRate)}</td></tr>
+        <tr><td>Mulligan rate</td><td>${pct(stats.deckA.mulliganRate)}</td><td>${pct(stats.deckB.mulliganRate)}</td></tr>
+        <tr><td>Turn 1 play</td><td>${pct(stats.deckA.turn1PlayRate)}</td><td>${pct(stats.deckB.turn1PlayRate)}</td></tr>
+        <tr><td>Turn 2 play</td><td>${pct(stats.deckA.turn2PlayRate)}</td><td>${pct(stats.deckB.turn2PlayRate)}</td></tr>
+        <tr><td>Turn 3 play</td><td>${pct(stats.deckA.turn3PlayRate)}</td><td>${pct(stats.deckB.turn3PlayRate)}</td></tr>
+      </table>
+      <p>Games: ${stats.games} &nbsp; Timeouts: ${stats.timeouts} &nbsp; Avg length: ${stats.averageTurns.toFixed(1)} turns</p>
+    `;
+  });
+
+  window.sim.onError((message) => {
+    runBtn.disabled = false;
+    cancelBtn.disabled = true;
+    setStatus('alert', 'ERROR');
+    resultsEl.textContent = 'No batch run yet.';
+    errorEl.textContent = message;
+  });
+</script>
 </body>
 </html>
