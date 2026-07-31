@@ -46,6 +46,41 @@ function runPairings(state, player) {
   }
 }
 
+/**
+ * Uses each side's Activate-Main ability once per turn when it looks worthwhile. Card-specific
+ * since there's no shared calling convention between abilities yet (only 2 exist so far):
+ * Jaburo trades a spare (weakest, still-active Federation) Unit to rest a scarier enemy Unit
+ * before attacks; Ra Cailum has no real downside, so it grants Reduce 1 to its biggest threat
+ * whenever a friendly (Londo Bell) Unit is on the field.
+ */
+function runActivations(state, playerIdx) {
+  const player = state.players[playerIdx];
+  const opponent = state.players[1 - playerIdx];
+  const base = player.base;
+  if (!base || base.rested || !base.def.effects || !base.def.effects.activateMain) return;
+
+  if (base.def.number === 'GD04-122') {
+    const restUnit = player.battleArea
+      .filter((u) => u !== base && !u.rested && (u.def.traits || []).includes('Earth Federation'))
+      .sort((a, b) => getAP(a) - getAP(b))[0];
+    if (!restUnit) return;
+    const target = opponent.battleArea
+      .filter((u) => !u.rested && (u.def.level || 0) <= 3 && getAP(u) > getAP(restUnit))
+      .sort((a, b) => getAP(b) - getAP(a))[0];
+    if (!target) return;
+    base.def.effects.activateMain(state, player, base, { restUnit, target });
+    return;
+  }
+
+  if (base.def.number === 'GD05-125') {
+    const target = player.battleArea
+      .filter((u) => (u.def.traits || []).includes('Londo Bell'))
+      .sort((a, b) => getAP(b) - getAP(a))[0];
+    if (!target) return;
+    base.def.effects.activateMain(state, player, base, { target });
+  }
+}
+
 /** Prefers a rested enemy Unit it kills without dying itself; otherwise swings at the player. */
 function chooseAttackTarget(opponent, attacker) {
   const attackerAP = getAP(attacker);
@@ -98,7 +133,8 @@ function runMainPhase(state, playerIdx, hooks = defaultHooks()) {
   const player = state.players[playerIdx];
   runDeploys(state, player);
   runPairings(state, player);
+  runActivations(state, playerIdx);
   runAttacks(state, playerIdx, hooks);
 }
 
-module.exports = { decideMulligan, runMainPhase, defaultHooks };
+module.exports = { decideMulligan, runMainPhase, runActivations, defaultHooks };

@@ -1,4 +1,4 @@
-const { dealDamage, getRemainingHP, recoverHP } = require('../rules/management');
+const { dealDamage, getAP, getRemainingHP, recoverHP } = require('../rules/management');
 const { deployUnit, becomeBase } = require('../rules/actions');
 const { drawCard } = require('../rules/phases');
 const { resolveUnitBattleDamage } = require('../rules/combat');
@@ -210,18 +210,25 @@ function nuGundam020Deploy(state, player) {
 // <Breach 5> (see card data). [When Paired] You may choose 3 (Londo Bell) cards from your trash.
 // Exile them. If you do, choose 1 enemy Unit; begin a battle between this Unit and it, only
 // performing the damage step (no rest/block/action -- reuses the same damage-exchange rules).
+// (Heuristic: only worth burning 3 trashed cards for a favorable/safe kill, same bar as a normal
+// attack decision -- picks the best such kill if a hook is given, else finds one unassisted.)
 function nuGundam017WhenPaired(state, player, unit, context) {
   const londoBellCards = player.trash.filter((c) => (c.def.traits || []).includes('Londo Bell'));
   if (londoBellCards.length < 3) return;
   const opponent = opponentOf(state, player);
-  if (opponent.battleArea.length === 0) return;
+
+  const unitAP = getAP(unit);
+  const isFavorableKill = (u) => unitAP >= getRemainingHP(u) && getAP(u) < getRemainingHP(unit);
+  const target =
+    context.hooks && context.hooks.chooseUnit
+      ? context.hooks.chooseUnit(opponent.battleArea.filter(isFavorableKill))
+      : opponent.battleArea.find(isFavorableKill);
+  if (!target) return;
 
   for (const card of londoBellCards.slice(0, 3)) {
     player.trash.splice(player.trash.indexOf(card), 1);
     player.removal.push(card);
   }
-  const target =
-    context.hooks && context.hooks.chooseUnit ? context.hooks.chooseUnit(opponent.battleArea) : opponent.battleArea[0];
   resolveUnitBattleDamage(state, player, opponent, unit, target, {});
 }
 
