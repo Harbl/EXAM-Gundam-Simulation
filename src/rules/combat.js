@@ -109,6 +109,7 @@ function resolveUnitBattleDamage(state, attackingPlayer, defendingPlayer, attack
 
   if (keywords.firstStrike) {
     dealDamage(defender, attackerAP);
+    fireCardEffect(state, attackingPlayer, attacker, 'dealsBattleDamage', { defender });
     const defenderDied = destroyAndFireEffect(state, defendingPlayer, defender);
     if (defenderDied) {
       if (keywords.breach) applyBreach(state, defendingPlayer, keywords.breach, hooks);
@@ -122,6 +123,7 @@ function resolveUnitBattleDamage(state, attackingPlayer, defendingPlayer, attack
 
   // Simultaneous mutual damage (8-5-3-2).
   dealDamage(defender, attackerAP);
+  fireCardEffect(state, attackingPlayer, attacker, 'dealsBattleDamage', { defender });
   dealDamage(attacker, defenderAP);
   const defenderDied = destroyAndFireEffect(state, defendingPlayer, defender);
   destroyAndFireEffect(state, attackingPlayer, attacker);

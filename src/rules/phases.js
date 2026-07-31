@@ -13,6 +13,7 @@ function runStartPhase(state) {
     player.base.activationsUsed = {};
   }
   for (const resource of player.resourceArea) resource.rested = false;
+  player.specialMoveActivatedThisTurn = false; // Master Asia GD05-089's "activated a (Special Move) Command this turn" check
   triggerEvent(state, 'startOfTurn', {});
 }
 

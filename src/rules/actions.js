@@ -64,4 +64,14 @@ function pairPilot(state, player, unit, pilotInstance) {
   return unit;
 }
 
-module.exports = { deployUnit, deployBase, becomeBase, playCommand, pairPilot, matchesLinkCondition };
+/**
+ * Pairs a card sitting in the trash (e.g. Cyclone Punch GD05-121: "you may pair this card from your
+ * trash with one of your (MF) Units") rather than one from hand.
+ */
+function pairPilotFromTrash(state, player, unit, trashInstance) {
+  const idx = player.trash.indexOf(trashInstance);
+  if (idx !== -1) player.trash.splice(idx, 1);
+  return pairPilot(state, player, unit, trashInstance);
+}
+
+module.exports = { deployUnit, deployBase, becomeBase, playCommand, pairPilot, pairPilotFromTrash, matchesLinkCondition };

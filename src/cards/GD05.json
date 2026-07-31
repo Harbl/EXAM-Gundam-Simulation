@@ -220,5 +220,89 @@
     "hpBonus": 1,
     "traits": ["Gundam Fighter", "Shuffle Alliance"],
     "effectRefs": { "burst": "domonKasshuBurst", "whenPaired": "domonKasshuWhenPaired" }
+  },
+  {
+    "number": "GD05-005",
+    "name": "Strike Rouge (Ootori)",
+    "type": "unit",
+    "color": "blue",
+    "level": 4,
+    "cost": 3,
+    "ap": 3,
+    "hp": 4,
+    "traits": ["Orb"],
+    "keywords": { "blocker": true }
+  },
+  {
+    "number": "GD05-010",
+    "name": "Kira's Strike Rouge",
+    "type": "unit",
+    "color": "blue",
+    "level": 4,
+    "cost": 2,
+    "ap": 3,
+    "hp": 4,
+    "traits": ["Orb"],
+    "linkCondition": "Kira Yamato"
+  },
+  {
+    "number": "GD05-089",
+    "name": "Master Asia",
+    "type": "pilot",
+    "color": "red",
+    "level": 6,
+    "cost": 1,
+    "apBonus": 2,
+    "hpBonus": 2,
+    "traits": ["Gundam Fighter"],
+    "effectRefs": { "burst": "masterAsiaBurst", "attack": "masterAsiaAttack" }
+  },
+  {
+    "number": "GD05-121",
+    "name": "Cyclone Punch",
+    "type": "command",
+    "color": "white",
+    "level": 3,
+    "cost": 1,
+    "traits": ["Special Move"],
+    "apBonus": 1,
+    "hpBonus": 1,
+    "pairableFromTrash": "MF",
+    "effectRefs": { "command": "cyclonePunchCommand" }
+  },
+  {
+    "number": "GD05-120",
+    "name": "Shining Finger",
+    "type": "command",
+    "color": "white",
+    "level": 4,
+    "cost": 1,
+    "traits": ["Shuffle Alliance", "Special Move"],
+    "effectRefs": { "command": "shiningFingerCommand", "burst": "shiningFingerBurst" }
+  },
+  {
+    "number": "GD05-128",
+    "name": "Gundam Fight",
+    "type": "base",
+    "color": "white",
+    "level": 3,
+    "cost": 1,
+    "ap": 0,
+    "hp": 5,
+    "traits": ["Stronghold"],
+    "effectRefs": { "burst": "gundamFightBurst", "deploy": "gundamFightDeploy", "activateMain": "gundamFightActivateMain" }
+  },
+  {
+    "number": "GD05-050",
+    "name": "Gundam Exia Repair",
+    "type": "unit",
+    "color": "purple",
+    "level": 2,
+    "cost": 1,
+    "ap": 2,
+    "hp": 1,
+    "traits": ["CB", "GN Drive"],
+    "linkCondition": "Setsuna F. Seiei",
+    "effectRefs": { "dealsBattleDamage": "gundamExiaRepairDealsBattleDamage", "destroyed": "gundamExiaRepairDestroyed" }
   }
 ]

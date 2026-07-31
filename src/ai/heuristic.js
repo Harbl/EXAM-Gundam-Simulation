@@ -1,5 +1,5 @@
 const { canAfford, payCost } = require('../rules/cost');
-const { deployUnit, deployBase, playCommand, pairPilot, matchesLinkCondition } = require('../rules/actions');
+const { deployUnit, deployBase, playCommand, pairPilot, pairPilotFromTrash, matchesLinkCondition } = require('../rules/actions');
 const { getAP, getKeywords, getRemainingHP } = require('../rules/management');
 const { resolveAttack } = require('../rules/combat');
 
@@ -37,7 +37,15 @@ function runCommands(state, player) {
 
     payCost(player, choice.def);
     player.hand.splice(player.hand.indexOf(choice), 1);
-    playCommand(state, player, choice.def);
+    const trashed = playCommand(state, player, choice.def);
+
+    // e.g. Cyclone Punch GD05-121: "you may pair this card from your trash with one of your (MF) Units."
+    if (trashed.def.pairableFromTrash) {
+      const target = player.battleArea.find(
+        (u) => !u.pilot && !u.def.cannotBePaired && (u.def.traits || []).includes(trashed.def.pairableFromTrash)
+      );
+      if (target) pairPilotFromTrash(state, player, target, trashed);
+    }
   }
 }
 

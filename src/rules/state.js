@@ -29,7 +29,8 @@ function createPlayer(id) {
     shields: [],
     trash: [],
     removal: [],
-    defeated: false
+    defeated: false,
+    specialMoveActivatedThisTurn: false
   };
 }
 

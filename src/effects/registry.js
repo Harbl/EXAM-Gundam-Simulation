@@ -1,4 +1,4 @@
-const { dealDamage, getAP, getRemainingHP, recoverHP, removeFromField } = require('../rules/management');
+const { dealDamage, getAP, getHP, getRemainingHP, recoverHP, removeFromField } = require('../rules/management');
 const { deployUnit, becomeBase } = require('../rules/actions');
 const { drawCard } = require('../rules/phases');
 const { resolveUnitBattleDamage, applyBreach } = require('../rules/combat');
@@ -453,6 +453,7 @@ function airframeSeizureCommand(state, player) {
 // [Burst] Activate this card's Main. [Main/Action] Choose 1 enemy Unit. Deal 2 damage to it. Then,
 // if you have a Unit with "Master Gundam" in its card name in play, draw 1.
 function darknessFingerCommand(state, player, instance, context) {
+  player.specialMoveActivatedThisTurn = true;
   const opponent = opponentOf(state, player);
   const target = context.hooks && context.hooks.chooseUnit
     ? context.hooks.chooseUnit(opponent.battleArea)
@@ -558,6 +559,145 @@ function domonKasshuWhenPaired(state, player) {
   }
 }
 
+// --- Victory Gundam GD04-011 ---
+// [Destroyed] If another friendly (League Militaire) Unit is in play, deploy 1 [Parts] token
+// (shares the same token as Üso Ewin/Reineforce Jr., defined further below).
+function victoryGundamGD04011Destroyed(state, player) {
+  const hasOtherLeagueMilitaire = player.battleArea.some((u) => (u.def.traits || []).includes('League Militaire'));
+  if (!hasOtherLeagueMilitaire) return;
+  deployUnit(state, player, PARTS_TOKEN);
+}
+
+// --- Unforeseen Incident ST01-014 (Command) ---
+// [Burst] Activate this card's Main. [Main/Action] Choose 1 enemy Unit. It gets AP-3 during this turn.
+function unforeseenIncidentCommand(state, player, instance, context) {
+  const opponent = opponentOf(state, player);
+  const target = context.hooks && context.hooks.chooseUnit
+    ? context.hooks.chooseUnit(opponent.battleArea)
+    : [...opponent.battleArea].sort((a, b) => getAP(b) - getAP(a))[0];
+  if (!target) return;
+  target.buffs.push({ ap: -3, scope: 'turn' });
+}
+function unforeseenIncidentBurst(state, player, instance, context) {
+  unforeseenIncidentCommand(state, player, instance, context);
+}
+
+// --- Master Asia GD05-089 (Pilot) ---
+// [Burst] Add this card to your hand. If there are 3+ (MF) cards in your trash, you may deploy it
+// as an AP3/HP3 Unit instead (don't treat it as a Pilot). [During Link][Attack] If you have
+// activated a (Special Move) Command card's Main/Action this turn, choose 1 enemy Unit, deal 2.
+function masterAsiaBurst(state, player, instance) {
+  const mfInTrash = player.trash.filter((c) => (c.def.traits || []).includes('MF')).length;
+  if (mfInTrash < 3) {
+    player.hand.push(instance);
+    return;
+  }
+  instance.def = Object.assign({}, instance.def, { type: 'unit', ap: 3, hp: 3 });
+  instance.turnDeployed = state.turnNumber;
+  player.battleArea.push(instance);
+}
+function masterAsiaAttack(state, player, unit, context) {
+  if (!unit.isLinkUnit || !player.specialMoveActivatedThisTurn) return;
+  const opponent = opponentOf(state, player);
+  const target = context.hooks && context.hooks.chooseUnit
+    ? context.hooks.chooseUnit(opponent.battleArea)
+    : [...opponent.battleArea].sort((a, b) => getRemainingHP(a) - getRemainingHP(b))[0];
+  if (target) dealDamage(target, 2);
+}
+
+// --- Cyclone Punch GD05-121 (Command, Special Move; pairable from trash as a Pilot) ---
+// [Main] Choose 1 enemy Unit. It gets AP-2 during this turn. After activating this card's Main,
+// you may pair this card from your trash with one of your (MF) Units (the +1/+1 Chibodee Crocket
+// pairing itself is handled by the AI's runCommands via the shared `pairPilotFromTrash` helper).
+function cyclonePunchCommand(state, player, instance, context) {
+  player.specialMoveActivatedThisTurn = true;
+  const opponent = opponentOf(state, player);
+  const target = context.hooks && context.hooks.chooseUnit
+    ? context.hooks.chooseUnit(opponent.battleArea)
+    : [...opponent.battleArea].sort((a, b) => getAP(b) - getAP(a))[0];
+  if (target) target.buffs.push({ ap: -2, scope: 'turn' });
+}
+
+// --- Shining Finger GD05-120 (Command, Special Move) ---
+// [Burst] Add this card to your hand. [Main/Action] Choose 1 enemy Unit with 4 or less HP. Rest it.
+// Then, you may choose 1 of your Units with "Shining Gundam" in its card name; it gets First Strike.
+function shiningFingerBurst(state, player, instance) {
+  player.hand.push(instance);
+}
+function shiningFingerCommand(state, player, instance, context) {
+  player.specialMoveActivatedThisTurn = true;
+  const opponent = opponentOf(state, player);
+  const candidates = opponent.battleArea.filter((u) => getRemainingHP(u) <= 4);
+  const target = context.hooks && context.hooks.chooseUnit
+    ? context.hooks.chooseUnit(candidates)
+    : candidates.sort((a, b) => getAP(b) - getAP(a))[0];
+  if (!target) return;
+  target.rested = true;
+  const shiningGundam = player.battleArea.find((u) => (u.def.name || '').includes('Shining Gundam'));
+  if (shiningGundam) shiningGundam.buffs.push({ keyword: 'firstStrike', scope: 'turn' });
+}
+
+// --- Gundam Fight GD05-128 (Base, Stronghold) ---
+// [Burst] Deploy this card. [Deploy] Add 1 of your Shields to your hand. [Activate*Main] Rest this
+// Base: if a friendly (MF) Link Unit is in play, choose 1 friendly Unit. It gets AP+2 this turn.
+function gundamFightBurst(state, player, instance) {
+  becomeBase(state, player, instance);
+}
+function gundamFightDeploy(state, player) {
+  if (player.shields.length > 0) player.hand.push(player.shields.shift());
+}
+function gundamFightActivateMain(state, player, instance, context) {
+  if (instance.rested) return false;
+  const hasMfLink = player.battleArea.some((u) => u.isLinkUnit && (u.def.traits || []).includes('MF'));
+  if (!hasMfLink) return false;
+  const target = context.target;
+  if (!target) return false;
+  instance.rested = true;
+  target.buffs.push({ ap: 2, scope: 'turn' });
+  return true;
+}
+
+// --- Gundam Exia Repair GD05-050 ---
+// When this Unit deals battle damage to an enemy Unit that is Lv.4 or lower with no paired Pilot,
+// destroy that enemy Unit outright (modeled as topping up its damage to lethal, so the engine's
+// normal destroy/Breach/destroysEnemy chain still fires exactly as any other kill would).
+// [Destroyed] Place the top 2 cards of your deck into your trash.
+function gundamExiaRepairDealsBattleDamage(state, player, unit, context) {
+  const defender = context.defender;
+  if (!defender || defender.pilot) return;
+  if ((defender.def.level || 0) > 4) return;
+  defender.damage = getHP(defender);
+}
+function gundamExiaRepairDestroyed(state, player) {
+  player.trash.push(...player.deck.splice(0, 2));
+}
+
+// --- Gundam Barbatos 1st Form GD02-054 ---
+// [Attack] If this Unit is damaged, draw 1.
+function gundamBarbatos1stFormAttack(state, player, unit) {
+  if (unit.damage > 0) drawCard(state, player);
+}
+
+// --- Gundam Barbatos Adapt GD03-056 (Deploy) & Mikazuki Augus ST05-010 (When Paired) share text ---
+// Choose 1 of your Units and 1 enemy Unit. Deal 1 damage to them.
+function gundamBarbatosAdaptDeploy(state, player, instance, context) {
+  const opponent = opponentOf(state, player);
+  const friendlyTarget = context.hooks && context.hooks.chooseUnit
+    ? context.hooks.chooseUnit(player.battleArea)
+    : [...player.battleArea].sort((a, b) => getRemainingHP(b) - getRemainingHP(a))[0];
+  const enemyTarget = context.hooks && context.hooks.chooseUnit
+    ? context.hooks.chooseUnit(opponent.battleArea)
+    : [...opponent.battleArea].sort((a, b) => getRemainingHP(a) - getRemainingHP(b))[0];
+  if (friendlyTarget) dealDamage(friendlyTarget, 1);
+  if (enemyTarget) dealDamage(enemyTarget, 1);
+}
+function mikazukiAugusBurst(state, player, instance) {
+  player.hand.push(instance);
+}
+function mikazukiAugusWhenPaired(state, player, unit, context) {
+  gundamBarbatosAdaptDeploy(state, player, unit, context);
+}
+
 module.exports = {
   guntankDeploy,
   zakuIIAttackBuff,
@@ -609,5 +749,22 @@ module.exports = {
   shiningGundam066Attack,
   masterGundamAttack,
   domonKasshuBurst,
-  domonKasshuWhenPaired
+  domonKasshuWhenPaired,
+  victoryGundamGD04011Destroyed,
+  unforeseenIncidentCommand,
+  unforeseenIncidentBurst,
+  masterAsiaBurst,
+  masterAsiaAttack,
+  cyclonePunchCommand,
+  shiningFingerBurst,
+  shiningFingerCommand,
+  gundamFightBurst,
+  gundamFightDeploy,
+  gundamFightActivateMain,
+  gundamExiaRepairDealsBattleDamage,
+  gundamExiaRepairDestroyed,
+  gundamBarbatos1stFormAttack,
+  gundamBarbatosAdaptDeploy,
+  mikazukiAugusBurst,
+  mikazukiAugusWhenPaired
 };

@@ -86,5 +86,29 @@
     "hp": 5,
     "traits": ["League Militaire", "Warship"],
     "effectRefs": { "burst": "reineforceJrBurst", "deploy": "reineforceJrDeploy" }
+  },
+  {
+    "number": "GD04-011",
+    "name": "Victory Gundam",
+    "type": "unit",
+    "color": "blue",
+    "level": 3,
+    "cost": 2,
+    "ap": 3,
+    "hp": 2,
+    "traits": ["League Militaire", "Victory Type"],
+    "effectRefs": { "destroyed": "victoryGundamGD04011Destroyed" }
+  },
+  {
+    "number": "GD04-077",
+    "name": "Flat (Militia)",
+    "type": "unit",
+    "color": "blue",
+    "level": 3,
+    "cost": 2,
+    "ap": 2,
+    "hp": 4,
+    "traits": ["Militia"],
+    "keywords": { "blocker": true }
   }
 ]

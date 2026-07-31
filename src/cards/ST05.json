@@ -1,0 +1,14 @@
+[
+  {
+    "number": "ST05-010",
+    "name": "Mikazuki Augus",
+    "type": "pilot",
+    "color": "purple",
+    "level": 4,
+    "cost": 1,
+    "apBonus": 2,
+    "hpBonus": 1,
+    "traits": ["Tekkadan", "Alaya-Vijnana"],
+    "effectRefs": { "burst": "mikazukiAugusBurst", "whenPaired": "mikazukiAugusWhenPaired" }
+  }
+]

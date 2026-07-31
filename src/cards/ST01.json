@@ -35,5 +35,14 @@
     "traits": ["Earth Federation", "White Base Team"],
     "keywords": { "repair": 2 },
     "effectRefs": { "startOfTurn": "gundamDuringPairStartOfTurn" }
+  },
+  {
+    "number": "ST01-014",
+    "name": "Unforeseen Incident",
+    "type": "command",
+    "color": "blue",
+    "level": 3,
+    "cost": 1,
+    "effectRefs": { "command": "unforeseenIncidentCommand", "burst": "unforeseenIncidentBurst" }
   }
 ]
