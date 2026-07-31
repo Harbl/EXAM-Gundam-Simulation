@@ -11,10 +11,13 @@ function opponentOf(state, player) {
 
 // --- Guntank GD01-008 ---------------------------------------------------
 // [Deploy] Choose 1 rested enemy Unit. Deal 1 damage to it.
+// (Heuristic default: the lowest-remaining-HP candidate, for the best shot at a kill/chip value.)
 function guntankDeploy(state, player, instance, context) {
   const candidates = opponentOf(state, player).battleArea.filter((u) => u.rested);
   if (candidates.length === 0) return;
-  const target = context.hooks && context.hooks.chooseUnit ? context.hooks.chooseUnit(candidates) : candidates[0];
+  const target = context.hooks && context.hooks.chooseUnit
+    ? context.hooks.chooseUnit(candidates)
+    : candidates.sort((a, b) => getRemainingHP(a) - getRemainingHP(b))[0];
   dealDamage(target, 1);
 }
 
@@ -68,13 +71,16 @@ function charAznableAttack(state, player, unit) {
 
 // --- Amuro Ray ST01-010 (Pilot) --------------------------------------------
 // [Burst] Add this card to your hand. [When Paired] Choose 1 enemy Unit with 5 or less HP. Rest it.
+// (Heuristic default: the highest-AP eligible candidate -- neutralize the biggest threat.)
 function amuroRayBurst(state, player, instance) {
   player.hand.push(instance);
 }
 function amuroRayWhenPaired(state, player, unit, context) {
   const candidates = opponentOf(state, player).battleArea.filter((u) => getRemainingHP(u) <= 5);
   if (candidates.length === 0) return;
-  const target = context.hooks && context.hooks.chooseUnit ? context.hooks.chooseUnit(candidates) : candidates[0];
+  const target = context.hooks && context.hooks.chooseUnit
+    ? context.hooks.chooseUnit(candidates)
+    : candidates.sort((a, b) => getAP(b) - getAP(a))[0];
   target.rested = true;
 }
 

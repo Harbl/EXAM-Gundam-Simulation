@@ -4,7 +4,7 @@ const assert = require('node:assert/strict');
 const { lookupCard } = require('../src/cards/index');
 const { createInstance, createPlayer, createGame } = require('../src/rules/state');
 const { deployUnit, becomeBase, pairPilot } = require('../src/rules/actions');
-const { runActivations } = require('../src/ai/heuristic');
+const { runActivations, runCommands } = require('../src/ai/heuristic');
 
 test('runActivations uses Jaburo to rest a scarier enemy Unit, spending its weakest Federation Unit as cost', () => {
   const player = createPlayer(0);
@@ -43,6 +43,19 @@ test("runActivations uses Ra Cailum's Reduce 1 on its biggest friendly (Londo Be
   assert.equal(player.base.rested, true);
   assert.ok(bigLondoBell.buffs.some((b) => b.damageReduction === 1), 'protects the highest-AP Londo Bell Unit');
   assert.equal(smallLondoBell.buffs.length, 0);
+});
+
+test('runCommands plays an affordable Command from hand (e.g. A Show of Resolve draws 2), not just Units/Bases', () => {
+  const player = createPlayer(0);
+  const state = createGame(player, createPlayer(1));
+  for (let i = 0; i < 4; i++) player.resourceArea.push(createInstance({ number: 'R', type: 'resource', color: 'blue' }, 0));
+  for (let i = 0; i < 2; i++) player.deck.push(createInstance({ number: `D${i}`, type: 'unit' }, 0));
+  player.hand.push(createInstance(lookupCard('GD01-100'), 0));
+
+  runCommands(state, player);
+
+  assert.equal(player.hand.length, 2, 'the Command got played (trashed) and its 2 draws are now in hand');
+  assert.equal(player.trash.some((c) => c.def.number === 'GD01-100'), true);
 });
 
 test('Nu Gundam GD05-017 (When Paired) only burns its 3 trashed Londo Bell cards for a favorable/safe kill', () => {

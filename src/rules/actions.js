@@ -40,6 +40,14 @@ function becomeBase(state, player, instance) {
   return instance;
 }
 
+/** Plays a Command card (3-4): fires its effect, then trashes it once activation finishes (4-9-1). */
+function playCommand(state, player, def) {
+  const instance = createInstance(def, player.id);
+  fireCardEffect(state, player, instance, 'command', {});
+  player.trash.push(instance);
+  return instance;
+}
+
 /** Pairs a Pilot with a Unit (3-3, 3-2-6), firing When Paired and, if linked, When Linked (13-2-9/11). */
 function pairPilot(state, player, unit, pilotInstance) {
   if (unit.def.cannotBePaired) return unit;
@@ -56,4 +64,4 @@ function pairPilot(state, player, unit, pilotInstance) {
   return unit;
 }
 
-module.exports = { deployUnit, deployBase, becomeBase, pairPilot, matchesLinkCondition };
+module.exports = { deployUnit, deployBase, becomeBase, playCommand, pairPilot, matchesLinkCondition };

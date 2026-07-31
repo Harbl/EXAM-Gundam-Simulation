@@ -1,5 +1,5 @@
 const { canAfford, payCost } = require('../rules/cost');
-const { deployUnit, deployBase, pairPilot, matchesLinkCondition } = require('../rules/actions');
+const { deployUnit, deployBase, playCommand, pairPilot, matchesLinkCondition } = require('../rules/actions');
 const { getAP, getKeywords, getRemainingHP } = require('../rules/management');
 const { resolveAttack } = require('../rules/combat');
 
@@ -25,6 +25,19 @@ function runDeploys(state, player) {
     player.hand.splice(player.hand.indexOf(choice), 1);
     if (choice.def.type === 'unit') deployUnit(state, player, choice.def);
     else deployBase(state, player, choice.def);
+  }
+}
+
+/** Plays every affordable Command in hand, earliest in the main phase so any cards it draws are available for this turn's deploys/pairings too. */
+function runCommands(state, player) {
+  for (;;) {
+    const playable = player.hand.filter((c) => c.def.type === 'command' && canAfford(player, c.def));
+    const choice = playable[0];
+    if (!choice) return;
+
+    payCost(player, choice.def);
+    player.hand.splice(player.hand.indexOf(choice), 1);
+    playCommand(state, player, choice.def);
   }
 }
 
@@ -81,13 +94,13 @@ function runActivations(state, playerIdx) {
   }
 }
 
-/** Prefers a rested enemy Unit it kills without dying itself; otherwise swings at the player. */
+/** Prefers the scariest rested enemy Unit it can kill without dying itself; otherwise swings at the player. */
 function chooseAttackTarget(opponent, attacker) {
   const attackerAP = getAP(attacker);
-  const goodTrade = opponent.battleArea.find(
-    (u) => u.rested && attackerAP >= getRemainingHP(u) && getAP(u) < getRemainingHP(attacker)
-  );
-  return goodTrade ? { type: 'unit', instance: goodTrade } : { type: 'player' };
+  const goodTrades = opponent.battleArea
+    .filter((u) => u.rested && attackerAP >= getRemainingHP(u) && getAP(u) < getRemainingHP(attacker))
+    .sort((a, b) => getAP(b) - getAP(a));
+  return goodTrades[0] ? { type: 'unit', instance: goodTrades[0] } : { type: 'player' };
 }
 
 function runAttacks(state, playerIdx, hooks) {
@@ -131,10 +144,11 @@ function defaultHooks() {
 
 function runMainPhase(state, playerIdx, hooks = defaultHooks()) {
   const player = state.players[playerIdx];
+  runCommands(state, player);
   runDeploys(state, player);
   runPairings(state, player);
   runActivations(state, playerIdx);
   runAttacks(state, playerIdx, hooks);
 }
 
-module.exports = { decideMulligan, runMainPhase, runActivations, defaultHooks };
+module.exports = { decideMulligan, runMainPhase, runCommands, runActivations, defaultHooks };
