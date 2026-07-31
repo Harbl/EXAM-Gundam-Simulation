@@ -1,5 +1,5 @@
 const { dealDamage, getAP, getHP, getRemainingHP, getKeywords, isImmuneToEffectDestroy, recoverHP, removeFromField, destroyCard } = require('../rules/management');
-const { deployUnit, becomeBase } = require('../rules/actions');
+const { deployUnit, deployBase, becomeBase } = require('../rules/actions');
 const { drawCard } = require('../rules/phases');
 const { resolveUnitBattleDamage, applyBreach } = require('../rules/combat');
 const { fireCardEffect } = require('../rules/effects');
@@ -1353,6 +1353,164 @@ function andrewWaldfeldBurst(state, player, instance) {
   player.hand.push(instance);
 }
 
+// --- Rouei GD03-067 ---
+// [Deploy] You may choose 1 of your Units. Deal 1 damage to it. It gets AP+1 during this turn.
+function roueiDeploy(state, player, instance, context) {
+  if (player.battleArea.length === 0) return;
+  const target = context.hooks && context.hooks.chooseUnit
+    ? context.hooks.chooseUnit(player.battleArea)
+    : [...player.battleArea].sort((a, b) => getAP(b) - getAP(a))[0];
+  dealDamage(target, 1);
+  target.buffs.push({ ap: 1, scope: 'turn' });
+}
+
+// --- Gundam Flauros (Ryusei-Go) GD05-060 ---
+// [Deploy][Attack] Choose 1 enemy Unit that is Lv.2 or lower. Destroy it.
+function gundamFlaurosRyuseiGoDestroy(state, player, instance, context) {
+  const opponent = opponentOf(state, player);
+  const candidates = opponent.battleArea.filter((u) => (u.def.level || 0) <= 2 && !isImmuneToEffectDestroy(u));
+  const target = context.hooks && context.hooks.chooseUnit
+    ? context.hooks.chooseUnit(candidates)
+    : candidates.sort((a, b) => getAP(b) - getAP(a))[0];
+  if (!target) return;
+  const wasPaired = !!target.pilot;
+  destroyCard(state, opponent, target);
+  fireCardEffect(state, opponent, target, 'destroyed', { wasPaired });
+}
+
+// --- Akihiro Altland ST05-011 (Pilot) ---
+// [Burst] Add this card to your hand. [During Link] During your turn, when this Unit destroys an
+// enemy Unit with battle damage, choose 1 (Tekkadan) Unit card that is Lv.2 or lower from your
+// trash. Add it to your hand.
+function akihiroAltlandDestroysEnemy(state, player, unit, context) {
+  if (!unit.isLinkUnit) return;
+  const candidates = player.trash.filter(
+    (c) => c.def.type === 'unit' && (c.def.traits || []).includes('Tekkadan') && (c.def.level || 0) <= 2
+  );
+  const target = context.hooks && context.hooks.chooseCard
+    ? context.hooks.chooseCard(candidates)
+    : candidates.sort((a, b) => getAP(b) - getAP(a))[0];
+  if (!target) return;
+  player.trash.splice(player.trash.indexOf(target), 1);
+  player.hand.push(target);
+}
+
+// --- Shenlong Gundam GD01-029 ---
+// <Breach 4> (data). [Attack] Choose 1 enemy Unit with <Blocker> that is Lv.3 or lower. Destroy it.
+function shenlongGundamAttack(state, player, unit, context) {
+  const opponent = opponentOf(state, player);
+  const candidates = opponent.battleArea.filter(
+    (u) => getKeywords(u).blocker && (u.def.level || 0) <= 3 && !isImmuneToEffectDestroy(u)
+  );
+  const target = context.hooks && context.hooks.chooseUnit
+    ? context.hooks.chooseUnit(candidates)
+    : candidates.sort((a, b) => getAP(b) - getAP(a))[0];
+  if (!target) return;
+  const wasPaired = !!target.pilot;
+  destroyCard(state, opponent, target);
+  fireCardEffect(state, opponent, target, 'destroyed', { wasPaired });
+}
+
+// --- Altron Gundam GD03-018 ---
+// <Breach 5> (data). [Attack] Choose 1 enemy Unit with <Blocker>. Deal 5 damage to it.
+function altronGundamAttack(state, player, unit, context) {
+  const opponent = opponentOf(state, player);
+  const candidates = opponent.battleArea.filter((u) => getKeywords(u).blocker);
+  const target = context.hooks && context.hooks.chooseUnit
+    ? context.hooks.chooseUnit(candidates)
+    : candidates.sort((a, b) => getAP(b) - getAP(a))[0];
+  if (target) dealDamage(target, 5);
+}
+
+// --- Riddhe Marcenas GD04-098 (Pilot) ---
+// [Burst] Add this card to your hand. [During Link] When this Unit receives effect damage from an
+// enemy, reduce it by 2 (new pilot-side `duringLinkEffectDamageReduction` field, checked directly
+// in `dealDamage` alongside the existing permanent `effectDamageReduction` buff category).
+function riddheMarcenasBurst(state, player, instance) {
+  player.hand.push(instance);
+}
+
+// --- Unicorn Gundam 02 Banshee Norn (Destroy Mode) GD04-065 ---
+// Link Condition [Riddhe Marcenas]. [During Link][Activate*Main] Exile 3 blue cards from your
+// trash: set this Unit as active. It can't choose the enemy player as its attack target during
+// this turn. Engine-correct but not wired into the AI's runActivations -- spending a real trash
+// cost needs judgement the heuristic doesn't have, same reasoning as Archangel/White Base above.
+// [Attack] All enemy Units get AP-1 during this turn.
+function unicornBansheeNormActivateMain(state, player, instance) {
+  if (!instance.isLinkUnit || !instance.rested) return false;
+  const blueCards = player.trash.filter((c) => c.def.color === 'blue').slice(0, 3);
+  if (blueCards.length < 3) return false;
+  for (const c of blueCards) player.trash.splice(player.trash.indexOf(c), 1);
+  instance.rested = false;
+  instance.buffs.push({ cannotAttackPlayer: true, scope: 'turn' });
+  return true;
+}
+function unicornBansheeNormAttack(state, player) {
+  for (const u of opponentOf(state, player).battleArea) u.buffs.push({ ap: -1, scope: 'turn' });
+}
+
+// --- Presidential Office GD05-130 (Base) ---
+// [Burst] Deploy this card. [Deploy] Add 1 of your Shields to your hand (shared one-liners).
+// [Destroyed] You may exile this card from your trash. If you do, deploy 1 Base card with
+// "Presidential Office" in its card name from your hand.
+function presidentialOfficeDestroyed(state, player, instance) {
+  const idx = player.trash.indexOf(instance);
+  if (idx === -1) return;
+  const replacement = player.hand.find(
+    (c) => c.def.type === 'base' && (c.def.name || '').includes('Presidential Office')
+  );
+  if (!replacement) return;
+  player.trash.splice(idx, 1);
+  player.hand.splice(player.hand.indexOf(replacement), 1);
+  deployBase(state, player, replacement.def);
+}
+
+// --- Argama GD02-129 (Base) ---
+// [Burst] Deploy this card. [Deploy] Add 1 of your Shields to your hand. This Base can't receive
+// enemy effect damage (a permanent, un-scoped `effectDamageReduction: Infinity` buff -- same
+// mechanism as Silver Bullet's Reduce 3, just uncapped).
+function argamaDeploy(state, player, instance) {
+  simpleBaseDeployAddShield(state, player);
+  instance.buffs.push({ effectDamageReduction: Infinity });
+}
+
+// --- Hoka Kyoten Juzetsujin GD05-112 (Command, Special Move; pairable from trash as a Pilot) ---
+// [Main] Choose 1 of your (MF) Units without <Breach>. It gains <Breach 3> during this turn.
+function hokaKyotenJuzetsujinCommand(state, player, instance, context) {
+  const candidates = player.battleArea.filter(
+    (u) => (u.def.traits || []).includes('MF') && !getKeywords(u).breach
+  );
+  const target = context.hooks && context.hooks.chooseUnit
+    ? context.hooks.chooseUnit(candidates)
+    : candidates[0];
+  if (target) target.buffs.push({ breach: 3, scope: 'turn' });
+}
+
+// --- Graviton Hammer GD05-122 (Command, Special Move; pairable from trash as a Pilot) ---
+// [Main] Choose 1 enemy Unit that is Lv.4 or lower. Rest it.
+function gravitonHammerCommand(state, player, instance, context) {
+  const opponent = opponentOf(state, player);
+  const candidates = opponent.battleArea.filter((u) => (u.def.level || 0) <= 4);
+  const target = context.hooks && context.hooks.chooseUnit
+    ? context.hooks.chooseUnit(candidates)
+    : candidates.sort((a, b) => getAP(b) - getAP(a))[0];
+  if (target) target.rested = true;
+}
+
+// --- Dragon Gundam GD05-035 ---
+// Link Condition [Sai Saici]. [Once per Turn] When this Unit destroys an enemy shield-area card
+// with damage, choose 1 enemy Unit with 3 or less AP. Deal 2 damage to it.
+function dragonGundamDestroysShield(state, player, instance, context) {
+  if (instance.activationsUsed.dragonShieldTrigger) return;
+  instance.activationsUsed.dragonShieldTrigger = true;
+  const opponent = opponentOf(state, player);
+  const candidates = opponent.battleArea.filter((u) => getAP(u) <= 3);
+  const target = context.hooks && context.hooks.chooseUnit
+    ? context.hooks.chooseUnit(candidates)
+    : candidates.sort((a, b) => getRemainingHP(a) - getRemainingHP(b))[0];
+  if (target) dealDamage(target, 2);
+}
+
 module.exports = {
   guntankDeploy,
   zakuIIAttackBuff,
@@ -1478,5 +1636,18 @@ module.exports = {
   axisActivateMain,
   waldfeldsMurasameDestroyed,
   hashmalDestroysEnemy,
-  andrewWaldfeldBurst
+  andrewWaldfeldBurst,
+  roueiDeploy,
+  gundamFlaurosRyuseiGoDestroy,
+  akihiroAltlandDestroysEnemy,
+  shenlongGundamAttack,
+  altronGundamAttack,
+  riddheMarcenasBurst,
+  unicornBansheeNormActivateMain,
+  unicornBansheeNormAttack,
+  presidentialOfficeDestroyed,
+  argamaDeploy,
+  hokaKyotenJuzetsujinCommand,
+  gravitonHammerCommand,
+  dragonGundamDestroysShield
 };

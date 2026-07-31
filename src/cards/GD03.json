@@ -63,5 +63,31 @@
     "level": 3,
     "cost": 3,
     "effectRefs": { "burst": "improvedTechniqueBurst", "command": "improvedTechniqueCommand" }
+  },
+  {
+    "number": "GD03-018",
+    "name": "Altron Gundam",
+    "type": "unit",
+    "color": "green",
+    "level": 8,
+    "cost": 6,
+    "ap": 5,
+    "hp": 6,
+    "traits": ["G Team"],
+    "linkCondition": "Chang Wufei",
+    "keywords": { "breach": 5 },
+    "effectRefs": { "attack": "altronGundamAttack" }
+  },
+  {
+    "number": "GD03-067",
+    "name": "Rouei",
+    "type": "unit",
+    "color": "purple",
+    "level": 4,
+    "cost": 3,
+    "ap": 3,
+    "hp": 4,
+    "traits": ["Teiwaz", "Tekkadan"],
+    "effectRefs": { "deploy": "roueiDeploy" }
   }
 ]

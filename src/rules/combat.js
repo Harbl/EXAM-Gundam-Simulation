@@ -104,6 +104,18 @@ function resolveDamageStep(state, attackingPlayer, defendingPlayer, attacker, ta
  * defender kill). Factored out so effects like Nu Gundam GD05-017's "begin a battle ... only
  * perform the damage step" can reuse the same rules instead of re-declaring an attack.
  */
+/**
+ * Chang Wufei GD01-091's "during your turn, while this Unit has Breach, it can't receive battle
+ * damage from enemy Units with 3 or less AP" -- a Pilot-side static condition on return damage,
+ * checked only for the attacker side since that's the only battle-damage a Unit can take on its
+ * controller's own turn.
+ */
+function isImmuneToLowAPReturnDamage(attacker, incomingAP) {
+  const cap = attacker.pilot && attacker.pilot.def.breachDamageImmuneAPCap;
+  if (cap === undefined || !getKeywords(attacker).breach) return false;
+  return incomingAP <= cap;
+}
+
 function resolveUnitBattleDamage(state, attackingPlayer, defendingPlayer, attacker, defender, hooks) {
   const attackerAP = getAP(attacker);
   const defenderAP = getAP(defender);
@@ -118,7 +130,9 @@ function resolveUnitBattleDamage(state, attackingPlayer, defendingPlayer, attack
       fireDestroysEnemy(state, attackingPlayer, attacker);
       return; // 13-1-5-2: a Unit destroyed by First Strike deals no return damage.
     }
-    dealDamage(attacker, defenderAP, { isBattleDamage: true });
+    if (!isImmuneToLowAPReturnDamage(attacker, defenderAP)) {
+      dealDamage(attacker, defenderAP, { isBattleDamage: true });
+    }
     destroyAndFireEffect(state, attackingPlayer, attacker);
     return;
   }
@@ -126,7 +140,9 @@ function resolveUnitBattleDamage(state, attackingPlayer, defendingPlayer, attack
   // Simultaneous mutual damage (8-5-3-2).
   dealDamage(defender, attackerAP, { isBattleDamage: true });
   fireCardEffect(state, attackingPlayer, attacker, 'dealsBattleDamage', { defender });
-  dealDamage(attacker, defenderAP, { isBattleDamage: true });
+  if (!isImmuneToLowAPReturnDamage(attacker, defenderAP)) {
+    dealDamage(attacker, defenderAP, { isBattleDamage: true });
+  }
   const defenderDied = destroyAndFireEffect(state, defendingPlayer, defender);
   destroyAndFireEffect(state, attackingPlayer, attacker);
   if (defenderDied) {

@@ -49,5 +49,17 @@
     "hp": 2,
     "traits": ["Tekkadan"],
     "effectRefs": { "deploy": "ryuseiGoDeploy" }
+  },
+  {
+    "number": "GD02-129",
+    "name": "Argama",
+    "type": "base",
+    "color": "white",
+    "level": 3,
+    "cost": 1,
+    "ap": 0,
+    "hp": 5,
+    "traits": ["AEUG", "Warship"],
+    "effectRefs": { "burst": "simpleBurstBase", "deploy": "argamaDeploy" }
   }
 ]

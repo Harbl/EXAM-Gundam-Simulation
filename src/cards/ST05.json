@@ -46,5 +46,17 @@
     "hp": 5,
     "traits": ["Tekkadan", "Warship"],
     "effectRefs": { "burst": "isaribiBurst", "deploy": "isaribiDeploy", "activateMain": "isaribiActivateMain" }
+  },
+  {
+    "number": "ST05-011",
+    "name": "Akihiro Altland",
+    "type": "pilot",
+    "color": "purple",
+    "level": 3,
+    "cost": 1,
+    "apBonus": 1,
+    "hpBonus": 1,
+    "traits": ["Tekkadan", "Alaya-Vijnana"],
+    "effectRefs": { "burst": "reineforceJrBurst", "destroysEnemy": "akihiroAltlandDestroysEnemy" }
   }
 ]

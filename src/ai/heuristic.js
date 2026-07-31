@@ -113,7 +113,7 @@ function restEnemyByTrading(state, player, opponent, source, trait, enemyQualifi
  * player -- unless this Unit can't legally attack the player at all (e.g. Zoloat, [Parts] tokens),
  * in which case it only ever takes a favorable trade, or simply doesn't attack this turn.
  */
-function chooseAttackTarget(opponent, attacker) {
+function chooseAttackTarget(opponent, attacker, unitOnly = false) {
   const attackerAP = getAP(attacker);
   // Wing Gundam ST02-001: "may choose an active enemy Unit that is Lv.X or lower as its attack
   // target" -- normally only rested enemies are legal targets, so this widens the candidate pool.
@@ -127,7 +127,9 @@ function chooseAttackTarget(opponent, attacker) {
     )
     .sort((a, b) => getAP(b) - getAP(a));
   if (goodTrades[0]) return { type: 'unit', instance: goodTrades[0] };
-  return attacker.def.cannotAttackPlayer ? null : { type: 'player' };
+  if (unitOnly) return null;
+  const cannotAttackPlayer = attacker.def.cannotAttackPlayer || attacker.buffs.some((b) => b.cannotAttackPlayer);
+  return cannotAttackPlayer ? null : { type: 'player' };
 }
 
 function runAttacks(state, playerIdx, hooks) {
@@ -135,12 +137,16 @@ function runAttacks(state, playerIdx, hooks) {
   const opponent = state.players[1 - playerIdx];
   const attackers = player.battleArea.filter(
     (u) => u.def.type === 'unit' && !u.rested && !u.buffs.some((b) => b.cannotAttack)
-      && (u.isLinkUnit || u.turnDeployed !== state.turnNumber)
+      && (u.isLinkUnit || u.turnDeployed !== state.turnNumber || u.def.attackOnDeployRestedOnly)
   );
 
   for (const attacker of attackers) {
     if (state.winner !== null || attacker.rested) continue;
-    const target = chooseAttackTarget(opponent, attacker);
+    // Gundam Deathscythe Hell (EW) GD05-078: normally a freshly-deployed non-Link Unit can't
+    // attack this turn at all -- its own text carves out an exception, but only against a rested
+    // enemy Unit, never the player directly.
+    const onDeployTurn = !attacker.isLinkUnit && attacker.turnDeployed === state.turnNumber;
+    const target = chooseAttackTarget(opponent, attacker, onDeployTurn);
     if (target) resolveAttack(state, playerIdx, attacker, target, hooks);
   }
 }

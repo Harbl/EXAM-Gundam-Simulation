@@ -502,5 +502,81 @@
     "traits": ["Orb", "Coordinator"],
     "duringLinkRepair": 2,
     "effectRefs": { "burst": "andrewWaldfeldBurst" }
+  },
+  {
+    "number": "GD05-035",
+    "name": "Dragon Gundam",
+    "type": "unit",
+    "color": "red",
+    "level": 5,
+    "cost": 3,
+    "ap": 4,
+    "hp": 4,
+    "traits": ["MF", "Shuffle Alliance"],
+    "linkCondition": "Sai Saici",
+    "effectRefs": { "destroysShield": "dragonGundamDestroysShield" }
+  },
+  {
+    "number": "GD05-060",
+    "name": "Gundam Flauros (Ryusei-Go)",
+    "type": "unit",
+    "color": "purple",
+    "level": 5,
+    "cost": 4,
+    "ap": 5,
+    "hp": 3,
+    "traits": ["Tekkadan", "Gundam Frame"],
+    "effectRefs": { "deploy": "gundamFlaurosRyuseiGoDestroy", "attack": "gundamFlaurosRyuseiGoDestroy" }
+  },
+  {
+    "number": "GD05-078",
+    "name": "Gundam Deathscythe Hell (EW)",
+    "type": "unit",
+    "color": "white",
+    "level": 5,
+    "cost": 4,
+    "ap": 5,
+    "hp": 2,
+    "traits": ["G Team"],
+    "linkCondition": "Duo Maxwell",
+    "attackOnDeployRestedOnly": true
+  },
+  {
+    "number": "GD05-112",
+    "name": "Hoka Kyoten Juzetsujin",
+    "type": "command",
+    "color": "red",
+    "level": 4,
+    "cost": 1,
+    "traits": ["Gundam Fighter", "Shuffle Alliance", "Special Move"],
+    "apBonus": 2,
+    "hpBonus": 0,
+    "pairableFromTrash": "MF",
+    "effectRefs": { "command": "hokaKyotenJuzetsujinCommand" }
+  },
+  {
+    "number": "GD05-122",
+    "name": "Graviton Hammer",
+    "type": "command",
+    "color": "white",
+    "level": 4,
+    "cost": 1,
+    "traits": ["Gundam Fighter", "Shuffle Alliance", "Special Move"],
+    "apBonus": 0,
+    "hpBonus": 2,
+    "pairableFromTrash": "MF",
+    "effectRefs": { "command": "gravitonHammerCommand" }
+  },
+  {
+    "number": "GD05-130",
+    "name": "Presidential Office",
+    "type": "base",
+    "color": "white",
+    "level": 2,
+    "cost": 1,
+    "ap": 0,
+    "hp": 5,
+    "traits": ["Earth Sphere Unified Nation", "Stronghold"],
+    "effectRefs": { "burst": "simpleBurstBase", "deploy": "simpleBaseDeployAddShield", "destroyed": "presidentialOfficeDestroyed" }
   }
 ]

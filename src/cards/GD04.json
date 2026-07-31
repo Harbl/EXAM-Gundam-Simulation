@@ -167,5 +167,43 @@
     "level": 3,
     "cost": 1,
     "effectRefs": { "burst": "kindheartedBurst", "command": "kindheartedCommand" }
+  },
+  {
+    "number": "GD04-001",
+    "name": "Gundam",
+    "type": "unit",
+    "color": "blue",
+    "level": 6,
+    "cost": 4,
+    "ap": 6,
+    "hp": 3,
+    "traits": ["Earth Federation", "White Base Team"],
+    "linkCondition": "Amuro Ray"
+  },
+  {
+    "number": "GD04-065",
+    "name": "Unicorn Gundam 02 Banshee Norn (Destroy Mode)",
+    "type": "unit",
+    "color": "white",
+    "level": 7,
+    "cost": 5,
+    "ap": 5,
+    "hp": 5,
+    "traits": ["Earth Federation"],
+    "linkCondition": "Riddhe Marcenas",
+    "effectRefs": { "activateMain": "unicornBansheeNormActivateMain", "attack": "unicornBansheeNormAttack" }
+  },
+  {
+    "number": "GD04-098",
+    "name": "Riddhe Marcenas",
+    "type": "pilot",
+    "color": "white",
+    "level": 4,
+    "cost": 1,
+    "apBonus": 1,
+    "hpBonus": 2,
+    "traits": ["Earth Federation", "Newtype"],
+    "duringLinkEffectDamageReduction": 2,
+    "effectRefs": { "burst": "riddheMarcenasBurst" }
   }
 ]

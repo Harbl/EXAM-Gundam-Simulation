@@ -197,5 +197,32 @@
     "level": 3,
     "cost": 2,
     "effectRefs": { "burst": "battleOfAcesBurst", "command": "battleOfAcesCommand" }
+  },
+  {
+    "number": "GD01-029",
+    "name": "Shenlong Gundam",
+    "type": "unit",
+    "color": "green",
+    "level": 5,
+    "cost": 4,
+    "ap": 4,
+    "hp": 4,
+    "traits": ["Operation Meteor"],
+    "linkCondition": "Chang Wufei",
+    "keywords": { "breach": 4 },
+    "effectRefs": { "attack": "shenlongGundamAttack" }
+  },
+  {
+    "number": "GD01-091",
+    "name": "Chang Wufei",
+    "type": "pilot",
+    "color": "green",
+    "level": 4,
+    "cost": 1,
+    "apBonus": 2,
+    "hpBonus": 1,
+    "traits": ["Operation Meteor"],
+    "breachDamageImmuneAPCap": 3,
+    "effectRefs": { "burst": "reineforceJrBurst" }
   }
 ]

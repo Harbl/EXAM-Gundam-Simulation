@@ -38,7 +38,12 @@ function getKeywords(instance) {
     if (buff.keyword) granted[buff.keyword] = true;
   }
   const duringPair = instance.pilot ? instance.def.duringPairKeywords : null;
-  return Object.assign({}, instance.def.keywords, duringPair, instance.grantedKeywords, granted);
+  const merged = Object.assign({}, instance.def.keywords, duringPair, instance.grantedKeywords, granted);
+  // <Breach> is amount-based rather than boolean, so a temporary grant (e.g. Hoka Kyoten
+  // Juzetsujin GD05-112's "gains Breach 3 during this turn") sums onto the base amount instead.
+  const breachBuff = instance.buffs.reduce((sum, b) => sum + (b.breach || 0), 0);
+  if (breachBuff) merged.breach = (merged.breach || 0) + breachBuff;
+  return merged;
 }
 
 /**
@@ -53,6 +58,9 @@ function dealDamage(instance, amount, opts = {}) {
   let reduction = instance.buffs.reduce((sum, b) => sum + (b.damageReduction || 0), 0);
   if (!opts.isBattleDamage) {
     reduction += instance.buffs.reduce((sum, b) => sum + (b.effectDamageReduction || 0), 0);
+    if (instance.isLinkUnit && instance.pilot) {
+      reduction += instance.pilot.def.duringLinkEffectDamageReduction || 0;
+    }
   }
   const reduced = Math.max(0, amount - reduction);
   if (reduced <= 0) return;
