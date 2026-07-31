@@ -11,5 +11,32 @@
     "traits": ["Tekkadan", "Gundam Frame"],
     "linkCondition": "Mikazuki Augus",
     "effectRefs": { "deploy": "gundamBarbatosAdaptDeploy" }
+  },
+  {
+    "number": "GD03-001",
+    "name": "Gundam NT-1",
+    "type": "unit",
+    "color": "blue",
+    "level": 5,
+    "cost": 4,
+    "ap": 4,
+    "hp": 4,
+    "traits": ["Earth Federation"],
+    "linkCondition": "Christina Mackenzie/Amuro Ray",
+    "keywords": { "repair": 2 },
+    "effectRefs": { "whenPaired": "gundamNT1WhenPaired" }
+  },
+  {
+    "number": "GD03-050",
+    "name": "Gundam Barbatos Lupus",
+    "type": "unit",
+    "color": "purple",
+    "level": 7,
+    "cost": 6,
+    "ap": 5,
+    "hp": 5,
+    "traits": ["Tekkadan", "Gundam Frame"],
+    "linkCondition": "Mikazuki Augus",
+    "effectRefs": { "activateMain": "gundamBarbatosLupusActivateMain" }
   }
 ]

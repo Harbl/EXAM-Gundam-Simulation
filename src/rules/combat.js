@@ -1,5 +1,6 @@
 const {
   getAP,
+  getRemainingHP,
   getKeywords,
   dealDamage,
   destroyIfDead,
@@ -136,13 +137,25 @@ function resolveUnitBattleDamage(state, attackingPlayer, defendingPlayer, attack
 /**
  * Fires a "this Unit destroys an enemy Unit with battle damage" trigger (e.g. Amuro Ray GD05-085),
  * skipped if the attacker didn't survive to receive it. Also resolves any temporary "draw on kill"
- * grant (e.g. Strike Freedom GD05-002's Deploy), since that's not tied to any one card's own text.
+ * grant (e.g. Strike Freedom GD05-002's Deploy) and "rest an enemy on kill" grant (e.g. Penelope
+ * (Flight Form) GD04-002's Deploy), since those aren't tied to any one card's own text.
  */
 function fireDestroysEnemy(state, attackingPlayer, attacker) {
   if (!attackingPlayer.battleArea.includes(attacker)) return;
   fireCardEffect(state, attackingPlayer, attacker, 'destroysEnemy', {});
   const onKillDraw = attacker.buffs.reduce((sum, b) => sum + (b.onKillDraw || 0), 0);
   for (let i = 0; i < onKillDraw; i++) drawCard(state, attackingPlayer);
+  const attackerTraits = attacker.def.traits || [];
+  const hasTeamOnKillRestEnemy = attackingPlayer.battleArea.some((u) =>
+    u.buffs.some((b) => b.teamOnKillRestEnemy && attackerTraits.includes(b.teamOnKillRestEnemy))
+  );
+  if (hasTeamOnKillRestEnemy) {
+    const opponent = state.players.find((p) => p !== attackingPlayer);
+    const target = opponent.battleArea
+      .filter((u) => getRemainingHP(u) <= 5)
+      .sort((a, b) => getAP(b) - getAP(a))[0];
+    if (target) target.rested = true;
+  }
 }
 
 /** <Breach(amount)> (13-1-2): damages the enemy Base, or top Shield if there's no Base. */

@@ -327,5 +327,44 @@
     "linkCondition": "Üso Ewin",
     "keywords": { "repair": 2 },
     "effectRefs": { "activateMain": "v2GundamActivateMain" }
+  },
+  {
+    "number": "GD05-068",
+    "name": "Shining Gundam (Super Mode)",
+    "type": "unit",
+    "color": "white",
+    "level": 6,
+    "cost": 5,
+    "ap": 4,
+    "hp": 5,
+    "traits": ["MF", "Shuffle Alliance"],
+    "linkCondition": "Domon Kasshu",
+    "effectRefs": { "attack": "shiningGundamSuperModeAttack" }
+  },
+  {
+    "number": "GD05-049",
+    "name": "Sazabi",
+    "type": "unit",
+    "color": "purple",
+    "level": 7,
+    "cost": 5,
+    "ap": 5,
+    "hp": 5,
+    "traits": ["Neo Zeon"],
+    "linkCondition": "Char Aznable",
+    "keywords": { "suppression": true },
+    "effectRefs": { "attack": "sazabiAttack" }
+  },
+  {
+    "number": "GD05-093",
+    "name": "Char Aznable",
+    "type": "pilot",
+    "color": "purple",
+    "level": 5,
+    "cost": 1,
+    "apBonus": 2,
+    "hpBonus": 2,
+    "traits": ["Neo Zeon", "Newtype"],
+    "effectRefs": { "burst": "charAznableGD05093Burst", "whenLinked": "charAznableGD05093WhenLinked" }
   }
 ]

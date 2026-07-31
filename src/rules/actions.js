@@ -6,7 +6,8 @@ function matchesLinkCondition(pilotDef, linkCondition) {
   if (!linkCondition) return false;
   const name = pilotDef.name || '';
   const traits = pilotDef.traits || [];
-  return name.includes(linkCondition) || traits.includes(linkCondition);
+  // Some cards link off either of two named Pilots (e.g. "Christina Mackenzie/Amuro Ray").
+  return linkCondition.split('/').some((cond) => name.includes(cond) || traits.includes(cond));
 }
 
 /** Deploys a Unit from a card def (3-2), firing its Deploy effect. Cost payment happens upstream. */

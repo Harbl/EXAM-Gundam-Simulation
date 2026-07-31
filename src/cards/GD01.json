@@ -127,5 +127,43 @@
     "hp": 6,
     "traits": ["Neo Zeon", "Stronghold"],
     "effectRefs": { "burst": "simpleBurstBase", "deploy": "simpleBaseDeployAddShield" }
+  },
+  {
+    "number": "GD01-044",
+    "name": "Kshatriya",
+    "type": "unit",
+    "color": "red",
+    "level": 5,
+    "cost": 4,
+    "ap": 5,
+    "hp": 4,
+    "traits": ["Neo Zeon"],
+    "linkCondition": "Marida Cruz",
+    "effectRefs": { "whenPaired": "kshatriyaWhenPaired" }
+  },
+  {
+    "number": "GD01-003",
+    "name": "Unicorn Gundam 02 Banshee (Destroy Mode)",
+    "type": "unit",
+    "color": "blue",
+    "level": 6,
+    "cost": 4,
+    "ap": 5,
+    "hp": 4,
+    "traits": ["Earth Federation"],
+    "linkCondition": "Christina Mackenzie/Amuro Ray",
+    "effectRefs": { "attack": "unicornBansheeDestroyModeAttack" }
+  },
+  {
+    "number": "GD01-093",
+    "name": "Marida Cruz",
+    "type": "pilot",
+    "color": "red",
+    "level": 4,
+    "cost": 1,
+    "apBonus": 2,
+    "hpBonus": 1,
+    "traits": ["Neo Zeon", "Cyber-Newtype"],
+    "effectRefs": { "burst": "maridaCruzBurst", "attack": "maridaCruzAttack" }
   }
 ]

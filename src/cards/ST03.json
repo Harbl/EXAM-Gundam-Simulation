@@ -34,5 +34,14 @@
     "hpBonus": 1,
     "traits": ["Zeon", "Newtype"],
     "effectRefs": { "attack": "charAznableAttack" }
+  },
+  {
+    "number": "ST03-013",
+    "name": "Close Combat",
+    "type": "command",
+    "color": "red",
+    "level": 2,
+    "cost": 2,
+    "effectRefs": { "command": "closeCombatCommand", "burst": "closeCombatBurst" }
   }
 ]

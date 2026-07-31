@@ -33,5 +33,21 @@
     "level": 4,
     "cost": 2,
     "effectRefs": { "command": "strikerPackCommand", "burst": "strikerPackBurst" }
+  },
+  {
+    "number": "ST04-015",
+    "name": "Archangel",
+    "type": "base",
+    "color": "white",
+    "level": 3,
+    "cost": 1,
+    "ap": 0,
+    "hp": 5,
+    "traits": ["Earth Alliance", "Warship"],
+    "effectRefs": {
+      "burst": "simpleBurstBase",
+      "deploy": "simpleBaseDeployAddShield",
+      "activateMain": "archangelActivateMain"
+    }
   }
 ]

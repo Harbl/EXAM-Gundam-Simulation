@@ -1,4 +1,4 @@
-const { dealDamage, getAP, getHP, getRemainingHP, recoverHP, removeFromField, destroyCard } = require('../rules/management');
+const { dealDamage, getAP, getHP, getRemainingHP, getKeywords, recoverHP, removeFromField, destroyCard } = require('../rules/management');
 const { deployUnit, becomeBase } = require('../rules/actions');
 const { drawCard } = require('../rules/phases');
 const { resolveUnitBattleDamage, applyBreach } = require('../rules/combat');
@@ -848,6 +848,212 @@ function strikerPackCommand(state, player, instance, context) {
   deployUnit(state, player, choice);
 }
 
+// --- Archangel ST04-015 (Base) ---
+// [Burst] Deploy this card. [Deploy] Add 1 of your Shields to your hand (both shared with
+// simpleBurstBase/simpleBaseDeployAddShield). [Activate*Main][Once per Turn] 2: Choose 1 friendly
+// Unit with <Blocker>. Set it as active. It can't attack during this turn. (Engine-correct, but
+// not wired into the AI's runActivations -- spending 2 resources to untap a Blocker mid-turn needs
+// real judgement about the board state, same reasoning as V2 Gundam's setActive ability above.)
+function archangelActivateMain(state, player, instance, context) {
+  if (instance.activationsUsed.setActive) return false;
+  const activeMatching = player.resourceArea.filter((r) => !r.rested);
+  if (activeMatching.length < 2) return false;
+  const target = context.target;
+  if (!target || !getKeywords(target).blocker) return false;
+  activeMatching[0].rested = true;
+  activeMatching[1].rested = true;
+  target.rested = false;
+  target.buffs.push({ cannotAttack: true, scope: 'turn' });
+  instance.activationsUsed.setActive = true;
+  return true;
+}
+
+// --- Gundam NT-1 GD03-001 ---
+// <Repair 2> (data). [When Paired] Choose 1 rested enemy Unit. Deal 1 damage to it. When this
+// effect destroys an enemy Unit, draw 1.
+function gundamNT1WhenPaired(state, player, unit, context) {
+  const opponent = opponentOf(state, player);
+  const candidates = opponent.battleArea.filter((u) => u.rested);
+  if (candidates.length === 0) return;
+  const target = context.hooks && context.hooks.chooseUnit
+    ? context.hooks.chooseUnit(candidates)
+    : candidates.sort((a, b) => getRemainingHP(a) - getRemainingHP(b))[0];
+  dealDamage(target, 1);
+  if (getRemainingHP(target) <= 0) {
+    const wasPaired = !!target.pilot;
+    destroyCard(state, opponent, target);
+    fireCardEffect(state, opponent, target, 'destroyed', { wasPaired });
+    drawCard(state, player);
+  }
+}
+
+// --- Penelope (Flight Form) GD04-002 ---
+// [Static] During your turn, all your (Earth Federation) Units get AP+1 (same turn-refreshed
+// pattern as Gundam ST01-001's During-Pair aura above, trait-filtered instead of paired-gated).
+// [Deploy] During this turn, when one of your (Earth Federation) Units destroys an enemy Unit with
+// battle damage, choose 1 enemy Unit with 5 or less HP and rest it. The grant lives as a turn-scoped
+// buff on Penelope's own instance (a "team trait" trigger, `teamOnKillRestEnemy: <trait>`) rather
+// than being stamped onto every current Unit, so it still covers Units deployed later the same turn
+// -- combat.js's fireDestroysEnemy checks for it generically.
+function penelopeFlightFormStartOfTurn(state, player, instance) {
+  if (state.players[state.activePlayerIdx] !== player) return;
+  for (const u of player.battleArea) {
+    if ((u.def.traits || []).includes('Earth Federation')) u.buffs.push({ ap: 1, scope: 'turn' });
+  }
+}
+function penelopeFlightFormDeploy(state, player, instance) {
+  instance.buffs.push({ teamOnKillRestEnemy: 'Earth Federation', scope: 'turn' });
+}
+
+// --- Shining Gundam (Super Mode) GD05-068 ---
+// If you've activated a (Special Move) Command's Main/Action this turn, this Unit gains
+// <Suppression> during this turn -- checked when it attacks, since that's the only point
+// Suppression is ever observable, so this reuses the existing specialMoveActivatedThisTurn flag
+// rather than building a full broadcast trigger for a single card. [During Link][Attack] AP+2
+// during this battle.
+function shiningGundamSuperModeAttack(state, player, unit) {
+  if (player.specialMoveActivatedThisTurn) unit.buffs.push({ keyword: 'suppression', scope: 'turn' });
+  if (unit.isLinkUnit) unit.buffs.push({ ap: 2, scope: 'battle' });
+}
+
+// --- Sazabi GD05-049 ---
+// <Suppression> (data). [Attack] You may choose 1 of your Units. Destroy it. If you do, your
+// opponent chooses 1 of their non-battling Units and destroys it. (Heuristic default: only worth
+// it when your weakest spare Unit is a worse loss than the opponent's biggest non-battling threat.)
+function sazabiAttack(state, player, unit, context) {
+  const ownCandidates = player.battleArea.filter((u) => u !== unit);
+  if (ownCandidates.length === 0) return;
+  const opponent = opponentOf(state, player);
+  const targetInstance = context.target && context.target.type === 'unit' ? context.target.instance : null;
+  const enemyCandidates = opponent.battleArea.filter((u) => u !== targetInstance);
+  if (enemyCandidates.length === 0) return;
+
+  const toSacrifice = [...ownCandidates].sort((a, b) => getRemainingHP(a) - getRemainingHP(b))[0];
+  const enemyTarget = [...enemyCandidates].sort((a, b) => getAP(b) - getAP(a))[0];
+  if (getAP(toSacrifice) + getRemainingHP(toSacrifice) >= getAP(enemyTarget) + getRemainingHP(enemyTarget)) return;
+
+  destroyCard(state, player, toSacrifice);
+  fireCardEffect(state, player, toSacrifice, 'destroyed', { wasPaired: !!toSacrifice.pilot });
+  destroyCard(state, opponent, enemyTarget);
+  fireCardEffect(state, opponent, enemyTarget, 'destroyed', { wasPaired: !!enemyTarget.pilot });
+}
+
+// --- Char Aznable GD05-093 (Pilot) ---
+// [Burst] Add this card to your hand. [When Linked] You may choose 1 (Neo Zeon) Base card from
+// your trash. Deploy it.
+function charAznableGD05093Burst(state, player, instance) {
+  player.hand.push(instance);
+}
+function charAznableGD05093WhenLinked(state, player, unit, context) {
+  const candidates = player.trash.filter((c) => c.def.type === 'base' && (c.def.traits || []).includes('Neo Zeon'));
+  if (candidates.length === 0) return;
+  const chosen = context.hooks && context.hooks.chooseCard ? context.hooks.chooseCard(candidates) : candidates[0];
+  player.trash.splice(player.trash.indexOf(chosen), 1);
+  becomeBase(state, player, chosen);
+}
+
+// --- Ryusei-Go (Graze Custom II) GD02-058 ---
+// [Deploy] Choose 1 of your Units. Deal 1 damage to it. If you do, draw 1. Then, discard 1.
+function ryuseiGoDeploy(state, player, instance, context) {
+  const target = context.hooks && context.hooks.chooseUnit
+    ? context.hooks.chooseUnit(player.battleArea)
+    : [...player.battleArea].sort((a, b) => getRemainingHP(b) - getRemainingHP(a))[0];
+  if (!target) return;
+  dealDamage(target, 1);
+  drawCard(state, player);
+  const toDiscard = [...player.hand].sort((a, b) => (b.def.cost || 0) - (a.def.cost || 0))[0];
+  if (toDiscard) {
+    player.hand.splice(player.hand.indexOf(toDiscard), 1);
+    player.trash.push(toDiscard);
+  }
+}
+
+// --- Gundam Barbatos Lupus GD03-050 ---
+// [Activate*Main] Choose 3 (Tekkadan)/(Teiwaz) Unit cards from your trash. Exile them. If you do,
+// choose 1 enemy Unit. Deal 2 damage to it. (Not once-per-turn per the card's own text, but not
+// wired into the AI's runActivations -- permanently exiling 3 trash Units is a real cost that needs
+// judgement, same reasoning as V2 Gundam/Gundam Barbatos Lupus-style abilities above.)
+function gundamBarbatosLupusActivateMain(state, player, instance, context) {
+  const candidates = player.trash.filter(
+    (c) => c.def.type === 'unit' && ((c.def.traits || []).includes('Tekkadan') || (c.def.traits || []).includes('Teiwaz'))
+  );
+  if (candidates.length < 3) return false;
+  const opponent = opponentOf(state, player);
+  const target = context.target || (opponent.battleArea.length
+    ? [...opponent.battleArea].sort((a, b) => getRemainingHP(a) - getRemainingHP(b))[0]
+    : null);
+  if (!target) return false;
+  for (const c of candidates.slice(0, 3)) {
+    player.trash.splice(player.trash.indexOf(c), 1);
+    player.removal.push(c);
+  }
+  dealDamage(target, 2);
+  return true;
+}
+
+// --- Kshatriya GD01-044 ---
+// [When Paired] (Cyber-Newtype)/(Newtype) Pilot: Choose 1 to 2 enemy Units. Deal 1 damage to them.
+function kshatriyaWhenPaired(state, player, unit, context) {
+  const pilot = context.pilot;
+  const traits = pilot ? pilot.def.traits || [] : [];
+  if (!traits.includes('Cyber-Newtype') && !traits.includes('Newtype')) return;
+  const opponent = opponentOf(state, player);
+  const targets = context.hooks && context.hooks.chooseUnits
+    ? context.hooks.chooseUnits(opponent.battleArea)
+    : [...opponent.battleArea].sort((a, b) => getRemainingHP(a) - getRemainingHP(b)).slice(0, 2);
+  for (const t of targets) dealDamage(t, 1);
+}
+
+// --- Unicorn Gundam 02 Banshee (Destroy Mode) GD01-003 ---
+// Link Condition [Christina Mackenzie]/[Amuro Ray]. [During Link][Attack] Choose 12 cards from your
+// trash. Return them to your deck and shuffle it. If you do, set this Unit as active. It gains
+// <First Strike> during this turn.
+function unicornBansheeDestroyModeAttack(state, player, unit, context) {
+  if (!unit.isLinkUnit) return;
+  if (player.trash.length < 12) return;
+  const chosen = context.hooks && context.hooks.chooseCards
+    ? context.hooks.chooseCards(player.trash, 12)
+    : player.trash.slice(0, 12);
+  for (const c of chosen) {
+    player.trash.splice(player.trash.indexOf(c), 1);
+    player.deck.push(c);
+  }
+  shuffle(player.deck);
+  unit.rested = false;
+  unit.buffs.push({ keyword: 'firstStrike', scope: 'turn' });
+}
+
+// --- Marida Cruz GD01-093 (Pilot) ---
+// [Burst] Add this card to your hand. [During Link][Attack] Choose 1 enemy Unit whose Lv. is equal
+// to or lower than this Unit's Lv. Deal 1 damage to it.
+function maridaCruzBurst(state, player, instance) {
+  player.hand.push(instance);
+}
+function maridaCruzAttack(state, player, unit, context) {
+  if (!unit.isLinkUnit) return;
+  const opponent = opponentOf(state, player);
+  const level = unit.def.level || 0;
+  const candidates = opponent.battleArea.filter((u) => (u.def.level || 0) <= level);
+  const target = context.hooks && context.hooks.chooseUnit
+    ? context.hooks.chooseUnit(candidates)
+    : candidates.sort((a, b) => getRemainingHP(a) - getRemainingHP(b))[0];
+  if (target) dealDamage(target, 1);
+}
+
+// --- Close Combat ST03-013 (Command) ---
+// [Burst] Activate this card's Main. [Main/Action] Choose 1 enemy Unit. Deal 2 damage to it.
+function closeCombatCommand(state, player, instance, context) {
+  const opponent = opponentOf(state, player);
+  const target = context.hooks && context.hooks.chooseUnit
+    ? context.hooks.chooseUnit(opponent.battleArea)
+    : [...opponent.battleArea].sort((a, b) => getRemainingHP(a) - getRemainingHP(b))[0];
+  if (!target) return;
+  dealDamage(target, 2);
+}
+function closeCombatBurst(state, player, instance, context) {
+  closeCombatCommand(state, player, instance, context);
+}
+
 module.exports = {
   guntankDeploy,
   zakuIIAttackBuff,
@@ -928,5 +1134,21 @@ module.exports = {
   silverBulletDeploy,
   freedomGundamStartOfTurn,
   strikerPackBurst,
-  strikerPackCommand
+  strikerPackCommand,
+  archangelActivateMain,
+  gundamNT1WhenPaired,
+  penelopeFlightFormStartOfTurn,
+  penelopeFlightFormDeploy,
+  shiningGundamSuperModeAttack,
+  sazabiAttack,
+  charAznableGD05093Burst,
+  charAznableGD05093WhenLinked,
+  ryuseiGoDeploy,
+  gundamBarbatosLupusActivateMain,
+  kshatriyaWhenPaired,
+  unicornBansheeDestroyModeAttack,
+  maridaCruzBurst,
+  maridaCruzAttack,
+  closeCombatCommand,
+  closeCombatBurst
 };

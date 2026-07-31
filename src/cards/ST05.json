@@ -22,5 +22,17 @@
     "hp": 2,
     "traits": ["Tekkadan"],
     "keywords": {}
+  },
+  {
+    "number": "ST05-006",
+    "name": "Hyakuren",
+    "type": "unit",
+    "color": "purple",
+    "level": 3,
+    "cost": 2,
+    "ap": 4,
+    "hp": 3,
+    "traits": ["Teiwaz"],
+    "keywords": {}
   }
 ]

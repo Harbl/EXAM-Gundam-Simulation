@@ -37,5 +37,17 @@
     "linkCondition": "Akihiro Altland",
     "keywords": { "blocker": true },
     "effectRefs": { "deploy": "gundamBarbatosAdaptDeploy" }
+  },
+  {
+    "number": "GD02-058",
+    "name": "Ryusei-Go (Graze Custom II)",
+    "type": "unit",
+    "color": "purple",
+    "level": 3,
+    "cost": 2,
+    "ap": 2,
+    "hp": 2,
+    "traits": ["Tekkadan"],
+    "effectRefs": { "deploy": "ryuseiGoDeploy" }
   }
 ]

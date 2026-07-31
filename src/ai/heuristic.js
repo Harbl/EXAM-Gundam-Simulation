@@ -126,7 +126,8 @@ function runAttacks(state, playerIdx, hooks) {
   const player = state.players[playerIdx];
   const opponent = state.players[1 - playerIdx];
   const attackers = player.battleArea.filter(
-    (u) => u.def.type === 'unit' && !u.rested && (u.isLinkUnit || u.turnDeployed !== state.turnNumber)
+    (u) => u.def.type === 'unit' && !u.rested && !u.buffs.some((b) => b.cannotAttack)
+      && (u.isLinkUnit || u.turnDeployed !== state.turnNumber)
   );
 
   for (const attacker of attackers) {

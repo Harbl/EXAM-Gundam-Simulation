@@ -145,5 +145,18 @@
     "linkCondition": "Gael Chan",
     "keywords": { "blocker": true },
     "effectRefs": { "deploy": "silverBulletDeploy" }
+  },
+  {
+    "number": "GD04-002",
+    "name": "Penelope (Flight Form)",
+    "type": "unit",
+    "color": "blue",
+    "level": 6,
+    "cost": 5,
+    "ap": 3,
+    "hp": 5,
+    "traits": ["Earth Federation"],
+    "linkCondition": "Lane Aim",
+    "effectRefs": { "startOfTurn": "penelopeFlightFormStartOfTurn", "deploy": "penelopeFlightFormDeploy" }
   }
 ]
