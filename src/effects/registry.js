@@ -1,7 +1,7 @@
 const { dealDamage, getAP, getRemainingHP, recoverHP, removeFromField } = require('../rules/management');
 const { deployUnit, becomeBase } = require('../rules/actions');
 const { drawCard } = require('../rules/phases');
-const { resolveUnitBattleDamage } = require('../rules/combat');
+const { resolveUnitBattleDamage, applyBreach } = require('../rules/combat');
 const { createInstance, shuffle } = require('../rules/state');
 const { EX_RESOURCE_DEF } = require('../rules/setup');
 
@@ -465,6 +465,99 @@ function darknessFingerBurst(state, player, instance) {
   darknessFingerCommand(state, player, instance, {});
 }
 
+// --- Gundam Maxter GD05-069 ---
+// [Destroyed-on-kill] During your turn, when this Unit destroys an enemy Unit with battle damage,
+// look at the top 4 cards of your deck. You may reveal 1 (Special Move) Command card among them
+// and add it to your hand. Return the rest randomly to the bottom of your deck. [During Link]
+// [Attack] Activate Main on the card paired with this Unit (currently a no-op until a Pilot with
+// its own Activate-Main ability exists, since none do yet).
+function gundamMaxterDestroysEnemy(state, player) {
+  const top4 = player.deck.splice(0, 4);
+  const matchIdx = top4.findIndex((c) => c.def.type === 'command' && (c.def.traits || []).includes('Special Move'));
+  if (matchIdx !== -1) {
+    const [chosen] = top4.splice(matchIdx, 1);
+    player.hand.push(chosen);
+  }
+  player.deck.push(...shuffle(top4));
+}
+function gundamMaxterAttack(state, player, unit) {
+  if (!unit.isLinkUnit || !unit.pilot) return;
+  const pilotActivateMain = unit.pilot.def.effects && unit.pilot.def.effects.activateMain;
+  if (pilotActivateMain) pilotActivateMain(state, player, unit.pilot, {});
+}
+
+// --- Rising Gundam GD05-072 ---
+// [When Linked] Choose 1 enemy Unit with 4 or less HP. Rest it.
+function risingGundamWhenLinked(state, player, unit, context) {
+  const opponent = opponentOf(state, player);
+  const candidates = opponent.battleArea.filter((u) => getRemainingHP(u) <= 4);
+  if (candidates.length === 0) return;
+  const target = context.hooks && context.hooks.chooseUnit
+    ? context.hooks.chooseUnit(candidates)
+    : candidates.sort((a, b) => getAP(b) - getAP(a))[0];
+  target.rested = true;
+}
+
+// --- Shining Gundam GD05-066 ---
+// [Deploy] You may choose 2 (MF) Unit cards from your trash. Exile them. If you do, choose 1
+// (Special Move) Command card from your trash. Add it to your hand. [Attack][Once per Turn]
+// Choose 1 of your rested Resources. Set it as active.
+function shiningGundam066Deploy(state, player, instance) {
+  const mfUnits = player.trash.filter((c) => c.def.type === 'unit' && (c.def.traits || []).includes('MF'));
+  if (mfUnits.length < 2) return;
+  const specialMoveCommand = player.trash.find(
+    (c) => c.def.type === 'command' && (c.def.traits || []).includes('Special Move')
+  );
+  if (!specialMoveCommand) return;
+  for (const card of mfUnits.slice(0, 2)) {
+    player.trash.splice(player.trash.indexOf(card), 1);
+    player.removal.push(card);
+  }
+  player.trash.splice(player.trash.indexOf(specialMoveCommand), 1);
+  player.hand.push(specialMoveCommand);
+}
+function shiningGundam066Attack(state, player, unit) {
+  if (unit.activationsUsed.untapResource) return;
+  const restedResource = player.resourceArea.find((r) => r.rested);
+  if (!restedResource) return;
+  restedResource.rested = false;
+  unit.activationsUsed.untapResource = true;
+}
+
+// --- Master Gundam GD05-033 ---
+// [Attack] You may choose 2 (Special Move) Command cards from your trash. Exile them. If you do,
+// deal 5 damage to the first card in your opponent's shield area.
+function masterGundamAttack(state, player, unit, context) {
+  const specialMoveCards = player.trash.filter(
+    (c) => c.def.type === 'command' && (c.def.traits || []).includes('Special Move')
+  );
+  if (specialMoveCards.length < 2) return;
+  for (const card of specialMoveCards.slice(0, 2)) {
+    player.trash.splice(player.trash.indexOf(card), 1);
+    player.removal.push(card);
+  }
+  applyBreach(state, opponentOf(state, player), 5, context.hooks || {});
+}
+
+// --- Domon Kasshu GD05-097 (Pilot) ---
+// [Burst] Add this card to your hand. [When Paired] Draw 1. Then, discard 1. If you discard a
+// (Special Move) Command card with this effect, you may activate its Main.
+function domonKasshuBurst(state, player, instance) {
+  player.hand.push(instance);
+}
+function domonKasshuWhenPaired(state, player) {
+  drawCard(state, player);
+  const toDiscard = [...player.hand].sort((a, b) => (b.def.cost || 0) - (a.def.cost || 0))[0];
+  if (!toDiscard) return;
+  player.hand.splice(player.hand.indexOf(toDiscard), 1);
+  player.trash.push(toDiscard);
+
+  const isSpecialMoveCommand = toDiscard.def.type === 'command' && (toDiscard.def.traits || []).includes('Special Move');
+  if (isSpecialMoveCommand && toDiscard.def.effects && toDiscard.def.effects.command) {
+    toDiscard.def.effects.command(state, player, toDiscard, {});
+  }
+}
+
 module.exports = {
   guntankDeploy,
   zakuIIAttackBuff,
@@ -508,5 +601,13 @@ module.exports = {
   reineforceJrDeploy,
   airframeSeizureCommand,
   darknessFingerCommand,
-  darknessFingerBurst
+  darknessFingerBurst,
+  gundamMaxterDestroysEnemy,
+  gundamMaxterAttack,
+  risingGundamWhenLinked,
+  shiningGundam066Deploy,
+  shiningGundam066Attack,
+  masterGundamAttack,
+  domonKasshuBurst,
+  domonKasshuWhenPaired
 };

@@ -168,4 +168,4 @@ function resolveBurst(state, defendingPlayer, shieldInstance, hooks) {
   }
 }
 
-module.exports = { resolveAttack, resolveUnitBattleDamage };
+module.exports = { resolveAttack, resolveUnitBattleDamage, applyBreach };

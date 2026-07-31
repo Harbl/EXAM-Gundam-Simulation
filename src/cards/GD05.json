@@ -145,5 +145,80 @@
     "cost": 1,
     "traits": ["Special Move"],
     "effectRefs": { "command": "darknessFingerCommand", "burst": "darknessFingerBurst" }
+  },
+  {
+    "number": "GD05-042",
+    "name": "Shining Gundam",
+    "type": "unit",
+    "color": "red",
+    "level": 2,
+    "cost": 1,
+    "ap": 2,
+    "hp": 2,
+    "traits": ["MF", "Shuffle Alliance"],
+    "keywords": {}
+  },
+  {
+    "number": "GD05-069",
+    "name": "Gundam Maxter",
+    "type": "unit",
+    "color": "white",
+    "level": 3,
+    "cost": 2,
+    "ap": 3,
+    "hp": 2,
+    "traits": ["MF", "Shuffle Alliance"],
+    "linkCondition": "Chibodee Crocket",
+    "effectRefs": { "destroysEnemy": "gundamMaxterDestroysEnemy", "attack": "gundamMaxterAttack" }
+  },
+  {
+    "number": "GD05-072",
+    "name": "Rising Gundam",
+    "type": "unit",
+    "color": "white",
+    "level": 4,
+    "cost": 3,
+    "ap": 4,
+    "hp": 3,
+    "traits": ["MF", "Gundam Fighter"],
+    "effectRefs": { "whenLinked": "risingGundamWhenLinked" }
+  },
+  {
+    "number": "GD05-066",
+    "name": "Shining Gundam",
+    "type": "unit",
+    "color": "white",
+    "level": 4,
+    "cost": 3,
+    "ap": 3,
+    "hp": 4,
+    "traits": ["MF", "Shuffle Alliance"],
+    "linkCondition": "Domon Kasshu",
+    "effectRefs": { "deploy": "shiningGundam066Deploy", "attack": "shiningGundam066Attack" }
+  },
+  {
+    "number": "GD05-033",
+    "name": "Master Gundam",
+    "type": "unit",
+    "color": "red",
+    "level": 7,
+    "cost": 5,
+    "ap": 5,
+    "hp": 5,
+    "traits": ["MF", "DG Cells"],
+    "linkCondition": "Master Asia",
+    "effectRefs": { "attack": "masterGundamAttack" }
+  },
+  {
+    "number": "GD05-097",
+    "name": "Domon Kasshu",
+    "type": "pilot",
+    "color": "white",
+    "level": 4,
+    "cost": 1,
+    "apBonus": 2,
+    "hpBonus": 1,
+    "traits": ["Gundam Fighter", "Shuffle Alliance"],
+    "effectRefs": { "burst": "domonKasshuBurst", "whenPaired": "domonKasshuWhenPaired" }
   }
 ]
