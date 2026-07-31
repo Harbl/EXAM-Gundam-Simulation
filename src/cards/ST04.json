@@ -1,0 +1,28 @@
+[
+  {
+    "number": "ST04-001",
+    "name": "Aile Strike Gundam",
+    "type": "unit",
+    "color": "white",
+    "level": 5,
+    "cost": 4,
+    "ap": 4,
+    "hp": 4,
+    "traits": ["Earth Alliance"],
+    "linkCondition": "Kira Yamato",
+    "keywords": { "blocker": true },
+    "effectRefs": { "whenPaired": "aileStrikeGundamWhenPaired" }
+  },
+  {
+    "number": "ST04-010",
+    "name": "Kira Yamato",
+    "type": "pilot",
+    "color": "white",
+    "level": 4,
+    "cost": 1,
+    "apBonus": 2,
+    "hpBonus": 1,
+    "traits": ["Earth Alliance", "Coordinator"],
+    "effectRefs": { "burst": "kiraYamatoST04010Burst", "attack": "kiraYamatoST04010Attack" }
+  }
+]

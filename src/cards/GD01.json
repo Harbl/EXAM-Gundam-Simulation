@@ -69,5 +69,26 @@
     "traits": ["Earth Federation"],
     "keywords": { "repair": 1 },
     "duringLinkHp": 1
+  },
+  {
+    "number": "GD01-118",
+    "name": "Overflowing Affection",
+    "type": "command",
+    "color": "white",
+    "level": 2,
+    "cost": 1,
+    "effectRefs": { "command": "overflowingAffectionCommand" }
+  },
+  {
+    "number": "GD01-086",
+    "name": "Gundam Lfrith",
+    "type": "unit",
+    "color": "white",
+    "level": 3,
+    "cost": 2,
+    "ap": 2,
+    "hp": 4,
+    "traits": ["Vanadis Institute"],
+    "keywords": { "blocker": true }
   }
 ]

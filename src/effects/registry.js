@@ -1,4 +1,4 @@
-const { dealDamage, getAP, getRemainingHP, recoverHP } = require('../rules/management');
+const { dealDamage, getAP, getRemainingHP, recoverHP, removeFromField } = require('../rules/management');
 const { deployUnit, becomeBase } = require('../rules/actions');
 const { drawCard } = require('../rules/phases');
 const { resolveUnitBattleDamage } = require('../rules/combat');
@@ -313,6 +313,158 @@ function corsicaBaseDeploy(state, player) {
   }
 }
 
+// --- Overflowing Affection GD01-118 (Command) ---
+// [Main] Draw 2. Then, discard 1.
+function overflowingAffectionCommand(state, player) {
+  drawCard(state, player);
+  drawCard(state, player);
+  const toDiscard = [...player.hand].sort((a, b) => (b.def.cost || 0) - (a.def.cost || 0))[0];
+  if (toDiscard) {
+    player.hand.splice(player.hand.indexOf(toDiscard), 1);
+    player.trash.push(toDiscard);
+  }
+}
+
+// --- Aile Strike Gundam ST04-001 ---
+// <Blocker> (data). [When Paired][Lv.4 or Higher Pilot] Choose 1 enemy Unit with 4 or less HP.
+// Return it to its owner's hand.
+function aileStrikeGundamWhenPaired(state, player, unit, context) {
+  const pilot = context.pilot;
+  if (!pilot || (pilot.def.level || 0) < 4) return;
+  const opponent = opponentOf(state, player);
+  const candidates = opponent.battleArea.filter((u) => getRemainingHP(u) <= 4);
+  if (candidates.length === 0) return;
+  const target = candidates.sort((a, b) => getAP(b) - getAP(a))[0];
+  removeFromField(opponent, target);
+  opponent.hand.push(target);
+}
+
+// --- Strike Freedom Gundam GD05-002 ---
+// [Deploy] Choose 1 to 2 of your Units. During this turn, when they destroy an enemy card with
+// battle damage, draw 1. [During Pair][Attack] You may discard 2. If you do, choose 1 enemy Unit
+// with the lowest Lv. Return it to the bottom of its owner's deck.
+function strikeFreedomDeploy(state, player) {
+  const targets = player.battleArea.sort((a, b) => getAP(b) - getAP(a)).slice(0, 2);
+  for (const u of targets) u.buffs.push({ onKillDraw: 1, scope: 'turn' });
+}
+function strikeFreedomAttack(state, player, unit) {
+  if (!unit.pilot || player.hand.length < 2) return;
+  const opponent = opponentOf(state, player);
+  const target = [...opponent.battleArea].sort((a, b) => (a.def.level || 0) - (b.def.level || 0))[0];
+  if (!target) return;
+  const discards = [...player.hand].sort((a, b) => (b.def.cost || 0) - (a.def.cost || 0)).slice(0, 2);
+  for (const c of discards) {
+    player.hand.splice(player.hand.indexOf(c), 1);
+    player.trash.push(c);
+  }
+  removeFromField(opponent, target);
+  opponent.deck.push(target);
+}
+
+// --- Kira Yamato ST04-010 (Pilot) ---
+// [Burst] Add this card to your hand. [Attack] Choose 1 enemy Unit. It gets AP-2 during this battle.
+function kiraYamatoST04010Burst(state, player, instance) {
+  player.hand.push(instance);
+}
+function kiraYamatoST04010Attack(state, player, unit, context) {
+  if (!context.target || context.target.type !== 'unit') return;
+  context.target.instance.buffs.push({ ap: -2, scope: 'battle' });
+}
+
+// --- Kira Yamato GD05-081 (Pilot) ---
+// [Burst] Add this card to your hand. [When Linked] If this is an (Orb)/(Triple Ship Alliance)
+// Unit, draw 1.
+function kiraYamatoGD05081Burst(state, player, instance) {
+  player.hand.push(instance);
+}
+function kiraYamatoGD05081WhenLinked(state, player, unit) {
+  const traits = unit.def.traits || [];
+  if (traits.includes('Orb') || traits.includes('Triple Ship Alliance')) drawCard(state, player);
+}
+
+// --- Victory Gundam GD04-003 ---
+// [Attack] If you have 3 or more (League Militaire) Units in play, draw 1.
+function victoryGundamGD04003Attack(state, player) {
+  const count = player.battleArea.filter((u) => (u.def.traits || []).includes('League Militaire')).length;
+  if (count >= 3) drawCard(state, player);
+}
+
+// --- V-Dash Gundam GD04-006 ---
+// <Breach 3> (data). [Activate*Main][Once per Turn] Rest 1 of your other (League Militaire) Units:
+// Choose 1 enemy Unit with 4 or less HP. Rest it.
+function vDashGundamActivateMain(state, player, instance, context) {
+  if (instance.activationsUsed.restEnemy) return false;
+  const { restUnit, target } = context;
+  if (!restUnit || restUnit.rested || !(restUnit.def.traits || []).includes('League Militaire')) return false;
+  if (!target || getRemainingHP(target) > 4) return false;
+  restUnit.rested = true;
+  target.rested = true;
+  instance.activationsUsed.restEnemy = true;
+  return true;
+}
+
+// --- Üso Ewin GD04-081 (Pilot) & Reineforce Jr. GD04-121 (Base) share the [Parts] token ---
+// Üso Ewin: [Burst] Add this card to hand. [When Paired] If this is a (League Militaire) Unit,
+// deploy 1 [Parts] token. Reineforce Jr.: [Burst] Deploy this card. [Deploy] Add 1 of your Shields
+// to your hand. Then, during your turn, if a friendly (League Militaire) Unit is in play, deploy
+// 1 [Parts] token.
+const PARTS_TOKEN = Object.freeze({
+  number: 'TOKEN-PARTS',
+  name: 'Parts',
+  type: 'unit',
+  color: 'blue',
+  traits: ['League Militaire'],
+  ap: 1,
+  hp: 1,
+  isToken: true,
+  keywords: {},
+  cannotAttackPlayer: true
+});
+function usoEwinBurst(state, player, instance) {
+  player.hand.push(instance);
+}
+function usoEwinWhenPaired(state, player, unit) {
+  if (!(unit.def.traits || []).includes('League Militaire')) return;
+  deployUnit(state, player, PARTS_TOKEN);
+}
+function reineforceJrBurst(state, player, instance) {
+  becomeBase(state, player, instance);
+}
+function reineforceJrDeploy(state, player) {
+  if (player.shields.length > 0) player.hand.push(player.shields.shift());
+  const isOwnTurn = state.players[state.activePlayerIdx] === player;
+  if (!isOwnTurn) return;
+  const hasLeagueMilitaire = player.battleArea.some((u) => (u.def.traits || []).includes('League Militaire'));
+  if (hasLeagueMilitaire) deployUnit(state, player, PARTS_TOKEN);
+}
+
+// --- Airframe Seizure GD05-111 (Command) ---
+// [Main] Discard 1. If you do, draw 2.
+function airframeSeizureCommand(state, player) {
+  if (player.hand.length === 0) return;
+  const toDiscard = [...player.hand].sort((a, b) => (b.def.cost || 0) - (a.def.cost || 0))[0];
+  player.hand.splice(player.hand.indexOf(toDiscard), 1);
+  player.trash.push(toDiscard);
+  drawCard(state, player);
+  drawCard(state, player);
+}
+
+// --- Darkness Finger GD05-110 (Command, Special Move) ---
+// [Burst] Activate this card's Main. [Main/Action] Choose 1 enemy Unit. Deal 2 damage to it. Then,
+// if you have a Unit with "Master Gundam" in its card name in play, draw 1.
+function darknessFingerCommand(state, player, instance, context) {
+  const opponent = opponentOf(state, player);
+  const target = context.hooks && context.hooks.chooseUnit
+    ? context.hooks.chooseUnit(opponent.battleArea)
+    : [...opponent.battleArea].sort((a, b) => getRemainingHP(a) - getRemainingHP(b))[0];
+  if (!target) return;
+  dealDamage(target, 2);
+  if (player.battleArea.some((u) => (u.def.name || '').includes('Master Gundam'))) drawCard(state, player);
+}
+function darknessFingerBurst(state, player, instance) {
+  darknessFingerCommand(state, player, instance, {});
+}
+
 module.exports = {
   guntankDeploy,
   zakuIIAttackBuff,
@@ -339,5 +491,22 @@ module.exports = {
   raCailumDeploy,
   raCailumActivateMain,
   corsicaBaseBurst,
-  corsicaBaseDeploy
+  corsicaBaseDeploy,
+  overflowingAffectionCommand,
+  aileStrikeGundamWhenPaired,
+  strikeFreedomDeploy,
+  strikeFreedomAttack,
+  kiraYamatoST04010Burst,
+  kiraYamatoST04010Attack,
+  kiraYamatoGD05081Burst,
+  kiraYamatoGD05081WhenLinked,
+  victoryGundamGD04003Attack,
+  vDashGundamActivateMain,
+  usoEwinBurst,
+  usoEwinWhenPaired,
+  reineforceJrBurst,
+  reineforceJrDeploy,
+  airframeSeizureCommand,
+  darknessFingerCommand,
+  darknessFingerBurst
 };

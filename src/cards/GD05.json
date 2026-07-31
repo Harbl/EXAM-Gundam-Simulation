@@ -101,5 +101,49 @@
     "hp": 5,
     "traits": ["Earth Federation", "Londo Bell", "Warship"],
     "effectRefs": { "burst": "raCailumBurst", "deploy": "raCailumDeploy", "activateMain": "raCailumActivateMain" }
+  },
+  {
+    "number": "GD05-002",
+    "name": "Strike Freedom Gundam",
+    "type": "unit",
+    "color": "blue",
+    "level": 8,
+    "cost": 6,
+    "ap": 5,
+    "hp": 6,
+    "traits": ["Orb"],
+    "linkCondition": "Kira Yamato",
+    "effectRefs": { "deploy": "strikeFreedomDeploy", "attack": "strikeFreedomAttack" }
+  },
+  {
+    "number": "GD05-081",
+    "name": "Kira Yamato",
+    "type": "pilot",
+    "color": "blue",
+    "level": 5,
+    "cost": 1,
+    "apBonus": 2,
+    "hpBonus": 2,
+    "traits": ["Orb", "Coordinator"],
+    "effectRefs": { "burst": "kiraYamatoGD05081Burst", "whenLinked": "kiraYamatoGD05081WhenLinked" }
+  },
+  {
+    "number": "GD05-111",
+    "name": "Airframe Seizure",
+    "type": "command",
+    "color": "red",
+    "level": 1,
+    "cost": 1,
+    "effectRefs": { "command": "airframeSeizureCommand" }
+  },
+  {
+    "number": "GD05-110",
+    "name": "Darkness Finger",
+    "type": "command",
+    "color": "red",
+    "level": 4,
+    "cost": 1,
+    "traits": ["Special Move"],
+    "effectRefs": { "command": "darknessFingerCommand", "burst": "darknessFingerBurst" }
   }
 ]

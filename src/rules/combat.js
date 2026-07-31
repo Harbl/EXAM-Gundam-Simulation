@@ -8,6 +8,7 @@ const {
 } = require('./management');
 const { fireCardEffect, clearBattleBuffs } = require('./effects');
 const { isCardTracked } = require('./state');
+const { drawCard } = require('./phases');
 
 /**
  * Resolves one full attack (8-1 through 8-6): attack, block, action, damage, battle-end steps.
@@ -130,11 +131,16 @@ function resolveUnitBattleDamage(state, attackingPlayer, defendingPlayer, attack
   }
 }
 
-/** Fires a "this Unit destroys an enemy Unit with battle damage" trigger (e.g. Amuro Ray GD05-085), skipped if the attacker didn't survive to receive it. */
+/**
+ * Fires a "this Unit destroys an enemy Unit with battle damage" trigger (e.g. Amuro Ray GD05-085),
+ * skipped if the attacker didn't survive to receive it. Also resolves any temporary "draw on kill"
+ * grant (e.g. Strike Freedom GD05-002's Deploy), since that's not tied to any one card's own text.
+ */
 function fireDestroysEnemy(state, attackingPlayer, attacker) {
-  if (attackingPlayer.battleArea.includes(attacker)) {
-    fireCardEffect(state, attackingPlayer, attacker, 'destroysEnemy', {});
-  }
+  if (!attackingPlayer.battleArea.includes(attacker)) return;
+  fireCardEffect(state, attackingPlayer, attacker, 'destroysEnemy', {});
+  const onKillDraw = attacker.buffs.reduce((sum, b) => sum + (b.onKillDraw || 0), 0);
+  for (let i = 0; i < onKillDraw; i++) drawCard(state, attackingPlayer);
 }
 
 /** <Breach(amount)> (13-1-2): damages the enemy Base, or top Shield if there's no Base. */

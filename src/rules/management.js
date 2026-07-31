@@ -57,6 +57,23 @@ function destroyCard(state, player, instance) {
   player.trash.push(instance);
 }
 
+/**
+ * Removes a Unit from the battle area/base slot without destroying it (e.g. bounced to hand, or
+ * returned to its owner's deck) -- its paired Pilot still goes to trash, matching how a
+ * battle-area-limit bump handles pairs, since the rules don't leave a Pilot floating unattached.
+ * Caller decides where the instance itself ends up.
+ */
+function removeFromField(player, instance) {
+  const battleIdx = player.battleArea.indexOf(instance);
+  if (battleIdx !== -1) player.battleArea.splice(battleIdx, 1);
+  if (player.base === instance) player.base = null;
+
+  if (instance.pilot) {
+    player.trash.push(instance.pilot);
+    instance.pilot = null;
+  }
+}
+
 /** Destroys the instance if its HP has been reduced to 0 or less. Returns true if destroyed. */
 function destroyIfDead(state, player, instance) {
   if (getRemainingHP(instance) <= 0) {
@@ -132,6 +149,7 @@ module.exports = {
   dealDamage,
   recoverHP,
   destroyCard,
+  removeFromField,
   destroyIfDead,
   destroyTopShield,
   enforceBattleAreaLimit,
