@@ -8,6 +8,7 @@
     "start": "electron .",
     "test": "node --test",
     "sim": "node bin/simulate.js",
+    "images": "node bin/download-images.js",
     "dist": "electron-builder --win"
   },
   "devDependencies": {
