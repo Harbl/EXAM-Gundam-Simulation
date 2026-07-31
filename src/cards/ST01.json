@@ -40,7 +40,7 @@
     "number": "ST01-014",
     "name": "Unforeseen Incident",
     "type": "command",
-    "color": "blue",
+    "color": "white",
     "level": 3,
     "cost": 1,
     "effectRefs": { "command": "unforeseenIncidentCommand", "burst": "unforeseenIncidentBurst" }

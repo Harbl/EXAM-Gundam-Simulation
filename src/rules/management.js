@@ -30,10 +30,19 @@ function getKeywords(instance) {
   return Object.assign({}, instance.def.keywords, duringPair, instance.grantedKeywords, granted);
 }
 
-/** Battle/effect damage to a Unit, Base, or Shield instance, honoring any <Reduce> buffs (5-21: reduced to 0 is neither dealt nor received). */
-function dealDamage(instance, amount) {
+/**
+ * Battle/effect damage to a Unit, Base, or Shield instance, honoring any <Reduce> buffs (5-21:
+ * reduced to 0 is neither dealt nor received). `damageReduction` applies to all damage regardless
+ * of source (e.g. Ra Cailum's "reduce damage it receives"); `effectDamageReduction` applies only
+ * to damage NOT flagged `isBattleDamage` (e.g. Silver Bullet's "reduce effect damage" specifically
+ * -- combat.js tags its own battle-damage calls so this narrower category can tell them apart).
+ */
+function dealDamage(instance, amount, opts = {}) {
   if (amount <= 0) return;
-  const reduction = instance.buffs.reduce((sum, b) => sum + (b.damageReduction || 0), 0);
+  let reduction = instance.buffs.reduce((sum, b) => sum + (b.damageReduction || 0), 0);
+  if (!opts.isBattleDamage) {
+    reduction += instance.buffs.reduce((sum, b) => sum + (b.effectDamageReduction || 0), 0);
+  }
   const reduced = Math.max(0, amount - reduction);
   if (reduced <= 0) return;
   instance.damage += reduced;

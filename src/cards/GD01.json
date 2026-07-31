@@ -90,5 +90,42 @@
     "hp": 4,
     "traits": ["Vanadis Institute"],
     "keywords": { "blocker": true }
+  },
+  {
+    "number": "GD01-073",
+    "name": "Sword Strike Gundam",
+    "type": "unit",
+    "color": "white",
+    "level": 4,
+    "cost": 3,
+    "ap": 4,
+    "hp": 3,
+    "traits": ["Earth Alliance"],
+    "effectRefs": { "attack": "swordStrikeGundamAttack" },
+    "_note": "No legible link-condition pilot name on this scan; treated as a plain vanilla body until confirmed."
+  },
+  {
+    "number": "GD01-126",
+    "name": "Underground Desert Base",
+    "type": "base",
+    "color": "green",
+    "level": 2,
+    "cost": 1,
+    "ap": 0,
+    "hp": 6,
+    "traits": ["Maganac Corps", "Stronghold"],
+    "effectRefs": { "burst": "simpleBurstBase", "deploy": "simpleBaseDeployAddShield" }
+  },
+  {
+    "number": "GD01-128",
+    "name": "Mining Asteroid Palau",
+    "type": "base",
+    "color": "red",
+    "level": 2,
+    "cost": 1,
+    "ap": 0,
+    "hp": 6,
+    "traits": ["Neo Zeon", "Stronghold"],
+    "effectRefs": { "burst": "simpleBurstBase", "deploy": "simpleBaseDeployAddShield" }
   }
 ]

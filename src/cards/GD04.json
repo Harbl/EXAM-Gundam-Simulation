@@ -103,12 +103,47 @@
     "number": "GD04-077",
     "name": "Flat (Militia)",
     "type": "unit",
-    "color": "blue",
+    "color": "white",
     "level": 3,
     "cost": 2,
     "ap": 2,
     "hp": 4,
     "traits": ["Militia"],
     "keywords": { "blocker": true }
+  },
+  {
+    "number": "GD04-015",
+    "name": "Gun EZ",
+    "type": "unit",
+    "color": "blue",
+    "level": 3,
+    "cost": 2,
+    "ap": 2,
+    "hp": 3,
+    "traits": ["League Militaire", "Shrike Team"],
+    "effectRefs": { "deploy": "gunEZDeploy" }
+  },
+  {
+    "number": "GD04-117",
+    "name": "Graceful Demeanor",
+    "type": "command",
+    "color": "white",
+    "level": 4,
+    "cost": 2,
+    "effectRefs": { "command": "gracefulDemeanorCommand", "burst": "gracefulDemeanorBurst" }
+  },
+  {
+    "number": "GD04-068",
+    "name": "Silver Bullet",
+    "type": "unit",
+    "color": "white",
+    "level": 5,
+    "cost": 3,
+    "ap": 4,
+    "hp": 4,
+    "traits": ["Civilian"],
+    "linkCondition": "Gael Chan",
+    "keywords": { "blocker": true },
+    "effectRefs": { "deploy": "silverBulletDeploy" }
   }
 ]

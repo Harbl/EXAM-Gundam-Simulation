@@ -284,7 +284,7 @@
     "number": "GD05-128",
     "name": "Gundam Fight",
     "type": "base",
-    "color": "white",
+    "color": "red",
     "level": 3,
     "cost": 1,
     "ap": 0,
@@ -304,5 +304,28 @@
     "traits": ["CB", "GN Drive"],
     "linkCondition": "Setsuna F. Seiei",
     "effectRefs": { "dealsBattleDamage": "gundamExiaRepairDealsBattleDamage", "destroyed": "gundamExiaRepairDestroyed" }
+  },
+  {
+    "number": "GD05-114",
+    "name": "Widespread Annihilation",
+    "type": "command",
+    "color": "purple",
+    "level": 6,
+    "cost": 6,
+    "effectRefs": { "command": "widespreadAnnihilationCommand" }
+  },
+  {
+    "number": "GD05-001",
+    "name": "V2 Gundam",
+    "type": "unit",
+    "color": "blue",
+    "level": 6,
+    "cost": 4,
+    "ap": 4,
+    "hp": 5,
+    "traits": ["League Militaire", "Victory Type"],
+    "linkCondition": "Üso Ewin",
+    "keywords": { "repair": 2 },
+    "effectRefs": { "activateMain": "v2GundamActivateMain" }
   }
 ]

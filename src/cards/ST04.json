@@ -24,5 +24,14 @@
     "hpBonus": 1,
     "traits": ["Earth Alliance", "Coordinator"],
     "effectRefs": { "burst": "kiraYamatoST04010Burst", "attack": "kiraYamatoST04010Attack" }
+  },
+  {
+    "number": "ST04-012",
+    "name": "Striker Pack",
+    "type": "command",
+    "color": "white",
+    "level": 4,
+    "cost": 2,
+    "effectRefs": { "command": "strikerPackCommand", "burst": "strikerPackBurst" }
   }
 ]

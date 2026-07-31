@@ -1,0 +1,16 @@
+[
+  {
+    "number": "ST09-004",
+    "name": "Freedom Gundam",
+    "type": "unit",
+    "color": "white",
+    "level": 6,
+    "cost": 5,
+    "ap": 4,
+    "hp": 5,
+    "traits": ["Orb"],
+    "linkCondition": "Kira Yamato",
+    "keywords": { "blocker": true },
+    "effectRefs": { "startOfTurn": "freedomGundamStartOfTurn" }
+  }
+]

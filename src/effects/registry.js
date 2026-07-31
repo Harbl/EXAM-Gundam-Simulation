@@ -1,7 +1,8 @@
-const { dealDamage, getAP, getHP, getRemainingHP, recoverHP, removeFromField } = require('../rules/management');
+const { dealDamage, getAP, getHP, getRemainingHP, recoverHP, removeFromField, destroyCard } = require('../rules/management');
 const { deployUnit, becomeBase } = require('../rules/actions');
 const { drawCard } = require('../rules/phases');
 const { resolveUnitBattleDamage, applyBreach } = require('../rules/combat');
+const { fireCardEffect } = require('../rules/effects');
 const { createInstance, shuffle } = require('../rules/state');
 const { EX_RESOURCE_DEF } = require('../rules/setup');
 
@@ -698,6 +699,155 @@ function mikazukiAugusWhenPaired(state, player, unit, context) {
   gundamBarbatosAdaptDeploy(state, player, unit, context);
 }
 
+// --- Widespread Annihilation GD05-114 (Command) ---
+// [Main] Destroy all Units that are Lv.4 or lower (both players' -- an outright destroy regardless
+// of remaining HP, so it can't reuse the HP-check-gated combat destroy helper; still fires each
+// Unit's own Destroyed trigger, same as any other kill).
+function widespreadAnnihilationCommand(state, player) {
+  for (const p of state.players) {
+    const toDestroy = p.battleArea.filter((u) => (u.def.level || 0) <= 4);
+    for (const unit of toDestroy) {
+      const wasPaired = !!unit.pilot;
+      destroyCard(state, p, unit);
+      fireCardEffect(state, p, unit, 'destroyed', { wasPaired });
+    }
+  }
+}
+
+// --- Sword Strike Gundam GD01-073 ---
+// [During Link][Attack] Choose 1 enemy Unit with 2 or less HP. Return it to its owner's hand.
+// (No link condition is legible on this print's scan, so it stays a plain vanilla body unless/until
+// some other effect grants it Link status -- flagged as a research gap, not guessed at.)
+function swordStrikeGundamAttack(state, player, unit, context) {
+  if (!unit.isLinkUnit) return;
+  const opponent = opponentOf(state, player);
+  const candidates = opponent.battleArea.filter((u) => getRemainingHP(u) <= 2);
+  const target = context.hooks && context.hooks.chooseUnit
+    ? context.hooks.chooseUnit(candidates)
+    : candidates.sort((a, b) => getAP(b) - getAP(a))[0];
+  if (!target) return;
+  removeFromField(opponent, target);
+  opponent.hand.push(target);
+}
+
+// --- Underground Desert Base GD01-126 & Mining Asteroid Palau GD01-128 (Base) ---
+// [Burst] Deploy this card. [Deploy] Add 1 of your Shields to your hand. (Shared with several other
+// simple Stronghold Bases already in the DB -- kept as its own pair of one-liners here to match the
+// existing per-card convention rather than retrofitting the older cards onto a shared name.)
+function simpleBurstBase(state, player, instance) {
+  becomeBase(state, player, instance);
+}
+function simpleBaseDeployAddShield(state, player) {
+  if (player.shields.length > 0) player.hand.push(player.shields.shift());
+}
+
+// --- Gundam Gusion Rebake GD02-055 ---
+// <Blocker> (data). [Deploy] Choose 1 of your Units and 1 enemy Unit. Deal 1 damage to them
+// (identical text to Gundam Barbatos Adapt's Deploy, defined above -- reused directly).
+
+// --- Gun EZ GD04-015 ---
+// [Deploy] Choose 1 of your active (League Militaire) Units and 1 enemy Unit that is Lv.3 or lower.
+// Rest them.
+function gunEZDeploy(state, player, instance, context) {
+  const opponent = opponentOf(state, player);
+  const friendlyCandidates = player.battleArea.filter((u) => !u.rested && (u.def.traits || []).includes('League Militaire'));
+  const friendlyTarget = context.hooks && context.hooks.chooseUnit
+    ? context.hooks.chooseUnit(friendlyCandidates)
+    : friendlyCandidates.sort((a, b) => getAP(a) - getAP(b))[0];
+  const enemyCandidates = opponent.battleArea.filter((u) => !u.rested && (u.def.level || 0) <= 3);
+  const enemyTarget = context.hooks && context.hooks.chooseUnit
+    ? context.hooks.chooseUnit(enemyCandidates)
+    : enemyCandidates.sort((a, b) => getAP(b) - getAP(a))[0];
+  if (!friendlyTarget || !enemyTarget) return;
+  friendlyTarget.rested = true;
+  enemyTarget.rested = true;
+}
+
+// --- V2 Gundam GD05-001 ---
+// <Repair 2> (data). [Activate*Main][Once per Turn] Rest 2 of your Units: set this Unit as active.
+// (Engine-correct, but not yet wired into the AI's runActivations -- resting 2 other Units to untap
+// this one is rarely worth it under the current heuristic and needs real judgement to use well;
+// flagged rather than guessed at with a shallow always-fire rule.)
+function v2GundamActivateMain(state, player, instance, context) {
+  if (instance.activationsUsed.setActive) return false;
+  const { restUnits } = context;
+  if (!restUnits || restUnits.length < 2) return false;
+  const valid = restUnits.every((u) => u !== instance && !u.rested && player.battleArea.includes(u));
+  if (!valid) return false;
+  for (const u of restUnits) u.rested = true;
+  instance.rested = false;
+  instance.activationsUsed.setActive = true;
+  return true;
+}
+
+// --- Graceful Demeanor GD04-117 (Command) ---
+// [Burst] Activate this card's Action. [Action] Choose 1 to 2 enemy Units that are Lv.3 or lower.
+// Return them to their owners' hands.
+function gracefulDemeanorCommand(state, player, instance, context) {
+  const opponent = opponentOf(state, player);
+  const candidates = opponent.battleArea.filter((u) => (u.def.level || 0) <= 3);
+  const targets = context.hooks && context.hooks.chooseUnits
+    ? context.hooks.chooseUnits(candidates)
+    : candidates.sort((a, b) => getAP(b) - getAP(a)).slice(0, 2);
+  for (const t of targets) {
+    removeFromField(opponent, t);
+    opponent.hand.push(t);
+  }
+}
+function gracefulDemeanorBurst(state, player, instance, context) {
+  gracefulDemeanorCommand(state, player, instance, context);
+}
+
+// --- Rick Dias GD02-079 ---
+// <Blocker> (data). No other printed ability.
+
+// --- Silver Bullet GD04-068 ---
+// <Blocker> (data). When this Unit receives effect damage from an enemy, reduce it by 3 (a
+// permanent, un-scoped buff -- see `effectDamageReduction` in dealDamage).
+function silverBulletDeploy(state, player, instance) {
+  instance.buffs.push({ effectDamageReduction: 3 });
+}
+
+// --- Freedom Gundam ST09-004 ---
+// <Blocker> (data). While a friendly Base is in play, this Unit gains <Suppression>. Re-evaluated
+// at the start of every turn (a turn-granularity approximation of an otherwise fully dynamic
+// board-state check, matching how <During Pair> keyword grants are already handled elsewhere).
+function freedomGundamStartOfTurn(state, player, instance) {
+  instance.grantedKeywords.suppression = !!player.base;
+}
+
+// --- Striker Pack ST04-012 (Command) ---
+// [Burst] If you have no (Earth Alliance) Unit tokens in play, deploy 1 [Aile Strike Gundam]
+// ((Earth Alliance)AP3HP3Blocker) Unit token. [Main] If you have no (Earth Alliance) Unit tokens in
+// play, deploy 1 [Sword Strike Gundam] (AP4HP2Blocker) or 1 [Launcher Strike Gundam] (AP2HP4Blocker)
+// Unit token.
+const AILE_STRIKE_TOKEN = Object.freeze({
+  number: 'TOKEN-AILE-STRIKE', name: 'Aile Strike Gundam', type: 'unit', color: 'white',
+  traits: ['Earth Alliance'], ap: 3, hp: 3, isToken: true, keywords: { blocker: true }
+});
+const SWORD_STRIKE_TOKEN = Object.freeze({
+  number: 'TOKEN-SWORD-STRIKE', name: 'Sword Strike Gundam', type: 'unit', color: 'white',
+  traits: ['Earth Alliance'], ap: 4, hp: 2, isToken: true, keywords: { blocker: true }
+});
+const LAUNCHER_STRIKE_TOKEN = Object.freeze({
+  number: 'TOKEN-LAUNCHER-STRIKE', name: 'Launcher Strike Gundam', type: 'unit', color: 'white',
+  traits: ['Earth Alliance'], ap: 2, hp: 4, isToken: true, keywords: { blocker: true }
+});
+function hasEarthAllianceToken(player) {
+  return player.battleArea.some((u) => u.def.isToken && (u.def.traits || []).includes('Earth Alliance'));
+}
+function strikerPackBurst(state, player) {
+  if (hasEarthAllianceToken(player)) return;
+  deployUnit(state, player, AILE_STRIKE_TOKEN);
+}
+function strikerPackCommand(state, player, instance, context) {
+  if (hasEarthAllianceToken(player)) return;
+  const choice = context.hooks && context.hooks.chooseToken
+    ? context.hooks.chooseToken([SWORD_STRIKE_TOKEN, LAUNCHER_STRIKE_TOKEN])
+    : SWORD_STRIKE_TOKEN;
+  deployUnit(state, player, choice);
+}
+
 module.exports = {
   guntankDeploy,
   zakuIIAttackBuff,
@@ -766,5 +916,17 @@ module.exports = {
   gundamBarbatos1stFormAttack,
   gundamBarbatosAdaptDeploy,
   mikazukiAugusBurst,
-  mikazukiAugusWhenPaired
+  mikazukiAugusWhenPaired,
+  widespreadAnnihilationCommand,
+  swordStrikeGundamAttack,
+  simpleBurstBase,
+  simpleBaseDeployAddShield,
+  gunEZDeploy,
+  v2GundamActivateMain,
+  gracefulDemeanorCommand,
+  gracefulDemeanorBurst,
+  silverBulletDeploy,
+  freedomGundamStartOfTurn,
+  strikerPackBurst,
+  strikerPackCommand
 };

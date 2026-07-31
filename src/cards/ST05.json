@@ -10,5 +10,17 @@
     "hpBonus": 1,
     "traits": ["Tekkadan", "Alaya-Vijnana"],
     "effectRefs": { "burst": "mikazukiAugusBurst", "whenPaired": "mikazukiAugusWhenPaired" }
+  },
+  {
+    "number": "ST05-004",
+    "name": "Graze Custom",
+    "type": "unit",
+    "color": "purple",
+    "level": 2,
+    "cost": 1,
+    "ap": 2,
+    "hp": 2,
+    "traits": ["Tekkadan"],
+    "keywords": {}
   }
 ]

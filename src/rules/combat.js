@@ -80,7 +80,7 @@ function resolveDamageStep(state, attackingPlayer, defendingPlayer, attacker, ta
       return;
     }
     if (defendingPlayer.base) {
-      dealDamage(defendingPlayer.base, attackerAP);
+      dealDamage(defendingPlayer.base, attackerAP, { isBattleDamage: true });
       const destroyed = destroyAndFireEffect(state, defendingPlayer, defendingPlayer.base);
       if (destroyed && keywords.breach) applyBreach(state, defendingPlayer, keywords.breach, hooks);
       return;
@@ -108,7 +108,7 @@ function resolveUnitBattleDamage(state, attackingPlayer, defendingPlayer, attack
   const keywords = getKeywords(attacker);
 
   if (keywords.firstStrike) {
-    dealDamage(defender, attackerAP);
+    dealDamage(defender, attackerAP, { isBattleDamage: true });
     fireCardEffect(state, attackingPlayer, attacker, 'dealsBattleDamage', { defender });
     const defenderDied = destroyAndFireEffect(state, defendingPlayer, defender);
     if (defenderDied) {
@@ -116,15 +116,15 @@ function resolveUnitBattleDamage(state, attackingPlayer, defendingPlayer, attack
       fireDestroysEnemy(state, attackingPlayer, attacker);
       return; // 13-1-5-2: a Unit destroyed by First Strike deals no return damage.
     }
-    dealDamage(attacker, defenderAP);
+    dealDamage(attacker, defenderAP, { isBattleDamage: true });
     destroyAndFireEffect(state, attackingPlayer, attacker);
     return;
   }
 
   // Simultaneous mutual damage (8-5-3-2).
-  dealDamage(defender, attackerAP);
+  dealDamage(defender, attackerAP, { isBattleDamage: true });
   fireCardEffect(state, attackingPlayer, attacker, 'dealsBattleDamage', { defender });
-  dealDamage(attacker, defenderAP);
+  dealDamage(attacker, defenderAP, { isBattleDamage: true });
   const defenderDied = destroyAndFireEffect(state, defendingPlayer, defender);
   destroyAndFireEffect(state, attackingPlayer, attacker);
   if (defenderDied) {
@@ -148,7 +148,7 @@ function fireDestroysEnemy(state, attackingPlayer, attacker) {
 /** <Breach(amount)> (13-1-2): damages the enemy Base, or top Shield if there's no Base. */
 function applyBreach(state, defendingPlayer, amount, hooks) {
   if (defendingPlayer.base) {
-    dealDamage(defendingPlayer.base, amount);
+    dealDamage(defendingPlayer.base, amount, { isBattleDamage: true });
     destroyAndFireEffect(state, defendingPlayer, defendingPlayer.base);
   } else if (defendingPlayer.shields.length > 0) {
     const shield = destroyTopShield(defendingPlayer);
