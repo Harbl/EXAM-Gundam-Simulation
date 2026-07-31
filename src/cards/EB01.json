@@ -1,0 +1,14 @@
+[
+  {
+    "number": "EB01-054",
+    "name": "Gaplant TR-5 \"Hrairoo\" Unit 1",
+    "type": "unit",
+    "color": "white",
+    "level": 3,
+    "cost": 2,
+    "ap": 3,
+    "hp": 3,
+    "traits": ["G Generation"],
+    "keywords": { "blocker": true }
+  }
+]

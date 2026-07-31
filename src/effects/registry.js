@@ -936,6 +936,7 @@ function sazabiAttack(state, player, unit, context) {
 
   destroyCard(state, player, toSacrifice);
   fireCardEffect(state, player, toSacrifice, 'destroyed', { wasPaired: !!toSacrifice.pilot });
+  if ((unit.def.traits || []).includes('Neo Zeon')) player.neoZeonSelfDestroyThisTurn = true; // Axis GD05-129's Activate*Main condition
   destroyCard(state, opponent, enemyTarget);
   fireCardEffect(state, opponent, enemyTarget, 'destroyed', { wasPaired: !!enemyTarget.pilot });
 }
@@ -1219,6 +1220,139 @@ function haowGundamWhenPaired(state, player, unit, context) {
   }
 }
 
+// --- White Base ST01-015 (Base) ---
+// [Burst] Deploy this card. [Deploy] Add 1 of your Shields to your hand (shared one-liners).
+// [Activate*Main][Once per Turn] 2: Deploy 1 [Gundam] Unit token if you have no Units in play,
+// deploy 1 [Guncannon] token if you have only 1 Unit in play, or deploy 1 [Guntank] token if you
+// have 2 or more (all (White Base Team)). Engine-correct but not wired into the AI's
+// runActivations -- spending 2 real resources needs judgement the heuristic doesn't have yet,
+// same reasoning as Archangel/V2 Gundam's Activate*Main abilities above.
+const WHITE_BASE_GUNDAM_TOKEN = Object.freeze({
+  number: 'TOKEN-WB-GUNDAM', name: 'Gundam', type: 'unit', color: 'blue',
+  traits: ['White Base Team'], ap: 3, hp: 3, isToken: true
+});
+const WHITE_BASE_GUNCANNON_TOKEN = Object.freeze({
+  number: 'TOKEN-WB-GUNCANNON', name: 'Guncannon', type: 'unit', color: 'blue',
+  traits: ['White Base Team'], ap: 2, hp: 2, isToken: true
+});
+const WHITE_BASE_GUNTANK_TOKEN = Object.freeze({
+  number: 'TOKEN-WB-GUNTANK', name: 'Guntank', type: 'unit', color: 'blue',
+  traits: ['White Base Team'], ap: 1, hp: 1, isToken: true
+});
+function whiteBaseActivateMain(state, player, instance) {
+  if (instance.activationsUsed.deployToken) return false;
+  const activeResources = player.resourceArea.filter((r) => !r.rested);
+  if (activeResources.length < 2) return false;
+  activeResources[0].rested = true;
+  activeResources[1].rested = true;
+  instance.activationsUsed.deployToken = true;
+  const unitCount = player.battleArea.length;
+  const token = unitCount === 0 ? WHITE_BASE_GUNDAM_TOKEN : unitCount === 1 ? WHITE_BASE_GUNCANNON_TOKEN : WHITE_BASE_GUNTANK_TOKEN;
+  deployUnit(state, player, token);
+  return true;
+}
+
+// --- Battle of Aces GD01-111 (Command) ---
+// [Burst] Choose 1 enemy Unit. Deal 2 damage to it. [Main/Action] Choose 1 damaged enemy Unit.
+// Deal 3 damage to it.
+function battleOfAcesBurst(state, player) {
+  const target = opponentOf(state, player).battleArea.sort((a, b) => getAP(b) - getAP(a))[0];
+  if (target) dealDamage(target, 2);
+}
+function battleOfAcesCommand(state, player, instance, context) {
+  const candidates = opponentOf(state, player).battleArea.filter((u) => u.damage > 0);
+  const target = context.hooks && context.hooks.chooseUnit
+    ? context.hooks.chooseUnit(candidates)
+    : candidates.sort((a, b) => getAP(b) - getAP(a))[0];
+  if (target) dealDamage(target, 3);
+}
+
+// --- Improved Technique GD03-109 (Command) ---
+// [Burst] Activate this card's Main. [Main/Action] Choose 1 enemy Unit that is Lv.4 or lower. Deal
+// 3 damage to it. If there are 2 or more cards with "Improved Technique" in their card name in your
+// trash, choose 1 enemy Unit instead (no level restriction).
+function improvedTechniqueCommand(state, player, instance, context) {
+  const opponent = opponentOf(state, player);
+  const copiesInTrash = player.trash.filter((c) => (c.def.name || '').includes('Improved Technique')).length;
+  const candidates = copiesInTrash >= 2
+    ? opponent.battleArea
+    : opponent.battleArea.filter((u) => (u.def.level || 0) <= 4);
+  const target = context.hooks && context.hooks.chooseUnit
+    ? context.hooks.chooseUnit(candidates)
+    : candidates.sort((a, b) => getAP(b) - getAP(a))[0];
+  if (target) dealDamage(target, 3);
+}
+function improvedTechniqueBurst(state, player) {
+  improvedTechniqueCommand(state, player, null, {});
+}
+
+// --- Rewloola ST03-015 (Base) ---
+// [Burst] Deploy this card. [Deploy] Add 1 of your Shields to your hand. Then, choose 1 enemy Unit
+// with 5 or less AP. Deal 1 damage to it.
+function rewloolaDeploy(state, player, instance, context) {
+  simpleBaseDeployAddShield(state, player);
+  const candidates = opponentOf(state, player).battleArea.filter((u) => getAP(u) <= 5);
+  const target = context.hooks && context.hooks.chooseUnit
+    ? context.hooks.chooseUnit(candidates)
+    : candidates.sort((a, b) => getAP(b) - getAP(a))[0];
+  if (target) dealDamage(target, 1);
+}
+
+// --- Axis GD05-129 (Base) ---
+// [Burst] Deploy this card. [Deploy] Add 1 of your Shields to your hand (shared one-liners).
+// [Activate*Main] Rest this Base: If one of your Units has been destroyed by one of your (Neo
+// Zeon) card's effects during this turn, deploy 1 (Neo Zeon) Unit card that is Lv.3 or lower from
+// your hand. Gated on the new `player.neoZeonSelfDestroyThisTurn` flag (reset each start phase,
+// same convention as the pre-existing `specialMoveActivatedThisTurn`), set wherever a friendly Neo
+// Zeon card's own effect destroys a friendly Unit -- currently just Sazabi's Attack sacrifice, the
+// only such interaction that exists in the DB so far.
+function axisActivateMain(state, player, instance, context) {
+  if (instance.rested) return false;
+  if (!player.neoZeonSelfDestroyThisTurn) return false;
+  const candidates = player.hand.filter(
+    (c) => c.def.type === 'unit' && (c.def.traits || []).includes('Neo Zeon') && (c.def.level || 0) <= 3
+  );
+  const choice = context.hooks && context.hooks.chooseCard ? context.hooks.chooseCard(candidates) : candidates[0];
+  if (!choice) return false;
+  instance.rested = true;
+  player.hand.splice(player.hand.indexOf(choice), 1);
+  deployUnit(state, player, choice.def);
+  return true;
+}
+
+// --- Waldfeld's Murasame GD05-003 ---
+// Link Condition [Andrew Waldfeld]. [Destroyed] If you have an (Orb) Pilot in play, draw 1.
+function waldfeldsMurasameDestroyed(state, player) {
+  const hasOrbPilot = player.battleArea.some((u) => u.pilot && (u.pilot.def.traits || []).includes('Orb'));
+  if (hasOrbPilot) drawCard(state, player);
+}
+
+// --- Hashmal GD05-006 ---
+// [Once per Turn] During your turn, when this Unit destroys an enemy card with battle damage,
+// deploy 1 [Pluma] ((Calamity War) AP2/HP1) Unit token. This Unit gains the same number of
+// <Repair 1> as the number of (Calamity War) Unit tokens in play (implemented as a `repair` buff,
+// a one-line generalization to `applyRepairAtEndOfTurn` mirroring the existing ap/hp buff pattern).
+const PLUMA_TOKEN = Object.freeze({
+  number: 'TOKEN-PLUMA', name: 'Pluma', type: 'unit', color: 'blue', traits: ['Calamity War'], ap: 2, hp: 1, isToken: true
+});
+function hashmalDestroysEnemy(state, player, instance) {
+  if (!instance.activationsUsed.deployPluma) {
+    deployUnit(state, player, PLUMA_TOKEN);
+    instance.activationsUsed.deployPluma = true;
+  }
+  const tokenCount = player.battleArea.filter((u) => u.def.isToken && (u.def.traits || []).includes('Calamity War')).length;
+  instance.buffs = instance.buffs.filter((b) => !b.hashmalRepair);
+  instance.buffs.push({ repair: tokenCount, hashmalRepair: true });
+}
+
+// --- Andrew Waldfeld GD05-082 (Pilot) ---
+// [Burst] Add this card to your hand. [During Link] This Unit gains <Repair 2> (data field
+// `duringLinkRepair`, read by `applyRepairAtEndOfTurn` -- mirrors the pilot-side
+// duringLinkAp/duringLinkHp pattern from Heero Yuy ST02-010).
+function andrewWaldfeldBurst(state, player, instance) {
+  player.hand.push(instance);
+}
+
 module.exports = {
   guntankDeploy,
   zakuIIAttackBuff,
@@ -1334,5 +1468,15 @@ module.exports = {
   isaribiBurst,
   isaribiDeploy,
   isaribiActivateMain,
-  haowGundamWhenPaired
+  haowGundamWhenPaired,
+  whiteBaseActivateMain,
+  battleOfAcesBurst,
+  battleOfAcesCommand,
+  improvedTechniqueCommand,
+  improvedTechniqueBurst,
+  rewloolaDeploy,
+  axisActivateMain,
+  waldfeldsMurasameDestroyed,
+  hashmalDestroysEnemy,
+  andrewWaldfeldBurst
 };

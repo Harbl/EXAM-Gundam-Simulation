@@ -36,11 +36,13 @@ function fireCardEffect(state, player, instance, eventName, context = {}) {
 /** <Repair(amount)>: at the end of your turn, this Unit recovers `amount` HP (13-1-1). */
 function applyRepairAtEndOfTurn(player) {
   for (const instance of player.battleArea) {
-    const amount = instance.def.keywords && instance.def.keywords.repair;
+    let amount = (instance.def.keywords && instance.def.keywords.repair) || 0;
+    if (instance.isLinkUnit && instance.pilot) amount += instance.pilot.def.duringLinkRepair || 0;
+    amount += instance.buffs.reduce((sum, b) => sum + (b.repair || 0), 0);
     if (amount) recoverHP(instance, amount);
   }
   if (player.base) {
-    const amount = player.base.def.keywords && player.base.def.keywords.repair;
+    const amount = (player.base.def.keywords && player.base.def.keywords.repair) || 0;
     if (amount) recoverHP(player.base, amount);
   }
 }

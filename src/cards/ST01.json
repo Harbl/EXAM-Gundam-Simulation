@@ -44,5 +44,17 @@
     "level": 3,
     "cost": 1,
     "effectRefs": { "command": "unforeseenIncidentCommand", "burst": "unforeseenIncidentBurst" }
+  },
+  {
+    "number": "ST01-015",
+    "name": "White Base",
+    "type": "base",
+    "color": "blue",
+    "level": 3,
+    "cost": 2,
+    "ap": 0,
+    "hp": 5,
+    "traits": ["Earth Federation", "White Base Team", "Warship"],
+    "effectRefs": { "burst": "simpleBurstBase", "deploy": "simpleBaseDeployAddShield", "activateMain": "whiteBaseActivateMain" }
   }
 ]

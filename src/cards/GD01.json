@@ -188,5 +188,14 @@
     "level": 2,
     "cost": 1,
     "effectRefs": { "burst": "navalBombardmentBurst", "command": "navalBombardmentCommand" }
+  },
+  {
+    "number": "GD01-111",
+    "name": "Battle of Aces",
+    "type": "command",
+    "color": "red",
+    "level": 3,
+    "cost": 2,
+    "effectRefs": { "burst": "battleOfAcesBurst", "command": "battleOfAcesCommand" }
   }
 ]

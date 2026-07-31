@@ -14,6 +14,7 @@ function runStartPhase(state) {
   }
   for (const resource of player.resourceArea) resource.rested = false;
   player.specialMoveActivatedThisTurn = false; // Master Asia GD05-089's "activated a (Special Move) Command this turn" check
+  player.neoZeonSelfDestroyThisTurn = false; // Axis GD05-129's "your Unit destroyed by your (Neo Zeon) card's effect this turn" check
   triggerEvent(state, 'startOfTurn', {});
 }
 

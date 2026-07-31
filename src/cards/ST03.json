@@ -43,5 +43,17 @@
     "level": 2,
     "cost": 2,
     "effectRefs": { "command": "closeCombatCommand", "burst": "closeCombatBurst" }
+  },
+  {
+    "number": "ST03-015",
+    "name": "Rewloola",
+    "type": "base",
+    "color": "red",
+    "level": 3,
+    "cost": 2,
+    "ap": 0,
+    "hp": 5,
+    "traits": ["Neo Zeon", "Warship"],
+    "effectRefs": { "burst": "simpleBurstBase", "deploy": "rewloolaDeploy" }
   }
 ]

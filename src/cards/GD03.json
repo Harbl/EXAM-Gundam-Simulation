@@ -54,5 +54,14 @@
       "deploy": "peacemillionDeploy",
       "friendlyUnitDestroysEnemy": "peacemillionFriendlyUnitDestroysEnemy"
     }
+  },
+  {
+    "number": "GD03-109",
+    "name": "Improved Technique",
+    "type": "command",
+    "color": "red",
+    "level": 3,
+    "cost": 3,
+    "effectRefs": { "burst": "improvedTechniqueBurst", "command": "improvedTechniqueCommand" }
   }
 ]
