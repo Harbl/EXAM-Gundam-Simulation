@@ -12,5 +12,78 @@
     "linkCondition": "Kira Yamato",
     "keywords": { "blocker": true },
     "effectRefs": { "startOfTurn": "freedomGundamStartOfTurn" }
+  },
+  {
+    "number": "ST09-001",
+    "name": "Impulse Gundam",
+    "type": "unit",
+    "color": "purple",
+    "level": 3,
+    "cost": 2,
+    "ap": 3,
+    "hp": 3,
+    "traits": ["ZAFT", "Minerva Squad"],
+    "linkCondition": "Shinn Asuka",
+    "effectRefs": { "activateMain": "impulseGundamActivateMain" }
+  },
+  {
+    "number": "ST09-006",
+    "name": "Sword Impulse Gundam",
+    "type": "unit",
+    "color": "purple",
+    "level": 4,
+    "cost": 2,
+    "ap": 4,
+    "hp": 2,
+    "traits": ["Coordinator", "Minerva Squad"],
+    "effectRefs": { "deploy": "swordImpulseGundamDeploy" }
+  },
+  {
+    "number": "ST09-007",
+    "name": "Blast Impulse Gundam",
+    "type": "unit",
+    "color": "purple",
+    "level": 5,
+    "cost": 3,
+    "ap": 5,
+    "hp": 3,
+    "traits": ["ZAFT", "Minerva Squad"],
+    "keywords": { "blocker": true }
+  },
+  {
+    "number": "ST09-002",
+    "name": "Force Impulse Gundam",
+    "type": "unit",
+    "color": "purple",
+    "level": 5,
+    "cost": 4,
+    "ap": 5,
+    "hp": 4,
+    "traits": ["ZAFT", "Minerva Squad"],
+    "effectRefs": { "destroyed": "forceImpulseGundamDestroyed" }
+  },
+  {
+    "number": "ST09-008",
+    "name": "Shinn Asuka",
+    "type": "pilot",
+    "color": "purple",
+    "level": 4,
+    "cost": 1,
+    "apBonus": 3,
+    "hpBonus": 0,
+    "traits": ["ZAFT", "Minerva Squad", "Coordinator"],
+    "effectRefs": { "burst": "shinnAsukaST09008Burst", "attack": "shinnAsukaST09008Attack" }
+  },
+  {
+    "number": "ST09-010",
+    "name": "Minerva",
+    "type": "base",
+    "color": "purple",
+    "level": 2,
+    "cost": 1,
+    "ap": 0,
+    "hp": 5,
+    "traits": ["ZAFT", "Minerva Squad", "Warship"],
+    "effectRefs": { "burst": "minervaBurst", "deploy": "minervaDeploy" }
   }
 ]

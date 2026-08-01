@@ -56,6 +56,12 @@ function getKeywords(instance) {
 function dealDamage(instance, amount, opts = {}) {
   if (amount <= 0) return;
   let reduction = instance.buffs.reduce((sum, b) => sum + (b.damageReduction || 0), 0);
+  // Destiny Gundam GD05-055's "Once per Turn, when this Unit receives enemy battle damage, reduce
+  // it by 2" -- a static per-card cap, distinct from the buff-based reductions above.
+  if (opts.isBattleDamage && instance.def.oncePerTurnBattleDamageReduction && !instance.activationsUsed.battleDamageReduced) {
+    reduction += instance.def.oncePerTurnBattleDamageReduction;
+    instance.activationsUsed.battleDamageReduced = true;
+  }
   if (!opts.isBattleDamage) {
     reduction += instance.buffs.reduce((sum, b) => sum + (b.effectDamageReduction || 0), 0);
     if (instance.isLinkUnit && instance.pilot) {

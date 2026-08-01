@@ -177,5 +177,17 @@
     "hpBonus": 1,
     "traits": ["Zeon", "Cyclops Team"],
     "effectRefs": { "burst": "mikhailKaminskyBurst", "attack": "mikhailKaminskyAttack" }
+  },
+  {
+    "number": "GD03-094",
+    "name": "Zeheart Galette",
+    "type": "pilot",
+    "color": "purple",
+    "level": 5,
+    "cost": 1,
+    "apBonus": 2,
+    "hpBonus": 2,
+    "traits": ["Vagan", "X-Rounder"],
+    "effectRefs": { "burst": "zeheartGaletteBurst", "whenPaired": "zeheartGaletteWhenPaired" }
   }
 ]

@@ -578,5 +578,18 @@
     "hp": 5,
     "traits": ["Earth Sphere Unified Nation", "Stronghold"],
     "effectRefs": { "burst": "simpleBurstBase", "deploy": "simpleBaseDeployAddShield", "destroyed": "presidentialOfficeDestroyed" }
+  },
+  {
+    "number": "GD05-055",
+    "name": "Destiny Gundam",
+    "type": "unit",
+    "color": "purple",
+    "level": 8,
+    "cost": 7,
+    "ap": 5,
+    "hp": 6,
+    "traits": ["ZAFT", "Minerva Squad"],
+    "keywords": { "firstStrike": true },
+    "oncePerTurnBattleDamageReduction": 2
   }
 ]

@@ -61,5 +61,14 @@
     "hp": 5,
     "traits": ["AEUG", "Warship"],
     "effectRefs": { "burst": "simpleBurstBase", "deploy": "argamaDeploy" }
+  },
+  {
+    "number": "GD02-110",
+    "name": "Awakened Power",
+    "type": "command",
+    "color": "purple",
+    "level": 6,
+    "cost": 2,
+    "effectRefs": { "command": "awakenedPowerCommand" }
   }
 ]

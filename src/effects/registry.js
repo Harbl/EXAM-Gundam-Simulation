@@ -5,6 +5,7 @@ const { resolveUnitBattleDamage, applyBreach } = require('../rules/combat');
 const { fireCardEffect } = require('../rules/effects');
 const { createInstance, shuffle } = require('../rules/state');
 const { EX_RESOURCE_DEF } = require('../rules/setup');
+const { canAfford, payCost } = require('../rules/cost');
 
 function opponentOf(state, player) {
   return state.players.find((p) => p !== player);
@@ -1664,6 +1665,143 @@ function tokwanBurst(state, player, instance) {
   player.hand.push(instance);
 }
 
+// --- Impulse Gundam ST09-001 ---
+// [Activate*Main] 2, return this Unit to the bottom of its owner's deck: choose 1 Unit card with
+// "Impulse Gundam" in its card name that is Lv.4 or higher from your trash. Deploy it. (Engine-
+// correct, not wired into runActivations -- trading this Unit away for a specific bigger trash
+// card needs real judgement, same reasoning as Archangel/V2 Gundam above.)
+function impulseGundamActivateMain(state, player, instance, context) {
+  const activeResources = player.resourceArea.filter((r) => !r.rested);
+  if (activeResources.length < 2) return false;
+  const target = context.target;
+  const valid = target && player.trash.includes(target) && (target.def.name || '').includes('Impulse Gundam')
+    && (target.def.level || 0) >= 4;
+  if (!valid) return false;
+  activeResources[0].rested = true;
+  activeResources[1].rested = true;
+  const idx = player.battleArea.indexOf(instance);
+  if (idx !== -1) player.battleArea.splice(idx, 1);
+  player.deck.push(instance);
+  player.trash.splice(player.trash.indexOf(target), 1);
+  deployUnit(state, player, target.def, undefined, { fromTrash: true });
+  return true;
+}
+
+// --- Sword Impulse Gundam ST09-006 ---
+// [Deploy] If you deploy this Unit from your trash, choose 1 enemy Unit that is Lv.3 or lower.
+// Destroy it.
+function swordImpulseGundamDeploy(state, player, instance, context) {
+  if (!context.fromTrash) return;
+  const opponent = opponentOf(state, player);
+  const candidates = opponent.battleArea.filter((u) => (u.def.level || 0) <= 3 && !isImmuneToEffectDestroy(u));
+  const target = context.hooks && context.hooks.chooseUnit
+    ? context.hooks.chooseUnit(candidates)
+    : candidates.sort((a, b) => getAP(b) - getAP(a))[0];
+  if (!target) return;
+  const wasPaired = !!target.pilot;
+  destroyCard(state, opponent, target);
+  fireCardEffect(state, opponent, target, 'destroyed', { wasPaired });
+}
+
+// --- Force Impulse Gundam ST09-002 ---
+// [Destroyed] Choose 1 (Minerva Squad) Unit card without "Force Impulse Gundam" in its card name
+// from your trash. Add it to your hand.
+function forceImpulseGundamDestroyed(state, player, instance, context) {
+  const candidates = player.trash.filter(
+    (c) => c.def.type === 'unit' && (c.def.traits || []).includes('Minerva Squad')
+      && !(c.def.name || '').includes('Force Impulse Gundam')
+  );
+  const target = context.hooks && context.hooks.chooseCard ? context.hooks.chooseCard(candidates) : candidates[0];
+  if (!target) return;
+  player.trash.splice(player.trash.indexOf(target), 1);
+  player.hand.push(target);
+}
+
+// --- Destiny Gundam GD04-050 ---
+// <High-Maneuver> (data). [During Pair][Attack] You may choose 1 (Minerva Squad) Unit card from
+// your trash. Pay its cost to deploy it.
+function destinyGundamGD04050Attack(state, player, instance, context) {
+  if (!instance.pilot) return;
+  const candidates = player.trash.filter(
+    (c) => c.def.type === 'unit' && (c.def.traits || []).includes('Minerva Squad') && canAfford(player, c.def)
+  );
+  const target = context.hooks && context.hooks.chooseCard
+    ? context.hooks.chooseCard(candidates)
+    : candidates.sort((a, b) => getAP(b) - getAP(a))[0];
+  if (!target) return;
+  payCost(player, target.def);
+  player.trash.splice(player.trash.indexOf(target), 1);
+  deployUnit(state, player, target.def, undefined, { fromTrash: true });
+}
+
+// --- Destiny Gundam GD05-055 ---
+// <First Strike> (data). (Static: "Once per Turn, when this Unit receives enemy battle damage,
+// reduce it by 2" lives on the card def as oncePerTurnBattleDamageReduction, read directly by
+// management.js's dealDamage.)
+
+// --- Shinn Asuka ST09-008 ---
+// [Burst] Add this card to your hand. [Attack] If this is a (Minerva Squad) Unit, choose 1 of your
+// Resources. Set it as active.
+function shinnAsukaST09008Burst(state, player, instance) {
+  player.hand.push(instance);
+}
+function shinnAsukaST09008Attack(state, player, unit) {
+  if (!(unit.def.traits || []).includes('Minerva Squad')) return;
+  const restedResource = player.resourceArea.find((r) => r.rested);
+  if (restedResource) restedResource.rested = false;
+}
+
+// --- Zeheart Galette GD03-094 ---
+// [Burst] Add this card to your hand. [When Paired] Place the top 2 cards of your deck into your
+// trash. If you placed a (Vagan) card with this effect, choose 1 enemy Unit. It gets AP-2 during
+// this turn.
+function zeheartGaletteBurst(state, player, instance) {
+  player.hand.push(instance);
+}
+function zeheartGaletteWhenPaired(state, player, unit, context) {
+  const milled = player.deck.splice(0, 2);
+  for (const c of milled) player.trash.push(c);
+  if (!milled.some((c) => (c.def.traits || []).includes('Vagan'))) return;
+  const opponent = opponentOf(state, player);
+  const target = context.hooks && context.hooks.chooseUnit
+    ? context.hooks.chooseUnit(opponent.battleArea)
+    : opponent.battleArea.sort((a, b) => getAP(b) - getAP(a))[0];
+  if (target) target.buffs.push({ ap: -2, scope: 'turn' });
+}
+
+// --- Awakened Power GD02-110 (Command) ---
+// [Main] Choose 1 Unit card that is Lv.5 or lower from your trash. Pay its cost to deploy it.
+function awakenedPowerCommand(state, player, instance, context) {
+  const candidates = player.trash.filter(
+    (c) => c.def.type === 'unit' && (c.def.level || 0) <= 5 && canAfford(player, c.def)
+  );
+  const target = context.hooks && context.hooks.chooseCard
+    ? context.hooks.chooseCard(candidates)
+    : candidates.sort((a, b) => getAP(b) - getAP(a))[0];
+  if (!target) return;
+  payCost(player, target.def);
+  player.trash.splice(player.trash.indexOf(target), 1);
+  deployUnit(state, player, target.def, undefined, { fromTrash: true });
+}
+
+// --- Minerva ST09-010 (Base) ---
+// [Burst] Deploy this card. [Deploy] Add 1 of your Shields to your hand. Then, if it is your turn,
+// look at the top 2 cards of your deck and return 1 to the top. Place the remaining card into your
+// trash. (Heuristic: keep a Unit/Base on top for the immediate board play, same as Kayra's Re-GZ.)
+function minervaBurst(state, player, instance) {
+  becomeBase(state, player, instance);
+}
+function minervaDeploy(state, player) {
+  simpleBaseDeployAddShield(state, player);
+  const isOwnTurn = state.players[state.activePlayerIdx] === player;
+  if (!isOwnTurn || player.deck.length === 0) return;
+  const top2 = player.deck.splice(0, 2);
+  const keepIdx = top2.findIndex((c) => c.def.type === 'unit' || c.def.type === 'base');
+  const keep = top2.splice(keepIdx === -1 ? 0 : keepIdx, 1)[0];
+  player.deck.unshift(keep);
+  for (const c of top2) player.trash.push(c);
+}
+
 module.exports = {
   guntankDeploy,
   zakuIIAttackBuff,
@@ -1819,5 +1957,16 @@ module.exports = {
   kampferWhenPaired,
   mikhailKaminskyBurst,
   mikhailKaminskyAttack,
-  tokwanBurst
+  tokwanBurst,
+  impulseGundamActivateMain,
+  swordImpulseGundamDeploy,
+  forceImpulseGundamDestroyed,
+  destinyGundamGD04050Attack,
+  shinnAsukaST09008Burst,
+  shinnAsukaST09008Attack,
+  zeheartGaletteBurst,
+  zeheartGaletteWhenPaired,
+  awakenedPowerCommand,
+  minervaBurst,
+  minervaDeploy
 };

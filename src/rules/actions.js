@@ -11,12 +11,12 @@ function matchesLinkCondition(pilotDef, linkCondition) {
 }
 
 /** Deploys a Unit from a card def (3-2), firing its Deploy effect. Cost payment happens upstream. */
-function deployUnit(state, player, def, chooseToTrash) {
+function deployUnit(state, player, def, chooseToTrash, context = {}) {
   const unit = createInstance(def, player.id);
   unit.turnDeployed = state.turnNumber;
   player.battleArea.push(unit);
   enforceBattleAreaLimit(player, chooseToTrash);
-  fireCardEffect(state, player, unit, 'deploy', {});
+  fireCardEffect(state, player, unit, 'deploy', context);
   return unit;
 }
 

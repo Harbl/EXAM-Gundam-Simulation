@@ -218,5 +218,19 @@
     "traits": ["Zeon"],
     "blockedByLowLevelImmuneCap": 4,
     "effectRefs": { "burst": "tokwanBurst" }
+  },
+  {
+    "number": "GD04-050",
+    "name": "Destiny Gundam",
+    "type": "unit",
+    "color": "purple",
+    "level": 7,
+    "cost": 5,
+    "ap": 5,
+    "hp": 5,
+    "traits": ["ZAFT", "Minerva Squad"],
+    "linkCondition": "Shinn Asuka",
+    "keywords": { "highManeuver": true },
+    "effectRefs": { "attack": "destinyGundamGD04050Attack" }
   }
 ]
