@@ -1,6 +1,6 @@
 const { parentPort, workerData } = require('node:worker_threads');
 const { parseDecklistText } = require('../../src/deck/parser');
-const { validateDeck, resolveResourceDeck } = require('../../src/deck/validator');
+const { validateDeck } = require('../../src/deck/validator');
 const { buildGameDeck } = require('../../src/deck/build');
 const { lookupCard } = require('../../src/cards/index');
 const { runBatch } = require('../../src/sim/batch');
@@ -12,8 +12,7 @@ function loadDeck(text, label) {
   if (!validation.valid) {
     throw new Error(`${label} is not a legal deck:\n${validation.errors.join('\n')}`);
   }
-  const resourceEntries = resolveResourceDeck(parsed.resource, validation.colorCounts);
-  return buildGameDeck({ main: parsed.main, resource: resourceEntries }, lookupCard);
+  return buildGameDeck({ main: parsed.main }, lookupCard);
 }
 
 async function main() {

@@ -1,3 +1,9 @@
+const { LIMITS } = require('../rules/constants');
+
+// 3-6/6-1-1: a Resource card has no color, cost, or Lv (2-4-2, 2-9-2, 2-10-2) and every resource
+// deck is just 10 of them -- there's nothing for a decklist paste to configure here.
+const RESOURCE_DEF = Object.freeze({ number: 'RESOURCE', name: 'Resource', type: 'resource' });
+
 /** Expands a validated, quantity-based decklist into the flat CardDef arrays initializeGame expects. */
 function buildGameDeck(parsed, lookupCard) {
   const main = [];
@@ -6,12 +12,7 @@ function buildGameDeck(parsed, lookupCard) {
     for (let i = 0; i < entry.quantity; i++) main.push(def);
   }
 
-  const resource = [];
-  for (const entry of parsed.resource) {
-    const color = entry.color.toLowerCase();
-    const def = { number: `RESOURCE-${color.toUpperCase()}`, name: `${entry.color} Resource`, type: 'resource', color, cost: 0, level: 0 };
-    for (let i = 0; i < entry.quantity; i++) resource.push(def);
-  }
+  const resource = new Array(LIMITS.RESOURCE_DECK_SIZE).fill(RESOURCE_DEF);
 
   return { main, resource };
 }

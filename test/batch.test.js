@@ -2,7 +2,7 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 
 const { parseDecklistText } = require('../src/deck/parser');
-const { validateDeck, resolveResourceDeck } = require('../src/deck/validator');
+const { validateDeck } = require('../src/deck/validator');
 const { buildGameDeck } = require('../src/deck/build');
 const { lookupCard } = require('../src/cards/index');
 const { runBatch } = require('../src/sim/batch');
@@ -28,8 +28,7 @@ const JAKES_DECKLIST = `
 function buildJakesDeck() {
   const parsed = parseDecklistText(JAKES_DECKLIST);
   const validation = validateDeck(parsed, lookupCard, banlist);
-  const resourceEntries = resolveResourceDeck(parsed.resource, validation.colorCounts);
-  return buildGameDeck({ main: parsed.main, resource: resourceEntries }, lookupCard);
+  return buildGameDeck({ main: parsed.main }, lookupCard);
 }
 
 test('runBatch aggregates results, reports progress every game, and yields well-formed stats', async () => {

@@ -2,7 +2,7 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 
 const { parseDecklistText } = require('../src/deck/parser');
-const { validateDeck, resolveResourceDeck } = require('../src/deck/validator');
+const { validateDeck } = require('../src/deck/validator');
 const realBanlist = require('../data/banlist.json');
 
 test('parses a basic card line', () => {
@@ -13,14 +13,6 @@ test('parses a basic card line', () => {
 test("parses a card name containing a possessive/apostrophe", () => {
   const { main } = parseDecklistText("1 Char's Gelgoog GD01-023");
   assert.deepEqual(main, [{ quantity: 1, name: "Char's Gelgoog", number: 'GD01-023' }]);
-});
-
-test('parses a resource-deck line', () => {
-  const { resource } = parseDecklistText('6 Blue Resource / 4 Green Resource');
-  assert.deepEqual(resource, [
-    { quantity: 6, color: 'Blue' },
-    { quantity: 4, color: 'Green' }
-  ]);
 });
 
 test('ignores comments and blank lines', () => {
@@ -109,34 +101,6 @@ test('validator rejects more than 2 colors', () => {
   const lookup = fakeLookup({ A1: { color: 'blue' }, B1: { color: 'green' }, C1: { color: 'red' } });
   const result = validateDeck(parsed, lookup, banlist);
   assert.ok(result.errors.some((e) => e.includes('at most 2')));
-});
-
-test('resolveResourceDeck passes a valid provided resource deck through unchanged', () => {
-  const provided = [{ quantity: 6, color: 'Blue' }, { quantity: 4, color: 'Green' }];
-  assert.deepEqual(resolveResourceDeck(provided, { blue: 25, green: 25 }), provided);
-});
-
-test('resolveResourceDeck rejects a provided resource deck of the wrong size', () => {
-  assert.throws(() => resolveResourceDeck([{ quantity: 6, color: 'Blue' }], { blue: 50 }));
-});
-
-test("resolveResourceDeck defaults to an even split when the main deck's colors are evenly split", () => {
-  const result = resolveResourceDeck([], { blue: 25, green: 25 });
-  const total = result.reduce((sum, e) => sum + e.quantity, 0);
-  assert.equal(total, 10);
-  assert.deepEqual(new Set(result.map((e) => e.quantity)), new Set([5]));
-});
-
-test("resolveResourceDeck weights the split by each color's actual share of the main deck, not an even split across colors used", () => {
-  // A 31/19 (62%/38%) red/blue deck should draw resources close to that ratio, not 50/50 --
-  // a flat even split starved this exact color mix of red mana in real batch-sim testing.
-  const result = resolveResourceDeck([], { red: 31, blue: 19 });
-  const total = result.reduce((sum, e) => sum + e.quantity, 0);
-  assert.equal(total, 10);
-  const red = result.find((e) => e.color === 'red').quantity;
-  const blue = result.find((e) => e.color === 'blue').quantity;
-  assert.equal(red, 6, '31/50 of 10 rounds to 6');
-  assert.equal(blue, 4, '19/50 of 10 rounds to 4');
 });
 
 test("Jake's corrected Blue/Green decklist validates clean against the real banlist", () => {

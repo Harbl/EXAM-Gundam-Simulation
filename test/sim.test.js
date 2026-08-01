@@ -2,7 +2,7 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 
 const { parseDecklistText } = require('../src/deck/parser');
-const { validateDeck, resolveResourceDeck } = require('../src/deck/validator');
+const { validateDeck } = require('../src/deck/validator');
 const { buildGameDeck } = require('../src/deck/build');
 const { lookupCard } = require('../src/cards/index');
 const { decideMulligan, runMainPhase } = require('../src/ai/heuristic');
@@ -32,8 +32,7 @@ function buildJakesDeck() {
   const parsed = parseDecklistText(JAKES_DECKLIST);
   const validation = validateDeck(parsed, lookupCard, banlist);
   assert.equal(validation.valid, true, validation.errors.join('; '));
-  const resourceEntries = resolveResourceDeck(parsed.resource, validation.colorCounts);
-  return buildGameDeck({ main: parsed.main, resource: resourceEntries }, lookupCard);
+  return buildGameDeck({ main: parsed.main }, lookupCard);
 }
 
 test('decideMulligan keeps a hand with an early play and mulligans one without', () => {

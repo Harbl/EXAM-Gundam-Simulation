@@ -6,7 +6,7 @@
 const fs = require('node:fs');
 const path = require('node:path');
 const { parseDecklistText } = require('../src/deck/parser');
-const { validateDeck, resolveResourceDeck } = require('../src/deck/validator');
+const { validateDeck } = require('../src/deck/validator');
 const { buildGameDeck } = require('../src/deck/build');
 const { lookupCard } = require('../src/cards/index');
 const { playGame } = require('../src/sim/singleGame');
@@ -19,8 +19,7 @@ function loadDeck(filePath) {
   if (!validation.valid) {
     throw new Error(`${filePath} is not a legal deck:\n${validation.errors.join('\n')}`);
   }
-  const resourceEntries = resolveResourceDeck(parsed.resource, validation.colorCounts);
-  return buildGameDeck({ main: parsed.main, resource: resourceEntries }, lookupCard);
+  return buildGameDeck({ main: parsed.main }, lookupCard);
 }
 
 function main() {

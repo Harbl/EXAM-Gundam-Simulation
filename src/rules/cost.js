@@ -1,13 +1,17 @@
-/** A card's Level is a minimum-resources-in-play threshold; its Cost is paid by resting that many active Resources matching its color. */
+/**
+ * 2-9-1: a card's Level is satisfied when the number of Resources in your resource area (active or
+ * rested) is >= the card's Level. 2-10-1: Cost is paid by resting that many active Resources -- any
+ * of them, since Resources are colorless (2-4-2) and have no other distinguishing property.
+ */
 function canAfford(player, def) {
   if (player.resourceArea.length < (def.level || 0)) return false;
-  const activeMatching = player.resourceArea.filter((r) => !r.rested && r.def.color === def.color);
-  return activeMatching.length >= (def.cost || 0);
+  const active = player.resourceArea.filter((r) => !r.rested);
+  return active.length >= (def.cost || 0);
 }
 
 function payCost(player, def) {
-  const activeMatching = player.resourceArea.filter((r) => !r.rested && r.def.color === def.color);
-  for (let i = 0; i < (def.cost || 0); i++) activeMatching[i].rested = true;
+  const active = player.resourceArea.filter((r) => !r.rested);
+  for (let i = 0; i < (def.cost || 0); i++) active[i].rested = true;
 }
 
 module.exports = { canAfford, payCost };
