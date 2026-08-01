@@ -128,5 +128,54 @@
     "hpBonus": 2,
     "traits": ["Zeon", "Newtype"],
     "effectRefs": { "burst": "nyaanBurst", "whenLinked": "nyaanWhenLinked" }
+  },
+  {
+    "number": "GD03-024",
+    "name": "Hy-Gogg",
+    "type": "unit",
+    "color": "green",
+    "level": 3,
+    "cost": 2,
+    "ap": 3,
+    "hp": 2,
+    "traits": ["Zeon", "Cyclops Team"],
+    "effectRefs": { "whenLinked": "hyGoggWhenLinked" }
+  },
+  {
+    "number": "GD03-027",
+    "name": "Z'Gok E",
+    "type": "unit",
+    "color": "green",
+    "level": 3,
+    "cost": 2,
+    "ap": 3,
+    "hp": 3,
+    "traits": ["Zeon", "Cyclops Team"],
+    "keywords": {}
+  },
+  {
+    "number": "GD03-017",
+    "name": "Kämpfer",
+    "type": "unit",
+    "color": "green",
+    "level": 4,
+    "cost": 3,
+    "ap": 4,
+    "hp": 3,
+    "traits": ["Zeon", "Cyclops Team"],
+    "linkCondition": "Mikhail Kaminsky",
+    "effectRefs": { "burst": "kampferBurst", "whenPaired": "kampferWhenPaired" }
+  },
+  {
+    "number": "GD03-090",
+    "name": "Mikhail Kaminsky",
+    "type": "pilot",
+    "color": "green",
+    "level": 4,
+    "cost": 1,
+    "apBonus": 2,
+    "hpBonus": 1,
+    "traits": ["Zeon", "Cyclops Team"],
+    "effectRefs": { "burst": "mikhailKaminskyBurst", "attack": "mikhailKaminskyAttack" }
   }
 ]

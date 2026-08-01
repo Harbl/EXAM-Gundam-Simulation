@@ -1609,6 +1609,61 @@ function changWufeiBurst(state, player, instance) {
   player.hand.push(instance);
 }
 
+// --- Hy-Gogg GD03-024 ---
+// [When Linked] If you have another (Cyclops Team) Unit in play, deploy 1 rested [Hy-Gogg]
+// ((Cyclops Team)*AP2*HP1) Unit token.
+const HYGOGG_TOKEN = Object.freeze({
+  number: 'TOKEN-HYGOGG', name: 'Hy-Gogg', type: 'unit', color: 'green',
+  traits: ['Cyclops Team'], ap: 2, hp: 1, isToken: true
+});
+function hyGoggWhenLinked(state, player, unit) {
+  const hasOtherCyclops = player.battleArea.some((u) => u !== unit && (u.def.traits || []).includes('Cyclops Team'));
+  if (!hasOtherCyclops) return;
+  const token = deployUnit(state, player, HYGOGG_TOKEN);
+  token.rested = true;
+}
+
+// --- Kämpfer GD03-017 ---
+// [Burst] Choose 1 (Cyclops Team) Pilot card from your trash. Add it to your hand.
+// [When Paired]*(Cyclops Team) Pilot] All your (Cyclops Team) Units may choose an active enemy
+// Unit with 5 or less AP as their attack target during this turn.
+function kampferBurst(state, player, instance, context) {
+  const candidates = player.trash.filter((c) => c.def.type === 'pilot' && (c.def.traits || []).includes('Cyclops Team'));
+  const target = context.hooks && context.hooks.chooseCard ? context.hooks.chooseCard(candidates) : candidates[0];
+  if (!target) return;
+  player.trash.splice(player.trash.indexOf(target), 1);
+  player.hand.push(target);
+}
+function kampferWhenPaired(state, player, unit, context) {
+  const pilot = context.pilot;
+  if (!pilot || !(pilot.def.traits || []).includes('Cyclops Team')) return;
+  for (const u of player.battleArea) {
+    if ((u.def.traits || []).includes('Cyclops Team')) u.buffs.push({ activeTargetAPThreshold: 5, scope: 'turn' });
+  }
+}
+
+// --- Mikhail Kaminsky GD03-090 ---
+// [Burst] Add this card to your hand. [Attack] Choose 1 of your (Cyclops Team) Units. It gains
+// <Breach 1> during this turn.
+function mikhailKaminskyBurst(state, player, instance) {
+  player.hand.push(instance);
+}
+function mikhailKaminskyAttack(state, player, unit, context) {
+  const candidates = player.battleArea.filter(
+    (u) => (u.def.traits || []).includes('Cyclops Team') && !getKeywords(u).breach
+  );
+  const target = context.hooks && context.hooks.chooseUnit ? context.hooks.chooseUnit(candidates) : candidates[0];
+  if (target) target.buffs.push({ breach: 1, scope: 'turn' });
+}
+
+// --- Tokwan GD04-088 ---
+// [Burst] Add this card to your hand. (Static: "when this Unit is blocked by an enemy Unit that is
+// Lv.4 or lower, it can't receive battle damage during this battle" lives on the card def as
+// blockedByLowLevelImmuneCap, read directly by combat.js's isImmuneToBlockerReturnDamage.)
+function tokwanBurst(state, player, instance) {
+  player.hand.push(instance);
+}
+
 module.exports = {
   guntankDeploy,
   zakuIIAttackBuff,
@@ -1758,5 +1813,11 @@ module.exports = {
   athrunZalaST04011WhenLinked,
   nyaanBurst,
   nyaanWhenLinked,
-  changWufeiBurst
+  changWufeiBurst,
+  hyGoggWhenLinked,
+  kampferBurst,
+  kampferWhenPaired,
+  mikhailKaminskyBurst,
+  mikhailKaminskyAttack,
+  tokwanBurst
 };

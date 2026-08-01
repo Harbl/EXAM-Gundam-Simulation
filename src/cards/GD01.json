@@ -237,5 +237,29 @@
     "traits": ["Triple Ship Alliance"],
     "linkCondition": "Athrun Zala",
     "effectRefs": { "deploy": "justiceGundamDeploy", "attack": "justiceGundamAttack" }
+  },
+  {
+    "number": "GD01-035",
+    "name": "Zaku II",
+    "type": "unit",
+    "color": "green",
+    "level": 2,
+    "cost": 1,
+    "ap": 2,
+    "hp": 2,
+    "traits": ["Zeon"],
+    "keywords": {}
+  },
+  {
+    "number": "GD01-031",
+    "name": "Gelgoog",
+    "type": "unit",
+    "color": "green",
+    "level": 4,
+    "cost": 2,
+    "ap": 4,
+    "hp": 3,
+    "traits": ["Zeon"],
+    "keywords": {}
   }
 ]

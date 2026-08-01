@@ -125,12 +125,15 @@ function chooseAttackTarget(opponent, attacker, unitOnly = false) {
   }
   // GFreD GD03-035's When Linked grant: may target an active enemy Unit with AP <= this Unit's own.
   const activeAPCap = attacker.buffs.some((b) => b.activeTargetAPCap);
+  // Kämpfer GD03-017's When Paired team grant: may target an active enemy Unit with AP <= a fixed threshold.
+  const apThresholdBuff = attacker.buffs.find((b) => b.activeTargetAPThreshold !== undefined);
   const goodTrades = opponent.battleArea
     .filter(
       (u) =>
         (u.rested ||
           (activeCap !== undefined && (u.def.level || 0) <= activeCap) ||
-          (activeAPCap && getAP(u) <= attackerAP)) &&
+          (activeAPCap && getAP(u) <= attackerAP) ||
+          (apThresholdBuff && getAP(u) <= apThresholdBuff.activeTargetAPThreshold)) &&
         attackerAP >= getRemainingHP(u) &&
         getAP(u) < getRemainingHP(attacker)
     )

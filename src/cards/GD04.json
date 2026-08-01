@@ -205,5 +205,18 @@
     "traits": ["Earth Federation", "Newtype"],
     "duringLinkEffectDamageReduction": 2,
     "effectRefs": { "burst": "riddheMarcenasBurst" }
+  },
+  {
+    "number": "GD04-088",
+    "name": "Tokwan",
+    "type": "pilot",
+    "color": "green",
+    "level": 4,
+    "cost": 1,
+    "apBonus": 2,
+    "hpBonus": 0,
+    "traits": ["Zeon"],
+    "blockedByLowLevelImmuneCap": 4,
+    "effectRefs": { "burst": "tokwanBurst" }
   }
 ]

@@ -42,6 +42,7 @@ function resolveAttack(state, attackerPlayerIdx, attacker, declaredTarget, hooks
         }
         blocker.rested = true;
         target = { type: 'unit', instance: blocker };
+        attacker.buffs.push({ wasBlockedThisBattle: true, scope: 'battle' });
       }
     }
   }
@@ -116,6 +117,17 @@ function isImmuneToLowAPReturnDamage(attacker, incomingAP) {
   return incomingAP <= cap;
 }
 
+/**
+ * Tokwan GD04-088's "when this Unit is blocked by an enemy Unit that is Lv.4 or lower, it can't
+ * receive battle damage during this battle" -- a Pilot-side static field mirroring
+ * breachDamageImmuneAPCap above, gated on the wasBlockedThisBattle flag the Block step sets.
+ */
+function isImmuneToBlockerReturnDamage(attacker, blockerLevel) {
+  const cap = attacker.pilot && attacker.pilot.def.blockedByLowLevelImmuneCap;
+  if (cap === undefined) return false;
+  return attacker.buffs.some((b) => b.wasBlockedThisBattle) && blockerLevel <= cap;
+}
+
 function resolveUnitBattleDamage(state, attackingPlayer, defendingPlayer, attacker, defender, hooks) {
   const attackerAP = getAP(attacker);
   const defenderAP = getAP(defender);
@@ -130,7 +142,10 @@ function resolveUnitBattleDamage(state, attackingPlayer, defendingPlayer, attack
       fireDestroysEnemy(state, attackingPlayer, attacker);
       return; // 13-1-5-2: a Unit destroyed by First Strike deals no return damage.
     }
-    if (!isImmuneToLowAPReturnDamage(attacker, defenderAP)) {
+    if (
+      !isImmuneToLowAPReturnDamage(attacker, defenderAP) &&
+      !isImmuneToBlockerReturnDamage(attacker, defender.def.level || 0)
+    ) {
       dealDamage(attacker, defenderAP, { isBattleDamage: true });
     }
     destroyAndFireEffect(state, attackingPlayer, attacker);
@@ -140,7 +155,10 @@ function resolveUnitBattleDamage(state, attackingPlayer, defendingPlayer, attack
   // Simultaneous mutual damage (8-5-3-2).
   dealDamage(defender, attackerAP, { isBattleDamage: true });
   fireCardEffect(state, attackingPlayer, attacker, 'dealsBattleDamage', { defender });
-  if (!isImmuneToLowAPReturnDamage(attacker, defenderAP)) {
+  if (
+    !isImmuneToLowAPReturnDamage(attacker, defenderAP) &&
+    !isImmuneToBlockerReturnDamage(attacker, defender.def.level || 0)
+  ) {
     dealDamage(attacker, defenderAP, { isBattleDamage: true });
   }
   const defenderDied = destroyAndFireEffect(state, defendingPlayer, defender);
