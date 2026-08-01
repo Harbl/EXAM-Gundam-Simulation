@@ -36,12 +36,14 @@ function main() {
 
   let winsA = 0;
   let winsB = 0;
+  let draws = 0;
   let timeouts = 0;
   let turnsTotal = 0;
 
   for (let i = 0; i < games; i++) {
     const result = playGame(deckA, deckB);
-    if (result.timedOut) timeouts++;
+    if (result.draw) draws++;
+    else if (result.timedOut) timeouts++;
     else if (result.winner === 0) winsA++;
     else winsB++;
     turnsTotal += result.turns;
@@ -50,6 +52,7 @@ function main() {
   console.log(`Games: ${games}`);
   console.log(`Deck A (${deckAPath}) wins: ${winsA} (${((winsA / games) * 100).toFixed(1)}%)`);
   console.log(`Deck B (${deckBPath}) wins: ${winsB} (${((winsB / games) * 100).toFixed(1)}%)`);
+  console.log(`Draws: ${draws}`);
   console.log(`Timeouts: ${timeouts}`);
   console.log(`Average game length: ${(turnsTotal / games).toFixed(1)} turns`);
 }

@@ -6,7 +6,11 @@ const { resolveAttack } = require('../src/rules/combat');
 const {
   getRemainingHP,
   enforceHandLimit,
-  enforceBattleAreaLimit
+  enforceBattleAreaLimit,
+  checkDefeat,
+  destroyCard,
+  removeFromField,
+  sendToZone
 } = require('../src/rules/management');
 const { applyRepairAtEndOfTurn, activateSupport, clearTurnBuffs } = require('../src/rules/effects');
 const { runDrawPhase } = require('../src/rules/phases');
@@ -208,6 +212,97 @@ test('being unable to draw at all is also lethal', () => {
   state.players[0].deck = [];
   runDrawPhase(state);
   assert.equal(state.players[0].defeated, true);
+});
+
+test('a genuine simultaneous double-defeat is a draw, not an arbitrary winner (11-2-1)', () => {
+  const state = createGame(createPlayer(0), createPlayer(1));
+  state.players[0].defeated = true;
+  state.players[1].defeated = true;
+  checkDefeat(state);
+  assert.equal(state.draw, true);
+  assert.equal(state.winner, null, 'no arbitrary winner is picked for a genuine double-defeat');
+});
+
+test('a single defeated player still produces a normal winner, not a draw', () => {
+  const state = createGame(createPlayer(0), createPlayer(1));
+  state.players[0].defeated = true;
+  checkDefeat(state);
+  assert.equal(state.draw, false);
+  assert.equal(state.winner, 1);
+});
+
+test('a destroyed token Unit is removed from the game instead of sitting in trash (5-17-2-5)', () => {
+  const player = createPlayer(0);
+  const token = createInstance(unitDef({ number: 'TOKEN-X', isToken: true }), 0);
+  player.battleArea.push(token);
+  destroyCard({}, player, token);
+  assert.equal(player.battleArea.length, 0);
+  assert.equal(player.trash.includes(token), false, 'a token should vanish, not sit in trash');
+});
+
+test('a destroyed token Unit\'s non-token paired Pilot still goes to trash normally', () => {
+  const player = createPlayer(0);
+  const pilot = createInstance({ number: 'P-1', name: 'Pilot', type: 'pilot' }, 0);
+  const token = createInstance(unitDef({ number: 'TOKEN-X', isToken: true }), 0);
+  token.pilot = pilot;
+  player.battleArea.push(token);
+  destroyCard({}, player, token);
+  assert.equal(player.trash.includes(pilot), true, 'the real Pilot card still goes to trash');
+  assert.equal(player.trash.includes(token), false);
+});
+
+test('removeFromField sends a bounced token to nowhere instead of into the destination zone', () => {
+  const player = createPlayer(0);
+  const token = createInstance(unitDef({ number: 'TOKEN-X', isToken: true }), 0);
+  player.battleArea.push(token);
+  removeFromField(player, token, player.hand);
+  sendToZone(player.hand, token);
+  assert.equal(player.hand.includes(token), false, 'a bounced token vanishes rather than entering hand');
+});
+
+test("a paired Pilot follows its Unit to the destination zone it's bounced to, not automatically trash (3-3-6)", () => {
+  const player = createPlayer(0);
+  const pilot = createInstance({ number: 'P-1', name: 'Pilot', type: 'pilot' }, 0);
+  const unit = createInstance(unitDef(), 0);
+  unit.pilot = pilot;
+  player.battleArea.push(unit);
+  removeFromField(player, unit, player.hand);
+  assert.equal(player.hand.includes(pilot), true, 'the paired Pilot follows the Unit to hand');
+  assert.equal(player.trash.includes(pilot), false);
+  assert.equal(unit.pilot, null);
+});
+
+test('removeFromField still defaults an unbounded paired Pilot to trash when no destination is given', () => {
+  const player = createPlayer(0);
+  const pilot = createInstance({ number: 'P-1', name: 'Pilot', type: 'pilot' }, 0);
+  const unit = createInstance(unitDef(), 0);
+  unit.pilot = pilot;
+  player.battleArea.push(unit);
+  removeFromField(player, unit);
+  assert.equal(player.trash.includes(pilot), true);
+});
+
+test('<Suppression> lets the defender choose the resolution order of two simultaneous Bursts (13-1-7-4)', () => {
+  const { state, defendingPlayer, attacker } = makeMatch({
+    attackerDef: unitDef({ ap: 5, keywords: { suppression: true } })
+  });
+  const order = [];
+  const shieldA = createInstance(
+    { number: 'SH-A', name: 'Shield A', type: 'unit', effects: { burst: () => order.push('A') } },
+    1
+  );
+  const shieldB = createInstance(
+    { number: 'SH-B', name: 'Shield B', type: 'unit', effects: { burst: () => order.push('B') } },
+    1
+  );
+  defendingPlayer.shields.push(shieldA, shieldB);
+
+  resolveAttack(state, 0, attacker, { type: 'player' }, {
+    chooseBurst: () => true,
+    chooseBurstOrder: (shields) => [...shields].reverse()
+  });
+
+  assert.deepEqual(order, ['B', 'A'], 'the defender-supplied order should be honored, not the fixed top-then-next order');
 });
 
 test('setup deals a 5-card hand, 6 shields, an EX Base each, and an EX Resource to Player Two only', () => {

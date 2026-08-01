@@ -38,3 +38,21 @@ test('payCost rests exactly Cost-many active Resources, any of them', () => {
   const restedCount = player.resourceArea.filter((r) => r.rested).length;
   assert.equal(restedCount, 2);
 });
+
+test('payCost removes an EX Resource from the game entirely when spent, instead of just resting it (5-17-3-2-3)', () => {
+  const player = createPlayer(0);
+  const exResource = createInstance({ number: 'EX-RESOURCE', name: 'EX Resource', type: 'resource', isToken: true }, 0);
+  player.resourceArea.push(exResource);
+  payCost(player, { cost: 1 });
+  assert.equal(player.resourceArea.includes(exResource), false, 'spent EX Resource is gone, not just rested');
+  assert.equal(player.resourceArea.length, 0);
+});
+
+test('payCost still just rests a normal (non-token) Resource when spent', () => {
+  const player = createPlayer(0);
+  const r = resource();
+  player.resourceArea.push(r);
+  payCost(player, { cost: 1 });
+  assert.equal(player.resourceArea.includes(r), true, 'a normal Resource stays in play, just rested');
+  assert.equal(r.rested, true);
+});

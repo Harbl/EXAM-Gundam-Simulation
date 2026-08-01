@@ -106,7 +106,13 @@ function resolveDamageStep(state, attackingPlayer, defendingPlayer, attacker, ta
     const hitCount = keywords.suppression ? Math.min(2, defendingPlayer.shields.length) : 1;
     const destroyedShields = [];
     for (let i = 0; i < hitCount; i++) destroyedShields.push(destroyTopShield(defendingPlayer));
-    for (const shield of destroyedShields) resolveBurst(state, defendingPlayer, shield, hooks);
+    // 13-1-7-4: when both hit Shields have Burst effects, the defender (their owner) chooses
+    // the resolution order -- defaults to the fixed top-then-next order if no hook is given.
+    const burstOrder =
+      destroyedShields.length > 1 && hooks && hooks.chooseBurstOrder
+        ? hooks.chooseBurstOrder(destroyedShields)
+        : destroyedShields;
+    for (const shield of burstOrder) resolveBurst(state, defendingPlayer, shield, hooks);
     if (destroyedShields.length > 0) fireCardEffect(state, attackingPlayer, attacker, 'destroysShield', {});
     return;
   }

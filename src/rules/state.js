@@ -40,7 +40,8 @@ function createGame(playerA, playerB) {
     activePlayerIdx: 0,
     turnNumber: 1,
     phase: null,
-    winner: null
+    winner: null,
+    draw: false
   };
 }
 

@@ -78,6 +78,12 @@ function recoverHP(instance, amount) {
   instance.damage = Math.max(0, instance.damage - amount);
 }
 
+/** 5-17-2-5: a token passes through its destination zone (so Destroyed/return triggers still fire)
+ * but is removed from the game rather than persisting anywhere outside battle/resource/shield areas. */
+function sendToZone(zoneArray, instance) {
+  if (!instance.def.isToken) zoneArray.push(instance);
+}
+
 /** Moves a destroyed Unit/Base (and its paired Pilot, per 3-3-6) from wherever it is into its owner's trash. */
 function destroyCard(state, player, instance) {
   const battleIdx = player.battleArea.indexOf(instance);
@@ -85,25 +91,26 @@ function destroyCard(state, player, instance) {
   if (player.base === instance) player.base = null;
 
   if (instance.pilot) {
-    player.trash.push(instance.pilot);
+    sendToZone(player.trash, instance.pilot);
     instance.pilot = null;
   }
-  player.trash.push(instance);
+  sendToZone(player.trash, instance);
 }
 
 /**
  * Removes a Unit from the battle area/base slot without destroying it (e.g. bounced to hand, or
- * returned to its owner's deck) -- its paired Pilot still goes to trash, matching how a
- * battle-area-limit bump handles pairs, since the rules don't leave a Pilot floating unattached.
+ * returned to its owner's deck). 3-3-6: its paired Pilot follows it to that same destination zone
+ * rather than going to trash -- pass the zone array the Unit itself is about to enter as
+ * `destinationZone` (defaults to trash, matching how a battle-area-limit bump handles pairs).
  * Caller decides where the instance itself ends up.
  */
-function removeFromField(player, instance) {
+function removeFromField(player, instance, destinationZone) {
   const battleIdx = player.battleArea.indexOf(instance);
   if (battleIdx !== -1) player.battleArea.splice(battleIdx, 1);
   if (player.base === instance) player.base = null;
 
   if (instance.pilot) {
-    player.trash.push(instance.pilot);
+    sendToZone(destinationZone || player.trash, instance.pilot);
     instance.pilot = null;
   }
 }
@@ -132,17 +139,17 @@ function enforceBattleAreaLimit(player, chooseToTrash) {
     const [removed] = player.battleArea.splice(idx, 1);
     // Not treated as destroyed (11-4-2-1) -- goes straight to trash without triggering Destroyed effects.
     if (removed.pilot) {
-      player.trash.push(removed.pilot);
+      sendToZone(player.trash, removed.pilot);
       removed.pilot = null;
     }
-    player.trash.push(removed);
+    sendToZone(player.trash, removed);
   }
 }
 
 function enforceBaseLimit(player) {
   // Base section holds at most one Base (11-5); a new Base bumps the old one to trash untouched by "destroyed".
   if (player.base && player._pendingBase) {
-    player.trash.push(player.base);
+    sendToZone(player.trash, player.base);
     player.base = player._pendingBase;
     delete player._pendingBase;
   }
@@ -164,13 +171,17 @@ function enforceHandLimit(player, chooseDiscards) {
   }
 }
 
-/** Checks/applies the two defeat conditions from 11-2. Sets state.winner if a player has lost. */
+/**
+ * Checks/applies the two defeat conditions from 11-2. Sets state.winner if exactly one player has
+ * lost. 11-2-1: if *all* players fulfilling a defeat condition are defeated simultaneously, a genuine
+ * double-defeat is possible -- treated as a draw (state.draw) rather than picking an arbitrary winner.
+ */
 function checkDefeat(state) {
-  for (let i = 0; i < state.players.length; i++) {
-    if (state.players[i].defeated) {
-      state.winner = 1 - i;
-      return state.winner;
-    }
+  const defeatedIdxs = state.players.reduce((acc, p, i) => (p.defeated ? [...acc, i] : acc), []);
+  if (defeatedIdxs.length === state.players.length && defeatedIdxs.length > 0) {
+    state.draw = true;
+  } else if (defeatedIdxs.length === 1) {
+    state.winner = 1 - defeatedIdxs[0];
   }
   return state.winner;
 }
@@ -183,6 +194,7 @@ module.exports = {
   isImmuneToEffectDestroy,
   dealDamage,
   recoverHP,
+  sendToZone,
   destroyCard,
   removeFromField,
   destroyIfDead,

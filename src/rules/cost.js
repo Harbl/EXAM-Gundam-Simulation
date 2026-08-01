@@ -9,9 +9,18 @@ function canAfford(player, def) {
   return active.length >= (def.cost || 0);
 }
 
+/** 5-17-3-2-3: an EX Resource (or any Resource token) is removed from the game the moment it's
+ * spent, rather than just resting -- a one-time bonus, not a recurring one. */
 function payCost(player, def) {
   const active = player.resourceArea.filter((r) => !r.rested);
-  for (let i = 0; i < (def.cost || 0); i++) active[i].rested = true;
+  for (let i = 0; i < (def.cost || 0); i++) {
+    const resource = active[i];
+    if (resource.def.isToken) {
+      player.resourceArea.splice(player.resourceArea.indexOf(resource), 1);
+    } else {
+      resource.rested = true;
+    }
+  }
 }
 
 module.exports = { canAfford, payCost };

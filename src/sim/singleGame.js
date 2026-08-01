@@ -26,15 +26,15 @@ function playGame(deckA, deckB) {
   const openingCurve = state.players.map(handCurve);
 
   const hooks = defaultHooks();
-  while (state.winner === null && state.turnNumber <= MAX_TURNS) {
+  while (state.winner === null && !state.draw && state.turnNumber <= MAX_TURNS) {
     runStartPhase(state);
     runDrawPhase(state);
     checkDefeat(state);
-    if (state.winner !== null) break;
+    if (state.winner !== null || state.draw) break;
 
     runResourcePhase(state);
     runMainPhase(state, state.activePlayerIdx, hooks);
-    if (state.winner !== null) break;
+    if (state.winner !== null || state.draw) break;
 
     runEndPhase(state);
     passTurn(state);
@@ -55,7 +55,8 @@ function summarize(state, mulliganed, openingCurve) {
   return {
     winner: state.winner,
     turns: state.turnNumber,
-    timedOut: state.winner === null,
+    draw: state.draw,
+    timedOut: state.winner === null && !state.draw,
     mulliganed,
     openingCurve
   };

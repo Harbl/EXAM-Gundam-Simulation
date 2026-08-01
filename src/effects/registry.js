@@ -1,4 +1,4 @@
-const { dealDamage, getAP, getHP, getRemainingHP, getKeywords, isImmuneToEffectDestroy, recoverHP, removeFromField, destroyCard } = require('../rules/management');
+const { dealDamage, getAP, getHP, getRemainingHP, getKeywords, isImmuneToEffectDestroy, recoverHP, removeFromField, destroyCard, sendToZone } = require('../rules/management');
 const { deployUnit, deployBase, becomeBase } = require('../rules/actions');
 const { drawCard } = require('../rules/phases');
 const { resolveUnitBattleDamage, applyBreach } = require('../rules/combat');
@@ -337,8 +337,8 @@ function aileStrikeGundamWhenPaired(state, player, unit, context) {
   const candidates = opponent.battleArea.filter((u) => getRemainingHP(u) <= 4);
   if (candidates.length === 0) return;
   const target = candidates.sort((a, b) => getAP(b) - getAP(a))[0];
-  removeFromField(opponent, target);
-  opponent.hand.push(target);
+  removeFromField(opponent, target, opponent.hand);
+  sendToZone(opponent.hand, target);
 }
 
 // --- Strike Freedom Gundam GD05-002 ---
@@ -359,8 +359,8 @@ function strikeFreedomAttack(state, player, unit) {
     player.hand.splice(player.hand.indexOf(c), 1);
     player.trash.push(c);
   }
-  removeFromField(opponent, target);
-  opponent.deck.push(target);
+  removeFromField(opponent, target, opponent.deck);
+  sendToZone(opponent.deck, target);
 }
 
 // --- Kira Yamato ST04-010 (Pilot) ---
@@ -729,8 +729,8 @@ function swordStrikeGundamAttack(state, player, unit, context) {
     ? context.hooks.chooseUnit(candidates)
     : candidates.sort((a, b) => getAP(b) - getAP(a))[0];
   if (!target) return;
-  removeFromField(opponent, target);
-  opponent.hand.push(target);
+  removeFromField(opponent, target, opponent.hand);
+  sendToZone(opponent.hand, target);
 }
 
 // --- Underground Desert Base GD01-126 & Mining Asteroid Palau GD01-128 (Base) ---
@@ -793,8 +793,8 @@ function gracefulDemeanorCommand(state, player, instance, context) {
     ? context.hooks.chooseUnits(candidates)
     : candidates.sort((a, b) => getAP(b) - getAP(a)).slice(0, 2);
   for (const t of targets) {
-    removeFromField(opponent, t);
-    opponent.hand.push(t);
+    removeFromField(opponent, t, opponent.hand);
+    sendToZone(opponent.hand, t);
   }
 }
 function gracefulDemeanorBurst(state, player, instance, context) {
@@ -1679,9 +1679,9 @@ function impulseGundamActivateMain(state, player, instance, context) {
   if (!valid) return false;
   activeResources[0].rested = true;
   activeResources[1].rested = true;
-  const idx = player.battleArea.indexOf(instance);
-  if (idx !== -1) player.battleArea.splice(idx, 1);
-  player.deck.push(instance);
+  // 3-3-6: a paired Pilot follows this Unit to the deck rather than being silently dropped.
+  removeFromField(player, instance, player.deck);
+  sendToZone(player.deck, instance);
   player.trash.splice(player.trash.indexOf(target), 1);
   deployUnit(state, player, target.def, undefined, { fromTrash: true });
   return true;

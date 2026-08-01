@@ -6,6 +6,7 @@ async function runBatch(deckA, deckB, games, onProgress) {
     games,
     winsA: 0,
     winsB: 0,
+    draws: 0,
     timeouts: 0,
     turnsSum: 0,
     mulligansA: 0,
@@ -17,7 +18,8 @@ async function runBatch(deckA, deckB, games, onProgress) {
   for (let i = 0; i < games; i++) {
     const result = playGame(deckA, deckB);
 
-    if (result.timedOut) totals.timeouts++;
+    if (result.draw) totals.draws++;
+    else if (result.timedOut) totals.timeouts++;
     else if (result.winner === 0) totals.winsA++;
     else totals.winsB++;
 
@@ -53,6 +55,7 @@ function summarize(t) {
   return {
     games: t.games,
     timeouts: t.timeouts,
+    draws: t.draws,
     averageTurns: t.games === 0 ? 0 : t.turnsSum / t.games,
     deckA: perSide(t.winsA, t.mulligansA, t.curveA),
     deckB: perSide(t.winsB, t.mulligansB, t.curveB)
