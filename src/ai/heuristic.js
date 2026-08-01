@@ -16,7 +16,8 @@ function decideMulligan(hand) {
 function runDeploys(state, player) {
   for (;;) {
     const playable = player.hand
-      .filter((c) => (c.def.type === 'unit' || c.def.type === 'base') && canAfford(player, c.def))
+      // A second Base while one's already in play would just bump the first to trash for nothing (11-5).
+      .filter((c) => (c.def.type === 'unit' || (c.def.type === 'base' && !player.base)) && canAfford(player, c.def))
       .sort((a, b) => (b.def.cost || 0) - (a.def.cost || 0));
     const choice = playable[0];
     if (!choice) return;
