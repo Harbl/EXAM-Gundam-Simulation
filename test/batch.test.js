@@ -28,7 +28,7 @@ const JAKES_DECKLIST = `
 function buildJakesDeck() {
   const parsed = parseDecklistText(JAKES_DECKLIST);
   const validation = validateDeck(parsed, lookupCard, banlist);
-  const resourceEntries = resolveResourceDeck(parsed.resource, validation.colors);
+  const resourceEntries = resolveResourceDeck(parsed.resource, validation.colorCounts);
   return buildGameDeck({ main: parsed.main, resource: resourceEntries }, lookupCard);
 }
 

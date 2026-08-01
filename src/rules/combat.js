@@ -233,7 +233,7 @@ function applyBreach(state, defendingPlayer, amount, hooks) {
 function resolveBurst(state, defendingPlayer, shieldInstance, hooks) {
   const burstEffect = shieldInstance.def.effects && shieldInstance.def.effects.burst;
   const activate = burstEffect && hooks && hooks.chooseBurst ? hooks.chooseBurst(shieldInstance) : false;
-  if (activate) burstEffect(state, defendingPlayer, shieldInstance);
+  if (activate) burstEffect(state, defendingPlayer, shieldInstance, {});
   if (!isCardTracked(defendingPlayer, shieldInstance)) {
     defendingPlayer.trash.push(shieldInstance);
   }

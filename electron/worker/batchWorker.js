@@ -12,7 +12,7 @@ function loadDeck(text, label) {
   if (!validation.valid) {
     throw new Error(`${label} is not a legal deck:\n${validation.errors.join('\n')}`);
   }
-  const resourceEntries = resolveResourceDeck(parsed.resource, validation.colors);
+  const resourceEntries = resolveResourceDeck(parsed.resource, validation.colorCounts);
   return buildGameDeck({ main: parsed.main, resource: resourceEntries }, lookupCard);
 }
 

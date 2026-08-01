@@ -137,6 +137,19 @@ test('a destroyed Shield with a Burst effect only activates if chosen', () => {
   assert.equal(burstRan, true);
 });
 
+test("a Burst effect that reads context.hooks (e.g. Unforeseen Incident's Command-style target choice) doesn't crash when revealed as a shield", () => {
+  const { lookupCard } = require('../src/cards/index');
+  const opponentUnit = unitDef({ number: 'E', ap: 4, hp: 4 });
+  const { state, defendingPlayer, attacker } = makeMatch({ attackerDef: unitDef({ ap: 1 }) });
+  const enemy = createInstance(opponentUnit, 0);
+  state.players[0].battleArea.push(enemy); // the shield's own controller's opponent, from the attacker's side
+  defendingPlayer.shields.push(createInstance(lookupCard('ST01-014'), 1));
+
+  resolveAttack(state, 0, attacker, { type: 'player' }, { chooseBurst: () => true });
+
+  assert.ok(enemy.buffs.some((b) => b.ap === -3), 'the Burst still resolved its effect instead of throwing on undefined context');
+});
+
 test('<Breach> damages the shield area even though the attack targeted a Unit', () => {
   const { state, defendingPlayer, attacker, defender } = makeMatch({
     attackerDef: unitDef({ ap: 5, keywords: { breach: 1 } }),

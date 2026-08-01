@@ -113,18 +113,30 @@ test('validator rejects more than 2 colors', () => {
 
 test('resolveResourceDeck passes a valid provided resource deck through unchanged', () => {
   const provided = [{ quantity: 6, color: 'Blue' }, { quantity: 4, color: 'Green' }];
-  assert.deepEqual(resolveResourceDeck(provided, ['blue', 'green']), provided);
+  assert.deepEqual(resolveResourceDeck(provided, { blue: 25, green: 25 }), provided);
 });
 
 test('resolveResourceDeck rejects a provided resource deck of the wrong size', () => {
-  assert.throws(() => resolveResourceDeck([{ quantity: 6, color: 'Blue' }], ['blue']));
+  assert.throws(() => resolveResourceDeck([{ quantity: 6, color: 'Blue' }], { blue: 50 }));
 });
 
-test('resolveResourceDeck defaults to a proportional split across main-deck colors', () => {
-  const result = resolveResourceDeck([], ['blue', 'green']);
+test("resolveResourceDeck defaults to an even split when the main deck's colors are evenly split", () => {
+  const result = resolveResourceDeck([], { blue: 25, green: 25 });
   const total = result.reduce((sum, e) => sum + e.quantity, 0);
   assert.equal(total, 10);
-  assert.equal(result.length, 2);
+  assert.deepEqual(new Set(result.map((e) => e.quantity)), new Set([5]));
+});
+
+test("resolveResourceDeck weights the split by each color's actual share of the main deck, not an even split across colors used", () => {
+  // A 31/19 (62%/38%) red/blue deck should draw resources close to that ratio, not 50/50 --
+  // a flat even split starved this exact color mix of red mana in real batch-sim testing.
+  const result = resolveResourceDeck([], { red: 31, blue: 19 });
+  const total = result.reduce((sum, e) => sum + e.quantity, 0);
+  assert.equal(total, 10);
+  const red = result.find((e) => e.color === 'red').quantity;
+  const blue = result.find((e) => e.color === 'blue').quantity;
+  assert.equal(red, 6, '31/50 of 10 rounds to 6');
+  assert.equal(blue, 4, '19/50 of 10 rounds to 4');
 });
 
 test("Jake's corrected Blue/Green decklist validates clean against the real banlist", () => {

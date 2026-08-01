@@ -8,7 +8,7 @@ function validateDeck(parsed, lookupCard, banlist) {
   const errors = [];
   const missingCards = [];
   const quantities = new Map();
-  const colors = new Set();
+  const colorCounts = new Map();
 
   let total = 0;
   for (const entry of parsed.main) {
@@ -19,7 +19,7 @@ function validateDeck(parsed, lookupCard, banlist) {
       missingCards.push(entry.number);
       continue;
     }
-    if (def.color) colors.add(def.color);
+    if (def.color) colorCounts.set(def.color, (colorCounts.get(def.color) || 0) + entry.quantity);
   }
 
   if (missingCards.length > 0) {
@@ -51,18 +51,26 @@ function validateDeck(parsed, lookupCard, banlist) {
     errors.push(`Only one card number from the vanilla stat-twin group may be used; found ${vanillaUsed.join(', ')}.`);
   }
 
-  if (colors.size > 2) {
-    errors.push(`Deck uses ${colors.size} colors (${[...colors].join(', ')}); a deck may use at most 2.`);
+  if (colorCounts.size > 2) {
+    errors.push(`Deck uses ${colorCounts.size} colors (${[...colorCounts.keys()].join(', ')}); a deck may use at most 2.`);
   }
 
-  return { valid: errors.length === 0, errors, missingCards, colors: [...colors] };
+  return {
+    valid: errors.length === 0,
+    errors,
+    missingCards,
+    colors: [...colorCounts.keys()],
+    colorCounts: Object.fromEntries(colorCounts)
+  };
 }
 
 /**
  * Resource decks aren't derivable from card text (7-6-1: it's a deckbuilding choice), so if none
- * was pasted alongside the main deck, default to a proportional split across the main deck's colors.
+ * was pasted alongside the main deck, default to a split proportional to each color's actual share
+ * of the main deck (not just an even split across however many colors it uses -- a 62/38 red/blue
+ * deck should draw resources at roughly that ratio, not 50/50).
  */
-function resolveResourceDeck(providedResourceEntries, mainDeckColors) {
+function resolveResourceDeck(providedResourceEntries, mainDeckColorCounts) {
   const total = providedResourceEntries.reduce((sum, e) => sum + e.quantity, 0);
   if (total > 0) {
     if (total !== LIMITS.RESOURCE_DECK_SIZE) {
@@ -70,12 +78,20 @@ function resolveResourceDeck(providedResourceEntries, mainDeckColors) {
     }
     return providedResourceEntries;
   }
-  if (mainDeckColors.length === 0) {
+  const colors = Object.keys(mainDeckColorCounts);
+  if (colors.length === 0) {
     throw new Error('Cannot build a default resource deck with no known main-deck colors.');
   }
-  const base = Math.floor(LIMITS.RESOURCE_DECK_SIZE / mainDeckColors.length);
-  const remainder = LIMITS.RESOURCE_DECK_SIZE - base * mainDeckColors.length;
-  return mainDeckColors.map((color, i) => ({ quantity: base + (i < remainder ? 1 : 0), color }));
+  const mainDeckTotal = colors.reduce((sum, c) => sum + mainDeckColorCounts[c], 0);
+  // Largest-remainder method: exact proportional share per color, rounded to sum to exactly 10.
+  const shares = colors.map((color) => {
+    const exact = (LIMITS.RESOURCE_DECK_SIZE * mainDeckColorCounts[color]) / mainDeckTotal;
+    return { color, base: Math.floor(exact), remainder: exact - Math.floor(exact) };
+  });
+  const deficit = LIMITS.RESOURCE_DECK_SIZE - shares.reduce((sum, s) => sum + s.base, 0);
+  shares.sort((a, b) => b.remainder - a.remainder);
+  for (let i = 0; i < deficit; i++) shares[i].base += 1;
+  return shares.map((s) => ({ quantity: s.base, color: s.color }));
 }
 
 module.exports = { validateDeck, resolveResourceDeck };
