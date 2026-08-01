@@ -89,5 +89,44 @@
     "hp": 4,
     "traits": ["Teiwaz", "Tekkadan"],
     "effectRefs": { "deploy": "roueiDeploy" }
+  },
+  {
+    "number": "GD03-035",
+    "name": "GFreD",
+    "type": "unit",
+    "color": "red",
+    "level": 6,
+    "cost": 4,
+    "ap": 4,
+    "hp": 5,
+    "traits": ["Zeon"],
+    "linkCondition": "Nyaan",
+    "effectRefs": { "activateMain": "gfredActivateMain", "whenLinked": "gfredWhenLinked" }
+  },
+  {
+    "number": "GD03-034",
+    "name": "GQuuuuuuX (Omega Psycommu)",
+    "type": "unit",
+    "color": "red",
+    "level": 8,
+    "cost": 7,
+    "ap": 6,
+    "hp": 5,
+    "traits": ["Clan"],
+    "linkCondition": "Amate Yuzuriha (Machu)/Nyaan",
+    "keywords": { "suppression": true },
+    "effectRefs": { "deploy": "gquuuuuuxOmegaPsycommuDeploy" }
+  },
+  {
+    "number": "GD03-092",
+    "name": "Nyaan",
+    "type": "pilot",
+    "color": "red",
+    "level": 4,
+    "cost": 1,
+    "apBonus": 1,
+    "hpBonus": 2,
+    "traits": ["Zeon", "Newtype"],
+    "effectRefs": { "burst": "nyaanBurst", "whenLinked": "nyaanWhenLinked" }
   }
 ]

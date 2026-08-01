@@ -115,13 +115,22 @@ function restEnemyByTrading(state, player, opponent, source, trait, enemyQualifi
  */
 function chooseAttackTarget(opponent, attacker, unitOnly = false) {
   const attackerAP = getAP(attacker);
-  // Wing Gundam ST02-001: "may choose an active enemy Unit that is Lv.X or lower as its attack
-  // target" -- normally only rested enemies are legal targets, so this widens the candidate pool.
-  const activeCap = attacker.def.activeTargetLevelCap;
+  // Wing Gundam ST02-001 (static) / Athrun Zala ST04-011 (When Linked buff): "may choose an active
+  // enemy Unit that is Lv.X or lower as its attack target" -- normally only rested enemies are
+  // legal targets, so this widens the candidate pool.
+  let activeCap = attacker.def.activeTargetLevelCap;
+  if (activeCap === undefined) {
+    const capBuff = attacker.buffs.find((b) => b.activeTargetLevelCap !== undefined);
+    if (capBuff) activeCap = capBuff.activeTargetLevelCap;
+  }
+  // GFreD GD03-035's When Linked grant: may target an active enemy Unit with AP <= this Unit's own.
+  const activeAPCap = attacker.buffs.some((b) => b.activeTargetAPCap);
   const goodTrades = opponent.battleArea
     .filter(
       (u) =>
-        (u.rested || (activeCap !== undefined && (u.def.level || 0) <= activeCap)) &&
+        (u.rested ||
+          (activeCap !== undefined && (u.def.level || 0) <= activeCap) ||
+          (activeAPCap && getAP(u) <= attackerAP)) &&
         attackerAP >= getRemainingHP(u) &&
         getAP(u) < getRemainingHP(attacker)
     )
@@ -137,15 +146,18 @@ function runAttacks(state, playerIdx, hooks) {
   const opponent = state.players[1 - playerIdx];
   const attackers = player.battleArea.filter(
     (u) => u.def.type === 'unit' && !u.rested && !u.buffs.some((b) => b.cannotAttack)
-      && (u.isLinkUnit || u.turnDeployed !== state.turnNumber || u.def.attackOnDeployRestedOnly)
+      && (u.isLinkUnit || u.turnDeployed !== state.turnNumber || u.def.attackOnDeployRestedOnly
+          || u.buffs.some((b) => b.canAttackOnDeployTurn))
   );
 
   for (const attacker of attackers) {
     if (state.winner !== null || attacker.rested) continue;
     // Gundam Deathscythe Hell (EW) GD05-078: normally a freshly-deployed non-Link Unit can't
     // attack this turn at all -- its own text carves out an exception, but only against a rested
-    // enemy Unit, never the player directly.
-    const onDeployTurn = !attacker.isLinkUnit && attacker.turnDeployed === state.turnNumber;
+    // enemy Unit, never the player directly. Justice Gundam GD01-066's token grant lifts the
+    // restriction entirely instead (full normal attack, not unit-only).
+    const bypassesDeployRestriction = attacker.isLinkUnit || attacker.buffs.some((b) => b.canAttackOnDeployTurn);
+    const onDeployTurn = !bypassesDeployRestriction && attacker.turnDeployed === state.turnNumber;
     const target = chooseAttackTarget(opponent, attacker, onDeployTurn);
     if (target) resolveAttack(state, playerIdx, attacker, target, hooks);
   }

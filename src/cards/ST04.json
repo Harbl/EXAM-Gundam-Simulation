@@ -49,5 +49,30 @@
       "deploy": "simpleBaseDeployAddShield",
       "activateMain": "archangelActivateMain"
     }
+  },
+  {
+    "number": "ST04-006",
+    "name": "Aegis Gundam",
+    "type": "unit",
+    "color": "red",
+    "level": 4,
+    "cost": 3,
+    "ap": 4,
+    "hp": 3,
+    "traits": ["ZAFT"],
+    "linkCondition": "Athrun Zala",
+    "effectRefs": { "attack": "aegisGundamAttack" }
+  },
+  {
+    "number": "ST04-011",
+    "name": "Athrun Zala",
+    "type": "pilot",
+    "color": "red",
+    "level": 4,
+    "cost": 1,
+    "apBonus": 1,
+    "hpBonus": 2,
+    "traits": ["ZAFT", "Coordinator"],
+    "effectRefs": { "burst": "athrunZalaST04011Burst", "whenLinked": "athrunZalaST04011WhenLinked" }
   }
 ]

@@ -223,6 +223,19 @@
     "hpBonus": 1,
     "traits": ["Operation Meteor"],
     "breachDamageImmuneAPCap": 3,
-    "effectRefs": { "burst": "reineforceJrBurst" }
+    "effectRefs": { "burst": "changWufeiBurst" }
+  },
+  {
+    "number": "GD01-066",
+    "name": "Justice Gundam",
+    "type": "unit",
+    "color": "white",
+    "level": 7,
+    "cost": 5,
+    "ap": 5,
+    "hp": 5,
+    "traits": ["Triple Ship Alliance"],
+    "linkCondition": "Athrun Zala",
+    "effectRefs": { "deploy": "justiceGundamDeploy", "attack": "justiceGundamAttack" }
   }
 ]

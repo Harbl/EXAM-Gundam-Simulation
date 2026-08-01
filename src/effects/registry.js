@@ -1511,6 +1511,104 @@ function dragonGundamDestroysShield(state, player, instance, context) {
   if (target) dealDamage(target, 2);
 }
 
+// --- Aegis Gundam ST04-006 ---
+// [Attack] If this Unit has 5 or more AP, choose 1 enemy Unit that is Lv.5 or higher. Deal 3 damage to it.
+function aegisGundamAttack(state, player, instance, context) {
+  if (getAP(instance) < 5) return;
+  const candidates = opponentOf(state, player).battleArea.filter((u) => (u.def.level || 0) >= 5);
+  const target = context.hooks && context.hooks.chooseUnit
+    ? context.hooks.chooseUnit(candidates)
+    : candidates.sort((a, b) => getAP(b) - getAP(a))[0];
+  if (target) dealDamage(target, 3);
+}
+
+// --- GFreD GD03-035 ---
+// [Activate*Main][Once per Turn] 1, exile 1 Pilot card from your trash: Deal 1 damage to all enemy
+// Units. (Engine-correct, not wired into runActivations -- exiling a specific trashed Pilot is a
+// real resource cost needing judgement, same reasoning as Archangel/V2 Gundam above.)
+// [When Linked] During this turn, this Unit may choose an active enemy Unit with AP equal to or
+// less than this Unit as its attack target.
+function gfredActivateMain(state, player, instance, context) {
+  if (instance.activationsUsed.trashDamage) return false;
+  const activeResources = player.resourceArea.filter((r) => !r.rested);
+  if (activeResources.length < 1) return false;
+  const pilotCard = context.exilePilot;
+  if (!pilotCard || pilotCard.def.type !== 'pilot' || !player.trash.includes(pilotCard)) return false;
+  activeResources[0].rested = true;
+  player.trash.splice(player.trash.indexOf(pilotCard), 1);
+  for (const u of opponentOf(state, player).battleArea) dealDamage(u, 1);
+  instance.activationsUsed.trashDamage = true;
+  return true;
+}
+function gfredWhenLinked(state, player, unit) {
+  unit.buffs.push({ activeTargetAPCap: true, scope: 'turn' });
+}
+
+// --- Justice Gundam GD01-066 ---
+// [Deploy] Deploy 1 [Fatum-00] ((Triple Ship Alliance)*AP2*HP2*<Blocker>) Unit token.
+// [During Pair][Attack] Choose 1 of your (Triple Ship Alliance) Unit tokens; it may attack on the
+// turn it is deployed.
+const FATUM00_TOKEN = Object.freeze({
+  number: 'TOKEN-FATUM00', name: 'Fatum-00', type: 'unit', color: 'white',
+  traits: ['Triple Ship Alliance'], ap: 2, hp: 2, isToken: true, keywords: { blocker: true }
+});
+function justiceGundamDeploy(state, player) {
+  deployUnit(state, player, FATUM00_TOKEN);
+}
+function justiceGundamAttack(state, player, instance, context) {
+  if (!instance.pilot) return;
+  const candidates = player.battleArea.filter(
+    (u) => u.def.isToken && (u.def.traits || []).includes('Triple Ship Alliance') && u.turnDeployed === state.turnNumber
+  );
+  const target = context.hooks && context.hooks.chooseUnit ? context.hooks.chooseUnit(candidates) : candidates[0];
+  if (target) target.buffs.push({ canAttackOnDeployTurn: true, scope: 'turn' });
+}
+
+// --- GQuuuuuuX (Omega Psycommu) GD03-034 ---
+// <Suppression> (data). [Deploy] Choose 1 enemy Unit. Deal 3 damage to it.
+function gquuuuuuxOmegaPsycommuDeploy(state, player, instance, context) {
+  const candidates = opponentOf(state, player).battleArea;
+  const target = context.hooks && context.hooks.chooseUnit
+    ? context.hooks.chooseUnit(candidates)
+    : candidates.sort((a, b) => getAP(b) - getAP(a))[0];
+  if (target) dealDamage(target, 3);
+}
+
+// --- Athrun Zala ST04-011 ---
+// [Burst] Add this card to your hand. [When Linked] During this turn, this Unit may choose an
+// active enemy Unit that is Lv.5 or lower as its attack target.
+function athrunZalaST04011Burst(state, player, instance) {
+  player.hand.push(instance);
+}
+function athrunZalaST04011WhenLinked(state, player, unit) {
+  unit.buffs.push({ activeTargetLevelCap: 5, scope: 'turn' });
+}
+
+// --- Nyaan GD03-092 ---
+// [Burst] Add this card to your hand. [When Linked] Place the top card of your deck into your
+// trash. If you placed a (Zeon)/(Clan) card with this effect, choose 1 enemy Unit. Deal 1 damage to it.
+function nyaanBurst(state, player, instance) {
+  player.hand.push(instance);
+}
+function nyaanWhenLinked(state, player, unit, context) {
+  if (player.deck.length === 0) return;
+  const milled = player.deck.shift();
+  player.trash.push(milled);
+  const traits = milled.def.traits || [];
+  if (!traits.includes('Zeon') && !traits.includes('Clan')) return;
+  const opponent = opponentOf(state, player);
+  const target = context.hooks && context.hooks.chooseUnit
+    ? context.hooks.chooseUnit(opponent.battleArea)
+    : opponent.battleArea.sort((a, b) => getAP(b) - getAP(a))[0];
+  if (target) dealDamage(target, 1);
+}
+
+// --- Chang Wufei GD01-091 ---
+// [Burst] Add this card to your hand.
+function changWufeiBurst(state, player, instance) {
+  player.hand.push(instance);
+}
+
 module.exports = {
   guntankDeploy,
   zakuIIAttackBuff,
@@ -1649,5 +1747,16 @@ module.exports = {
   argamaDeploy,
   hokaKyotenJuzetsujinCommand,
   gravitonHammerCommand,
-  dragonGundamDestroysShield
+  dragonGundamDestroysShield,
+  aegisGundamAttack,
+  gfredActivateMain,
+  gfredWhenLinked,
+  justiceGundamDeploy,
+  justiceGundamAttack,
+  gquuuuuuxOmegaPsycommuDeploy,
+  athrunZalaST04011Burst,
+  athrunZalaST04011WhenLinked,
+  nyaanBurst,
+  nyaanWhenLinked,
+  changWufeiBurst
 };
