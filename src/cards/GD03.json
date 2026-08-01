@@ -189,5 +189,32 @@
     "hpBonus": 2,
     "traits": ["Vagan", "X-Rounder"],
     "effectRefs": { "burst": "zeheartGaletteBurst", "whenPaired": "zeheartGaletteWhenPaired" }
+  },
+  {
+    "number": "GD03-049",
+    "name": "Gundam Exia (Trans-Am)",
+    "type": "unit",
+    "color": "purple",
+    "level": 7,
+    "cost": 6,
+    "ap": 6,
+    "hp": 4,
+    "traits": ["CB", "GN Drive"],
+    "linkCondition": "Setsuna F. Seiei",
+    "keywords": { "suppression": true },
+    "effectRefs": { "destroysShield": "gundamExiaTransAmDestroysShield" }
+  },
+  {
+    "number": "GD03-057",
+    "name": "GN Armor (Type-E)",
+    "type": "unit",
+    "color": "purple",
+    "level": 6,
+    "cost": 4,
+    "ap": 5,
+    "hp": 4,
+    "traits": ["CB"],
+    "linkCondition": "CB",
+    "keywords": { "blocker": true }
   }
 ]

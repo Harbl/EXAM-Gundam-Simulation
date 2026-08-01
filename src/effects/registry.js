@@ -1802,6 +1802,143 @@ function minervaDeploy(state, player) {
   for (const c of top2) player.trash.push(c);
 }
 
+// --- Gundam Exia ST07-001 ---
+// [When Paired] Place the top 2 cards of your deck into your trash. If you place a (CB) card with
+// this effect, draw 1. [End of turn] If there are 7+ (CB) cards in your trash, untap 1 of your
+// Resources.
+function gundamExiaST07001WhenPaired(state, player) {
+  const milled = player.deck.splice(0, 2);
+  for (const c of milled) player.trash.push(c);
+  if (milled.some((c) => (c.def.traits || []).includes('CB'))) drawCard(state, player);
+}
+function gundamExiaST07001EndOfTurn(state, player) {
+  if (state.players[state.activePlayerIdx] !== player) return;
+  const cbInTrash = player.trash.filter((c) => (c.def.traits || []).includes('CB')).length;
+  if (cbInTrash < 7) return;
+  const rested = player.resourceArea.find((r) => r.rested);
+  if (rested) rested.rested = false;
+}
+
+// --- Gundam Virtue ST07-004 ---
+// While you have a (CB) Pilot in play, this Unit gains <Blocker> -- re-evaluated each start of
+// turn like the other conditional-keyword grants above (freedomGundamStartOfTurn etc).
+function gundamVirtueStartOfTurn(state, player, instance) {
+  instance.grantedKeywords.blocker = player.battleArea.some(
+    (u) => u.pilot && (u.pilot.def.traits || []).includes('CB')
+  );
+}
+
+// --- Setsuna F. Seiei ST07-009 (Pilot) ---
+// [Burst] Add this card to your hand. [Attack] This Unit gets AP+1 during this turn. If there are
+// 7+ (CB) cards in your trash, all your (CB) Units get AP+1 instead.
+function setsunaFSeieiST07009Burst(state, player, instance) {
+  player.hand.push(instance);
+}
+function setsunaFSeieiST07009Attack(state, player, unit) {
+  const cbInTrash = player.trash.filter((c) => (c.def.traits || []).includes('CB')).length;
+  if (cbInTrash >= 7) {
+    for (const u of player.battleArea) {
+      if ((u.def.traits || []).includes('CB')) u.buffs.push({ ap: 1, scope: 'turn' });
+    }
+  } else {
+    unit.buffs.push({ ap: 1, scope: 'turn' });
+  }
+}
+
+// --- Gundam Exia (Trans-Am) GD03-049 ---
+// <Suppression> (data). [When this Unit destroys an enemy shield-area card with battle damage] If
+// there are 10+ (CB) cards in your trash, choose 1 enemy Unit with the lowest HP. Destroy it.
+function gundamExiaTransAmDestroysShield(state, player, unit, context) {
+  const cbInTrash = player.trash.filter((c) => (c.def.traits || []).includes('CB')).length;
+  if (cbInTrash < 10) return;
+  const opponent = opponentOf(state, player);
+  const target = context.hooks && context.hooks.chooseUnit
+    ? context.hooks.chooseUnit(opponent.battleArea)
+    : [...opponent.battleArea].sort((a, b) => getRemainingHP(a) - getRemainingHP(b))[0];
+  if (!target) return;
+  destroyCard(state, opponent, target);
+  fireCardEffect(state, opponent, target, 'destroyed', {});
+}
+
+// --- Gundam Kyrios GD04-034 ---
+// <First Strike> (data). [During Link] This Unit gets AP+2 for each of your rested (CB) Units --
+// computed at the Attack step (the only point this Unit's own AP actually matters), since getAP
+// has no access to the owner's battle area to recompute it live.
+function gundamKyriosAttack(state, player, unit) {
+  if (!unit.isLinkUnit) return;
+  const restedCB = player.battleArea.filter((u) => u.rested && (u.def.traits || []).includes('CB')).length;
+  if (restedCB > 0) unit.buffs.push({ ap: restedCB * 2, scope: 'battle' });
+}
+
+// --- Nena Trinity GD04-089 (Pilot) ---
+// [Burst] Add this card to your hand. [Activate*Main] <Support 2> (Rest this Unit: 1 other
+// friendly Unit gets AP+2 during this turn) -- the generic Support keyword (rules/effects.js
+// activateSupport) is Unit-sided; this is a fixed amount granted by a Pilot instead, so it's
+// simpler to inline than to force the paired Unit's def.keywords.support to read 2.
+function nenaTrinityBurst(state, player, instance) {
+  player.hand.push(instance);
+}
+function nenaTrinityActivateMain(state, player, unit, context) {
+  const target = context.target;
+  if (!target || target === unit || unit.rested) return false;
+  unit.rested = true;
+  target.buffs.push({ ap: 2, scope: 'turn' });
+  return true;
+}
+
+// --- Hallelujah Haptism GD04-090 (Pilot) ---
+// [Burst] Add this card to your hand. [During Link][Once per Turn] During your turn, when this
+// Unit destroys an enemy Unit with battle damage, look at the top card of your deck. If it's a
+// (CB) card, you may reveal it and add it to your hand. Return any remaining card to the bottom
+// of your deck.
+function hallelujahHaptismBurst(state, player, instance) {
+  player.hand.push(instance);
+}
+function hallelujahHaptismDestroysEnemy(state, player, unit) {
+  if (state.players[state.activePlayerIdx] !== player) return;
+  if (unit.activationsUsed.hallelujahDeckPeek) return;
+  unit.activationsUsed.hallelujahDeckPeek = true;
+  const top = player.deck.shift();
+  if (!top) return;
+  if ((top.def.traits || []).includes('CB')) player.hand.push(top);
+  else player.deck.push(top);
+}
+
+// --- Overwhelming Pressure GD04-109 (Command) ---
+// [Main/Action] Choose 1 enemy Unit that is Lv.6 or lower. Deal 4 damage to it.
+function overwhelmingPressureCommand(state, player, instance, context) {
+  const candidates = opponentOf(state, player).battleArea.filter((u) => (u.def.level || 0) <= 6);
+  const target = context.hooks && context.hooks.chooseUnit
+    ? context.hooks.chooseUnit(candidates)
+    : candidates.sort((a, b) => getRemainingHP(a) - getRemainingHP(b))[0];
+  if (!target) return;
+  dealDamage(target, 4);
+}
+
+// --- Gundam Throne Eins (GN High Mega Launcher) GD05-038 ---
+// [During Link] This Unit gains <Suppression> -- isLinkUnit only ever flips false to true (never
+// back), and that transition is exactly when [When Linked] fires (actions.js pairPilot), so a
+// one-time grant there covers the rest of the instance's lifetime with no per-turn recheck needed.
+// [Activate*Main][Once per Turn] Rest 3 of your (CB) Units: choose 1 enemy Unit, deal 4 damage to
+// it. Requires judgement on which 3 Units to tap and which enemy to hit, so (like GFreD/Impulse
+// Gundam before it) this is engine-correct and tested directly but not wired into the AI's
+// runActivations whitelist.
+function gundamThroneEinsWhenLinked(state, player, unit) {
+  unit.grantedKeywords.suppression = true;
+}
+function gundamThroneEinsActivateMain(state, player, instance, context) {
+  if (instance.activationsUsed.throneEinsBarrage) return false;
+  const candidates = player.battleArea.filter((u) => !u.rested && (u.def.traits || []).includes('CB'));
+  if (candidates.length < 3) return false;
+  const target = context.target;
+  if (!target) return false;
+  instance.activationsUsed.throneEinsBarrage = true;
+  const toRest = context.toRest || candidates.slice(0, 3);
+  for (const u of toRest) u.rested = true;
+  dealDamage(target, 4);
+  return true;
+}
+
 module.exports = {
   guntankDeploy,
   zakuIIAttackBuff,
@@ -1968,5 +2105,19 @@ module.exports = {
   zeheartGaletteWhenPaired,
   awakenedPowerCommand,
   minervaBurst,
-  minervaDeploy
+  minervaDeploy,
+  gundamExiaST07001WhenPaired,
+  gundamExiaST07001EndOfTurn,
+  gundamVirtueStartOfTurn,
+  setsunaFSeieiST07009Burst,
+  setsunaFSeieiST07009Attack,
+  gundamExiaTransAmDestroysShield,
+  gundamKyriosAttack,
+  nenaTrinityBurst,
+  nenaTrinityActivateMain,
+  hallelujahHaptismBurst,
+  hallelujahHaptismDestroysEnemy,
+  overwhelmingPressureCommand,
+  gundamThroneEinsWhenLinked,
+  gundamThroneEinsActivateMain
 };

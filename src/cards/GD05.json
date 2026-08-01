@@ -591,5 +591,18 @@
     "traits": ["ZAFT", "Minerva Squad"],
     "keywords": { "firstStrike": true },
     "oncePerTurnBattleDamageReduction": 2
+  },
+  {
+    "number": "GD05-038",
+    "name": "Gundam Throne Eins (GN High Mega Launcher)",
+    "type": "unit",
+    "color": "red",
+    "level": 7,
+    "cost": 5,
+    "ap": 6,
+    "hp": 4,
+    "traits": ["CB", "Trinity"],
+    "linkCondition": "Trinity",
+    "effectRefs": { "whenLinked": "gundamThroneEinsWhenLinked", "activateMain": "gundamThroneEinsActivateMain" }
   }
 ]

@@ -71,6 +71,19 @@ function destroyAndFireEffect(state, player, instance) {
   return destroyed;
 }
 
+/**
+ * Ptolemaios ST07-015's "while a rested friendly (CB) Unit is in play, this Base can't receive
+ * damage from enemy Units that are Lv.3 or lower, other than Unit tokens" (a static field on the
+ * Base's own card data, mirroring the attacker-side immunity helpers below).
+ */
+function isBaseImmuneToLowLevelDamage(defendingPlayer, attacker) {
+  const cap = defendingPlayer.base && defendingPlayer.base.def.lowLevelDamageImmuneCap;
+  if (cap === undefined) return false;
+  if (attacker.def.isToken) return false;
+  if ((attacker.def.level || 0) > cap) return false;
+  return defendingPlayer.battleArea.some((u) => u.rested && (u.def.traits || []).includes('CB'));
+}
+
 function resolveDamageStep(state, attackingPlayer, defendingPlayer, attacker, target, hooks) {
   const attackerAP = getAP(attacker);
   const keywords = getKeywords(attacker);
@@ -82,7 +95,9 @@ function resolveDamageStep(state, attackingPlayer, defendingPlayer, attacker, ta
       return;
     }
     if (defendingPlayer.base) {
-      dealDamage(defendingPlayer.base, attackerAP, { isBattleDamage: true });
+      if (!isBaseImmuneToLowLevelDamage(defendingPlayer, attacker)) {
+        dealDamage(defendingPlayer.base, attackerAP, { isBattleDamage: true });
+      }
       const destroyed = destroyAndFireEffect(state, defendingPlayer, defendingPlayer.base);
       if (destroyed && keywords.breach) applyBreach(state, defendingPlayer, keywords.breach, hooks);
       return;

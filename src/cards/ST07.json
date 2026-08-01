@@ -1,0 +1,53 @@
+[
+  {
+    "number": "ST07-001",
+    "name": "Gundam Exia",
+    "type": "unit",
+    "color": "purple",
+    "level": 5,
+    "cost": 4,
+    "ap": 4,
+    "hp": 4,
+    "traits": ["CB", "GN Drive"],
+    "linkCondition": "Setsuna F. Seiei",
+    "effectRefs": { "endOfTurn": "gundamExiaST07001EndOfTurn", "whenPaired": "gundamExiaST07001WhenPaired" }
+  },
+  {
+    "number": "ST07-004",
+    "name": "Gundam Virtue",
+    "type": "unit",
+    "color": "purple",
+    "level": 3,
+    "cost": 2,
+    "ap": 3,
+    "hp": 3,
+    "traits": ["CB", "GN Drive"],
+    "linkCondition": "Tieria Erde",
+    "effectRefs": { "startOfTurn": "gundamVirtueStartOfTurn" }
+  },
+  {
+    "number": "ST07-009",
+    "name": "Setsuna F. Seiei",
+    "type": "pilot",
+    "color": "purple",
+    "level": 4,
+    "cost": 1,
+    "apBonus": 2,
+    "hpBonus": 1,
+    "traits": ["CB"],
+    "effectRefs": { "burst": "setsunaFSeieiST07009Burst", "attack": "setsunaFSeieiST07009Attack" }
+  },
+  {
+    "number": "ST07-015",
+    "name": "Ptolemaios",
+    "type": "base",
+    "color": "purple",
+    "level": 2,
+    "cost": 1,
+    "ap": 0,
+    "hp": 5,
+    "traits": ["CB", "Warship"],
+    "lowLevelDamageImmuneCap": 3,
+    "effectRefs": { "burst": "simpleBurstBase", "deploy": "simpleBaseDeployAddShield" }
+  }
+]

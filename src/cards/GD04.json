@@ -232,5 +232,52 @@
     "linkCondition": "Shinn Asuka",
     "keywords": { "highManeuver": true },
     "effectRefs": { "attack": "destinyGundamGD04050Attack" }
+  },
+  {
+    "number": "GD04-034",
+    "name": "Gundam Kyrios",
+    "type": "unit",
+    "color": "red",
+    "level": 4,
+    "cost": 3,
+    "ap": 1,
+    "hp": 4,
+    "traits": ["CB", "GN Drive"],
+    "linkCondition": "Allelujah Haptism/Hallelujah Haptism",
+    "keywords": { "firstStrike": true },
+    "effectRefs": { "attack": "gundamKyriosAttack" }
+  },
+  {
+    "number": "GD04-089",
+    "name": "Nena Trinity",
+    "type": "pilot",
+    "color": "red",
+    "level": 4,
+    "cost": 1,
+    "apBonus": 0,
+    "hpBonus": 3,
+    "traits": ["CB", "Trinity"],
+    "effectRefs": { "burst": "nenaTrinityBurst", "activateMain": "nenaTrinityActivateMain" }
+  },
+  {
+    "number": "GD04-090",
+    "name": "Hallelujah Haptism",
+    "type": "pilot",
+    "color": "red",
+    "level": 4,
+    "cost": 1,
+    "apBonus": 2,
+    "hpBonus": 1,
+    "traits": ["CB", "Super Soldier"],
+    "effectRefs": { "burst": "hallelujahHaptismBurst", "destroysEnemy": "hallelujahHaptismDestroysEnemy" }
+  },
+  {
+    "number": "GD04-109",
+    "name": "Overwhelming Pressure",
+    "type": "command",
+    "color": "red",
+    "level": 5,
+    "cost": 3,
+    "effectRefs": { "command": "overwhelmingPressureCommand" }
   }
 ]
