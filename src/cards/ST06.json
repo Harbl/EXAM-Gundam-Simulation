@@ -1,0 +1,112 @@
+[
+  {
+    "number": "ST06-001",
+    "name": "GQuuuuuuX (Omega Psycommu)",
+    "type": "unit",
+    "color": "red",
+    "level": 5,
+    "cost": 3,
+    "ap": 4,
+    "hp": 4,
+    "traits": ["Clan"],
+    "linkCondition": "Amate Yuzuriha (Machu)",
+    "effectRefs": { "whenLinked": "gquuuuuuxST06001WhenLinked" }
+  },
+  {
+    "number": "ST06-002",
+    "name": "GQuuuuuuX (Omega Psycommu)",
+    "type": "unit",
+    "color": "red",
+    "level": 4,
+    "cost": 3,
+    "ap": 4,
+    "hp": 2,
+    "traits": ["Clan"],
+    "linkCondition": "Amate Yuzuriha (Machu)",
+    "effectRefs": { "deploy": "gquuuuuuxST06002Deploy" }
+  },
+  {
+    "number": "ST06-005",
+    "name": "Red Gundam",
+    "type": "unit",
+    "color": "green",
+    "level": 4,
+    "cost": 3,
+    "ap": 4,
+    "hp": 3,
+    "traits": ["Clan"],
+    "linkCondition": "Shuji Itō",
+    "keywords": { "breach": 1 },
+    "effectRefs": { "attack": "redGundamST06005Attack" }
+  },
+  {
+    "number": "ST06-006",
+    "name": "Red Gundam",
+    "type": "unit",
+    "color": "green",
+    "level": 4,
+    "cost": 2,
+    "ap": 3,
+    "hp": 4,
+    "traits": ["Clan"],
+    "linkCondition": "Shuji Itō"
+  },
+  {
+    "number": "ST06-007",
+    "name": "Ortega's Rick Dom (GQ)",
+    "type": "unit",
+    "color": "green",
+    "level": 3,
+    "cost": 2,
+    "ap": 3,
+    "hp": 2,
+    "traits": ["Clan"],
+    "linkCondition": "Ortega",
+    "effectRefs": { "deploy": "ortegasRickDomDeploy" }
+  },
+  {
+    "number": "ST06-008",
+    "name": "Sugai's Gelgoog (GQ)",
+    "type": "unit",
+    "color": "green",
+    "level": 3,
+    "cost": 2,
+    "ap": 3,
+    "hp": 3,
+    "traits": ["Clan"],
+    "linkCondition": "Clan"
+  },
+  {
+    "number": "ST06-009",
+    "name": "Amate Yuzuriha (Machu)",
+    "type": "pilot",
+    "color": "red",
+    "level": 4,
+    "cost": 1,
+    "apBonus": 2,
+    "hpBonus": 1,
+    "traits": ["Clan", "Newtype"],
+    "effectRefs": { "burst": "amateYuzurihaMachuBurst", "whenLinked": "amateYuzurihaMachuWhenLinked" }
+  },
+  {
+    "number": "ST06-010",
+    "name": "Shuji Itō",
+    "type": "pilot",
+    "color": "green",
+    "level": 4,
+    "cost": 1,
+    "apBonus": 1,
+    "hpBonus": 2,
+    "traits": ["Clan", "Newtype"],
+    "effectRefs": { "burst": "shujiItoBurst", "attack": "shujiItoAttack" }
+  },
+  {
+    "number": "ST06-012",
+    "name": "Schoolgirl and Smuggler",
+    "type": "command",
+    "color": "green",
+    "level": 1,
+    "cost": 1,
+    "effectRefs": { "command": "schoolgirlAndSmugglerCommand" }
+  }
+]

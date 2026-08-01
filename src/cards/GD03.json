@@ -191,6 +191,30 @@
     "effectRefs": { "burst": "zeheartGaletteBurst", "whenPaired": "zeheartGaletteWhenPaired" }
   },
   {
+    "number": "GD03-032",
+    "name": "Zaku (Four Snake Eyes') [YETI!] (GQ)",
+    "type": "unit",
+    "color": "green",
+    "level": 2,
+    "cost": 1,
+    "ap": 2,
+    "hp": 2,
+    "traits": ["Clan"]
+  },
+  {
+    "number": "GD03-039",
+    "name": "Red Gundam",
+    "type": "unit",
+    "color": "red",
+    "level": 4,
+    "cost": 2,
+    "ap": 2,
+    "hp": 4,
+    "traits": ["Clan"],
+    "linkCondition": "Clan",
+    "effectRefs": { "deploy": "redGundamGD03039Deploy" }
+  },
+  {
     "number": "GD03-049",
     "name": "Gundam Exia (Trans-Am)",
     "type": "unit",

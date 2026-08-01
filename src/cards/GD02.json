@@ -70,5 +70,30 @@
     "level": 6,
     "cost": 2,
     "effectRefs": { "command": "awakenedPowerCommand" }
+  },
+  {
+    "number": "GD02-038",
+    "name": "GQuuuuuuX (Omega Psycommu)",
+    "type": "unit",
+    "color": "red",
+    "level": 7,
+    "cost": 5,
+    "ap": 5,
+    "hp": 4,
+    "traits": ["Clan"],
+    "linkCondition": "Amate Yuzuriha (Machu)",
+    "effectRefs": { "deploy": "gquuuuuuxGD02038Deploy" }
+  },
+  {
+    "number": "GD02-126",
+    "name": "Shuji's Hideout",
+    "type": "base",
+    "color": "red",
+    "level": 3,
+    "cost": 1,
+    "ap": 0,
+    "hp": 5,
+    "traits": ["Clan", "Stronghold"],
+    "effectRefs": { "burst": "simpleBurstBase", "deploy": "simpleBaseDeployAddShield", "destroyed": "shujisHideoutDestroyed" }
   }
 ]

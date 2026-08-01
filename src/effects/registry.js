@@ -1939,6 +1939,137 @@ function gundamThroneEinsActivateMain(state, player, instance, context) {
   return true;
 }
 
+// --- GQuuuuuuX (Omega Psycommu) ST06-001 ---
+// [When Linked] If another friendly (Clan) Unit is in play, this gains <First Strike> during this turn.
+function gquuuuuuxST06001WhenLinked(state, player, unit) {
+  const hasOtherClan = player.battleArea.some((u) => u !== unit && (u.def.traits || []).includes('Clan'));
+  if (hasOtherClan) unit.buffs.push({ keyword: 'firstStrike', scope: 'turn' });
+}
+
+// --- GQuuuuuuX (Omega Psycommu) ST06-002 ---
+// [Deploy] If another friendly (Clan) Unit is in play, choose 1 enemy Unit. Deal 1 damage to it.
+function gquuuuuuxST06002Deploy(state, player, unit, context) {
+  const hasOtherClan = player.battleArea.some((u) => u !== unit && (u.def.traits || []).includes('Clan'));
+  if (!hasOtherClan) return;
+  const candidates = opponentOf(state, player).battleArea;
+  const target = context.hooks && context.hooks.chooseUnit
+    ? context.hooks.chooseUnit(candidates)
+    : candidates.sort((a, b) => getRemainingHP(a) - getRemainingHP(b))[0];
+  if (!target) return;
+  dealDamage(target, 1);
+}
+
+// --- Red Gundam ST06-005 ---
+// <Breach 1> (data). [Attack] Choose 1 to 2 friendly (Clan) Units. They get AP+2 during this turn
+// (Graceful Demeanor GD04-117's "choose 1 to 2" default-slice pattern, reused directly).
+function redGundamST06005Attack(state, player, unit, context) {
+  const candidates = player.battleArea.filter((u) => (u.def.traits || []).includes('Clan'));
+  const targets = context.hooks && context.hooks.chooseUnits
+    ? context.hooks.chooseUnits(candidates)
+    : candidates.sort((a, b) => getAP(b) - getAP(a)).slice(0, 2);
+  for (const t of targets) t.buffs.push({ ap: 2, scope: 'turn' });
+}
+
+// --- Ortega's Rick Dom (GQ) ST06-007 ---
+// [Deploy] Choose 1 of your other (Clan) Units. During this turn, it may choose an active enemy
+// Unit with 3 or less AP as its attack target -- reuses the existing `activeTargetAPThreshold`
+// buff family from chooseAttackTarget (Kämpfer GD03-017 precedent), just granted to a chosen
+// Unit instead of the whole team.
+function ortegasRickDomDeploy(state, player, unit, context) {
+  const candidates = player.battleArea.filter((u) => u !== unit && (u.def.traits || []).includes('Clan'));
+  const target = context.target || (context.hooks && context.hooks.chooseUnit
+    ? context.hooks.chooseUnit(candidates)
+    : candidates.sort((a, b) => getAP(b) - getAP(a))[0]);
+  if (!target) return;
+  target.buffs.push({ activeTargetAPThreshold: 3, scope: 'turn' });
+}
+
+// --- Amate Yuzuriha (Machu) ST06-009 (Pilot) ---
+// [Burst] Add this card to your hand. [When Linked] Look at the top card of your deck. If it's a
+// (Clan) card, you may reveal it and add it to your hand. Return any remaining card to the bottom
+// of your deck.
+function amateYuzurihaMachuBurst(state, player, instance) {
+  player.hand.push(instance);
+}
+function amateYuzurihaMachuWhenLinked(state, player) {
+  const top = player.deck.shift();
+  if (!top) return;
+  if ((top.def.traits || []).includes('Clan')) player.hand.push(top);
+  else player.deck.push(top);
+}
+
+// --- Shuji Itō ST06-010 (Pilot) ---
+// [Burst] Add this card to your hand. [During Link][Attack] If you have a (Clan) Unit in play,
+// look at the top card of your deck. Return it to the top or bottom of your deck (a pure scry --
+// keep (Clan) cards on top, send anything else to the bottom, since there's no other selection
+// criterion in the printed text).
+function shujiItoBurst(state, player, instance) {
+  player.hand.push(instance);
+}
+function shujiItoAttack(state, player, unit) {
+  if (!unit.isLinkUnit) return;
+  if (!player.battleArea.some((u) => (u.def.traits || []).includes('Clan'))) return;
+  if (player.deck.length === 0) return;
+  const top = player.deck.shift();
+  if ((top.def.traits || []).includes('Clan')) player.deck.unshift(top);
+  else player.deck.push(top);
+}
+
+// --- Schoolgirl and Smuggler ST06-012 (Command) ---
+// [Main] Look at the top 3 cards of your deck. You may reveal 1 (Clan) Unit/Pilot card among them
+// and add it to your hand. Return the remaining cards randomly to the bottom of your deck (Gundam
+// Maxter GD05-069's dig-and-shuffle-back pattern, reused directly).
+function schoolgirlAndSmugglerCommand(state, player) {
+  const top3 = player.deck.splice(0, 3);
+  const idx = top3.findIndex((c) => (c.def.type === 'unit' || c.def.type === 'pilot') && (c.def.traits || []).includes('Clan'));
+  if (idx !== -1) {
+    const [chosen] = top3.splice(idx, 1);
+    player.hand.push(chosen);
+  }
+  player.deck.push(...shuffle(top3));
+}
+
+// --- GQuuuuuuX (Omega Psycommu) GD02-038 ---
+// [Deploy] Look at the top 3 cards of your deck. You may deploy 1 (Clan) Unit card that is Lv.4 or
+// lower among them. Return the remaining cards randomly to the bottom of your deck.
+function gquuuuuuxGD02038Deploy(state, player) {
+  const top3 = player.deck.splice(0, 3);
+  const idx = top3.findIndex((c) => c.def.type === 'unit' && (c.def.traits || []).includes('Clan') && (c.def.level || 0) <= 4);
+  if (idx !== -1) {
+    const [chosen] = top3.splice(idx, 1);
+    deployUnit(state, player, chosen.def);
+  }
+  player.deck.push(...shuffle(top3));
+}
+
+// --- Shuji's Hideout GD02-126 ---
+// [Burst] Deploy this card. [Deploy] Add 1 of your Shields to hand. [Destroyed] Choose 1 enemy
+// Unit that is Lv.4 or lower. Deal 1 damage to it.
+function shujisHideoutDestroyed(state, player, instance, context) {
+  const candidates = opponentOf(state, player).battleArea.filter((u) => (u.def.level || 0) <= 4);
+  const target = context.hooks && context.hooks.chooseUnit
+    ? context.hooks.chooseUnit(candidates)
+    : candidates.sort((a, b) => getRemainingHP(a) - getRemainingHP(b))[0];
+  if (!target) return;
+  dealDamage(target, 1);
+}
+
+// --- Red Gundam GD03-039 ---
+// [Deploy] Choose 1 other active friendly (Clan) Unit. Rest it. If you do, choose 1 enemy Unit
+// with 2 or less AP. Deal 2 damage to it.
+function redGundamGD03039Deploy(state, player, unit, context) {
+  const candidates = player.battleArea.filter((u) => u !== unit && !u.rested && (u.def.traits || []).includes('Clan'));
+  const cost = context.restUnit || candidates.sort((a, b) => getAP(a) - getAP(b))[0];
+  if (!cost) return;
+  cost.rested = true;
+  const enemyCandidates = opponentOf(state, player).battleArea.filter((u) => getAP(u) <= 2);
+  const target = context.hooks && context.hooks.chooseUnit
+    ? context.hooks.chooseUnit(enemyCandidates)
+    : enemyCandidates.sort((a, b) => getRemainingHP(a) - getRemainingHP(b))[0];
+  if (!target) return;
+  dealDamage(target, 2);
+}
+
 module.exports = {
   guntankDeploy,
   zakuIIAttackBuff,
@@ -2119,5 +2250,17 @@ module.exports = {
   hallelujahHaptismDestroysEnemy,
   overwhelmingPressureCommand,
   gundamThroneEinsWhenLinked,
-  gundamThroneEinsActivateMain
+  gundamThroneEinsActivateMain,
+  gquuuuuuxST06001WhenLinked,
+  gquuuuuuxST06002Deploy,
+  redGundamST06005Attack,
+  ortegasRickDomDeploy,
+  amateYuzurihaMachuBurst,
+  amateYuzurihaMachuWhenLinked,
+  shujiItoBurst,
+  shujiItoAttack,
+  schoolgirlAndSmugglerCommand,
+  gquuuuuuxGD02038Deploy,
+  shujisHideoutDestroyed,
+  redGundamGD03039Deploy
 };
