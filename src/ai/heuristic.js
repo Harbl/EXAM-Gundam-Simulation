@@ -167,7 +167,11 @@ function runAttacks(state, playerIdx, hooks) {
   }
 }
 
-/** Blocks only when facing lethal (8-5-2-2: no Base and no Shields left) or a trade that loses the Unit for nothing in return. */
+/**
+ * Blocks when facing lethal (8-5-2-2: no Base and no Shields left) or a trade that loses the Unit
+ * for nothing in return. Among legal blockers, prefers one that survives and/or kills the attacker
+ * over a bare chump -- only sacrifices the cheapest Unit when no better trade is available.
+ */
 function chooseBlocker(defendingPlayer, attacker, target) {
   const blockers = defendingPlayer.battleArea.filter(
     (u) => !u.rested && getKeywords(u).blocker && !(target.type === 'unit' && target.instance === u)
@@ -175,6 +179,7 @@ function chooseBlocker(defendingPlayer, attacker, target) {
   if (blockers.length === 0) return null;
 
   const attackerAP = getAP(attacker);
+  const attackerHP = getRemainingHP(attacker);
   const facingLethal = target.type === 'player' && defendingPlayer.shields.length === 0 && !defendingPlayer.base;
   const badTrade =
     target.type === 'unit' &&
@@ -182,7 +187,16 @@ function chooseBlocker(defendingPlayer, attacker, target) {
     getAP(target.instance) < attackerAP;
 
   if (!facingLethal && !badTrade) return null;
-  return blockers.sort((a, b) => getRemainingHP(a) - getRemainingHP(b))[0];
+
+  const tradeScore = (b) => {
+    const survives = getRemainingHP(b) > attackerAP;
+    const kills = getAP(b) >= attackerHP;
+    if (survives && kills) return 3;
+    if (survives) return 2;
+    if (kills) return 1;
+    return 0;
+  };
+  return blockers.sort((a, b) => tradeScore(b) - tradeScore(a) || getRemainingHP(a) - getRemainingHP(b))[0];
 }
 
 function chooseBurst(shieldInstance) {
@@ -202,4 +216,14 @@ function runMainPhase(state, playerIdx, hooks = defaultHooks()) {
   runAttacks(state, playerIdx, hooks);
 }
 
-module.exports = { decideMulligan, runMainPhase, runCommands, runActivations, runAttacks, chooseAttackTarget, defaultHooks };
+module.exports = {
+  decideMulligan,
+  runMainPhase,
+  runCommands,
+  runDeploys,
+  runActivations,
+  runAttacks,
+  chooseAttackTarget,
+  chooseBlocker,
+  defaultHooks
+};

@@ -4,7 +4,7 @@ const assert = require('node:assert/strict');
 const { lookupCard } = require('../src/cards/index');
 const { createInstance, createPlayer, createGame } = require('../src/rules/state');
 const { deployUnit, becomeBase, pairPilot } = require('../src/rules/actions');
-const { runActivations, runCommands } = require('../src/ai/heuristic');
+const { runActivations, runCommands, runDeploys, chooseBlocker } = require('../src/ai/heuristic');
 
 test('runActivations uses Jaburo to rest a scarier enemy Unit, spending its weakest Federation Unit as cost', () => {
   const player = createPlayer(0);
@@ -75,4 +75,44 @@ test('Nu Gundam GD05-017 (When Paired) only burns its 3 trashed Londo Bell cards
   assert.equal(player.trash.length, 3, 'declines the trade -- nothing gets exiled without a favorable kill');
   assert.equal(player.removal.length, 0);
   assert.equal(toughEnemy.damage, 0);
+});
+
+test("runDeploys won't redeploy a second Base while one is already in play (11-5 would just trash the first for nothing)", () => {
+  const player = createPlayer(0);
+  const state = createGame(player, createPlayer(1));
+  player.hand.push(
+    createInstance({ number: 'B1', type: 'base', hp: 5 }, 0),
+    createInstance({ number: 'B2', type: 'base', hp: 5 }, 0)
+  );
+
+  runDeploys(state, player);
+
+  assert.equal(player.base.def.number, 'B1');
+  assert.equal(player.hand.length, 1, 'B2 stays in hand instead of being wasted replacing B1');
+  assert.equal(player.trash.length, 0);
+});
+
+test('chooseBlocker prefers a Unit that survives and kills the attacker over a cheaper chump', () => {
+  const defendingPlayer = createPlayer(0);
+  const attacker = createInstance({ number: 'A', type: 'unit', ap: 4, hp: 4 }, 1);
+  const chump = createInstance({ number: 'C', type: 'unit', ap: 1, hp: 1, keywords: { blocker: true } }, 0);
+  const strongBlocker = createInstance({ number: 'S', type: 'unit', ap: 5, hp: 5, keywords: { blocker: true } }, 0);
+  defendingPlayer.battleArea.push(chump, strongBlocker);
+  // No Base/Shields left -- facing lethal, so a block is warranted at all.
+
+  const chosen = chooseBlocker(defendingPlayer, attacker, { type: 'player' });
+
+  assert.equal(chosen, strongBlocker, 'kills the attacker and survives, instead of just chumping with the weakest body');
+});
+
+test("chooseBlocker doesn't block at all outside facing-lethal/bad-trade, even with a Unit that would win the fight", () => {
+  const defendingPlayer = createPlayer(0);
+  defendingPlayer.shields.push(createInstance({ number: 'SH', type: 'unit' }, 0)); // not yet literally lethal
+  const attacker = createInstance({ number: 'A', type: 'unit', ap: 1, hp: 1 }, 1);
+  const strongBlocker = createInstance({ number: 'S', type: 'unit', ap: 5, hp: 5, keywords: { blocker: true } }, 0);
+  defendingPlayer.battleArea.push(strongBlocker);
+
+  const chosen = chooseBlocker(defendingPlayer, attacker, { type: 'player' });
+
+  assert.equal(chosen, null, 'proactive blocking tested worse in practice for a racing deck -- only blocks at literal lethal/bad-trade');
 });
