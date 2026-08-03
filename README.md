@@ -1,5 +1,8 @@
 # EXAM — Gundam TCG Sim
 
+[![Latest release](https://img.shields.io/github/v/release/Harbl/EXAM-Gundam-Simulation?label=latest%20release&color=9B1B1E)](https://github.com/Harbl/EXAM-Gundam-Simulation/releases/latest)
+[![Downloads](https://img.shields.io/github/downloads/Harbl/EXAM-Gundam-Simulation/total?color=C9A951)](https://github.com/Harbl/EXAM-Gundam-Simulation/releases/latest)
+
 A Windows desktop app that plays out full games of the Gundam Card Game between
 two pasted decklists — hundreds or thousands of them, unattended — and reports
 back real stats: win rate, mulligan rate, opening-hand curve quality, game
@@ -9,6 +12,11 @@ not just "does it goldfish okay."
 Built against the official Comprehensive Rules and the current banned/restricted
 list. Every card's effect is implemented from its real, researched text — never
 guessed, never left as a generic vanilla stat-line.
+
+### [⬇ Download EXAM for Windows](https://github.com/Harbl/EXAM-Gundam-Simulation/releases/latest)
+
+Grab the installer from the [latest release](https://github.com/Harbl/EXAM-Gundam-Simulation/releases/latest),
+run it, and pick your install location in the setup wizard.
 
 ![Batch simulation results](docs/screenshots/simulate-results.png)
 
