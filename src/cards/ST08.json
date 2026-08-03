@@ -1,0 +1,82 @@
+[
+  {
+    "number": "ST08-001", "name": "Xi Gundam (ST08-001)", "type": "unit", "color": "red",
+    "level": 9, "cost": 8, "ap": 5, "hp": 5, "traits": ["Mafty"],
+    "linkCondition": "Hathaway Noa",
+    "handLevelAndCostReductionPerEnemyUnit": { "gateNoUnitLevelAtLeast": 6 },
+    "effectRefs": { "whenPaired": "xiGundamST08001WhenPaired" }
+  },
+  {
+    "number": "ST08-002", "name": "Xi Gundam (ST08-002)", "type": "unit", "color": "red",
+    "level": 5, "cost": 4, "ap": 4, "hp": 4, "traits": ["Mafty"],
+    "linkCondition": "Hathaway Noa",
+    "effectRefs": { "deploy": "xiGundamST08002Deploy" }
+  },
+  {
+    "number": "ST08-003", "name": "Messer (Type-F Naked) (Commander Type)", "type": "unit", "color": "red",
+    "level": 4, "cost": 2, "ap": 4, "hp": 3, "traits": ["Mafty"],
+    "linkCondition": "Mafty"
+  },
+  {
+    "number": "ST08-004", "name": "Messer Type-F01", "type": "unit", "color": "red",
+    "level": 2, "cost": 2, "ap": 2, "hp": 1, "traits": ["Mafty"],
+    "linkCondition": "Mafty",
+    "effectRefs": { "attack": "messerTypeF01Attack" }
+  },
+  {
+    "number": "ST08-005", "name": "Messer Type-F02 Minelayer", "type": "unit", "color": "red",
+    "level": 3, "cost": 2, "ap": 4, "hp": 3, "traits": ["Mafty"]
+  },
+  {
+    "number": "ST08-006", "name": "Penelope (LR)", "type": "unit", "color": "blue",
+    "level": 7, "cost": 6, "ap": 5, "hp": 5, "traits": ["Earth Federation"],
+    "linkCondition": "Lane Aim",
+    "effectRefs": { "attack": "penelopeLRAttack" }
+  },
+  {
+    "number": "ST08-007", "name": "Penelope (ST08-007)", "type": "unit", "color": "blue",
+    "level": 5, "cost": 3, "ap": 5, "hp": 4, "traits": ["Earth Federation"],
+    "linkCondition": "Lane Aim"
+  },
+  {
+    "number": "ST08-008", "name": "Gustav Karl Type-00", "type": "unit", "color": "blue",
+    "level": 3, "cost": 3, "ap": 3, "hp": 4, "traits": ["Earth Federation"],
+    "blockerWhileEnemyUnitCountAtLeast": 3
+  },
+  {
+    "number": "ST08-009", "name": "Jegan Ground Type-A (Man Hunter)", "type": "unit", "color": "blue",
+    "level": 1, "cost": 1, "ap": 0, "hp": 1, "traits": ["Earth Federation"],
+    "effectRefs": { "deploy": "jeganGroundTypeAManHunterDeploy" }
+  },
+  {
+    "number": "ST08-010", "name": "Hathaway Noa", "type": "pilot", "color": "red",
+    "level": 4, "cost": 1, "apBonus": 2, "hpBonus": 1, "traits": ["Mafty", "Newtype"],
+    "effectRefs": { "burst": "addSelfToHandBurst", "whenPaired": "hathawayNoaWhenPaired" }
+  },
+  {
+    "number": "ST08-011", "name": "Lane Aim", "type": "pilot", "color": "blue",
+    "level": 4, "cost": 1, "apBonus": 2, "hpBonus": 1, "traits": ["Earth Federation"],
+    "effectRefs": { "burst": "addSelfToHandBurst", "drawnByEffect": "laneAimDrawnByEffect" }
+  },
+  {
+    "number": "ST08-012", "name": "Words for Hathaway", "type": "command", "color": "red",
+    "level": 3, "cost": 1,
+    "pilotMode": { "name": "Gawman Nobile", "apBonus": 1, "hpBonus": 0 },
+    "effectRefs": { "command": "wordsForHathawayCommand" }
+  },
+  {
+    "number": "ST08-013", "name": "Lady Luck", "type": "command", "color": "red",
+    "level": 5, "cost": 1,
+    "effectRefs": { "command": "ladyLuckCommand" }
+  },
+  {
+    "number": "ST08-014", "name": "Valiant", "type": "base", "color": "red",
+    "level": 2, "cost": 1, "ap": 0, "hp": 5, "traits": ["Mafty", "Warship"],
+    "effectRefs": { "burst": "simpleBurstBase", "deploy": "valiantDeploy" }
+  },
+  {
+    "number": "ST08-015", "name": "Davao", "type": "base", "color": "blue",
+    "level": 3, "cost": 1, "ap": 0, "hp": 5, "traits": ["Earth Federation", "Stronghold"],
+    "effectRefs": { "burst": "simpleBurstBase", "deploy": "simpleBaseDeployAddShield", "activateMain": "davaoActivateMain" }
+  }
+]

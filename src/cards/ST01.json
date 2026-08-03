@@ -56,5 +56,66 @@
     "hp": 5,
     "traits": ["Earth Federation", "White Base Team", "Warship"],
     "effectRefs": { "burst": "simpleBurstBase", "deploy": "simpleBaseDeployAddShield", "activateMain": "whiteBaseActivateMain" }
+  },
+  {
+    "number": "ST01-002", "name": "Gundam (MA Form)", "type": "unit", "color": "blue",
+    "level": 5, "cost": 3, "ap": 4, "hp": 3, "traits": ["Earth Federation", "White Base Team"],
+    "linkCondition": "Amuro Ray",
+    "effectRefs": { "whenPaired": "gundamMAFormWhenPaired" }
+  },
+  {
+    "number": "ST01-003", "name": "Guncannon", "type": "unit", "color": "blue",
+    "level": 3, "cost": 2, "ap": 2, "hp": 4, "traits": ["Earth Federation", "White Base Team"],
+    "linkCondition": "Kai Shiden"
+  },
+  {
+    "number": "ST01-004", "name": "Guntank", "type": "unit", "color": "blue",
+    "level": 3, "cost": 2, "ap": 2, "hp": 3, "traits": ["Earth Federation", "White Base Team"],
+    "linkCondition": "Hayato Kobayashi",
+    "effectRefs": { "deploy": "guntankST01004Deploy" }
+  },
+  {
+    "number": "ST01-006", "name": "Gundam Aerial (Permet Score Six)", "type": "unit", "color": "white",
+    "level": 5, "cost": 4, "ap": 4, "hp": 4, "traits": ["Academy"],
+    "linkCondition": "Suletta Mercury",
+    "effectRefs": { "whenPaired": "gundamAerialPermetScoreSixWhenPaired" }
+  },
+  {
+    "number": "ST01-007", "name": "Gundam Aerial (Bit on Form)", "type": "unit", "color": "white",
+    "level": 4, "cost": 2, "ap": 3, "hp": 4, "traits": ["Academy"],
+    "linkCondition": "Suletta Mercury"
+  },
+  {
+    "number": "ST01-008", "name": "Demi Trainer", "type": "unit", "color": "white",
+    "level": 1, "cost": 1, "ap": 1, "hp": 1, "traits": ["Academy"],
+    "keywords": { "blocker": true }
+  },
+  {
+    "number": "ST01-009", "name": "Zowort", "type": "unit", "color": "white",
+    "level": 2, "cost": 2, "ap": 3, "hp": 2, "traits": ["Academy"],
+    "keywords": { "blocker": true },
+    "cannotAttackPlayer": true
+  },
+  {
+    "number": "ST01-011", "name": "Suletta Mercury", "type": "pilot", "color": "white",
+    "level": 4, "cost": 1, "apBonus": 1, "hpBonus": 2, "traits": ["Academy"],
+    "effectRefs": { "burst": "addSelfToHandBurst", "attack": "sulettaMercuryAttack" }
+  },
+  {
+    "number": "ST01-012", "name": "Thoroughly Damaged", "type": "command", "color": "blue",
+    "level": 2, "cost": 1,
+    "pilotMode": { "name": "Hayato Kobayashi", "apBonus": 0, "hpBonus": 1 },
+    "effectRefs": { "command": "thoroughlyDamagedCommand" }
+  },
+  {
+    "number": "ST01-013", "name": "Kai's Resolve", "type": "command", "color": "blue",
+    "level": 3, "cost": 1,
+    "pilotMode": { "name": "Kai Shiden", "apBonus": 1, "hpBonus": 0 },
+    "effectRefs": { "command": "kaisResolveCommand" }
+  },
+  {
+    "number": "ST01-016", "name": "Asticassia School of Technology, Earth House", "type": "base", "color": "white",
+    "level": 2, "cost": 1, "ap": 0, "hp": 5, "traits": ["Academy", "Stronghold"],
+    "effectRefs": { "burst": "simpleBurstBase", "deploy": "simpleBaseDeployAddShield", "activateMain": "asticassiaEarthHouseActivateMain" }
   }
 ]

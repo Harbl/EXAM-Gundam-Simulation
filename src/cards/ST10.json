@@ -1,0 +1,88 @@
+[
+  {
+    "number": "ST10-001", "name": "Zeta Gundam (EX)", "type": "unit", "color": "blue",
+    "level": 7, "cost": 6, "ap": 5, "hp": 5, "traits": ["G Generation"],
+    "linkCondition": "Kamille Bidan",
+    "effectRefs": { "destroysShield": "zetaGundamEXST10001DestroysShield" }
+  },
+  {
+    "number": "ST10-002", "name": "Zeta Gundam", "type": "unit", "color": "blue",
+    "level": 5, "cost": 4, "ap": 4, "hp": 4, "traits": ["G Generation"],
+    "linkCondition": "Support/Kamille Bidan",
+    "effectRefs": { "deploy": "zetaGundamST10002Deploy" }
+  },
+  {
+    "number": "ST10-003", "name": "Gundam Mk-II (AEUG)", "type": "unit", "color": "blue",
+    "level": 2, "cost": 2, "ap": 2, "hp": 2, "traits": ["G Generation"],
+    "linkCondition": "Kamille Bidan"
+  },
+  {
+    "number": "ST10-004", "name": "Super Gundam", "type": "unit", "color": "blue",
+    "level": 4, "cost": 3, "ap": 3, "hp": 4, "traits": ["G Generation"],
+    "keywords": { "repair": 2 }
+  },
+  {
+    "number": "ST10-005", "name": "Nemo", "type": "unit", "color": "blue",
+    "level": 2, "cost": 1, "ap": 2, "hp": 2, "traits": ["G Generation"]
+  },
+  {
+    "number": "ST10-006", "name": "Phoenix Gundam (Power Unleashed) (EX)", "type": "unit", "color": "white",
+    "level": 5, "cost": 3, "ap": 4, "hp": 4, "traits": ["G Generation"],
+    "linkCondition": "Mark Guilder",
+    "effectRefs": { "destroysEnemy": "phoenixGundamPowerUnleashedEXDestroysEnemy" }
+  },
+  {
+    "number": "ST10-007", "name": "Gundam Barbatos 4th Form", "type": "unit", "color": "white",
+    "level": 6, "cost": 5, "ap": 4, "hp": 5, "traits": ["G Generation"],
+    "linkCondition": "G Generation",
+    "effectRefs": { "whenLinked": "gundamBarbatos4thFormST10007WhenLinked" }
+  },
+  {
+    "number": "ST10-008", "name": "Gundam Barbatos 1st Form", "type": "unit", "color": "white",
+    "level": 4, "cost": 3, "ap": 4, "hp": 3, "traits": ["G Generation"],
+    "linkCondition": "G Generation",
+    "effectRefs": { "deploy": "gundamBarbatos1stFormST10008Deploy" }
+  },
+  {
+    "number": "ST10-009", "name": "Graze Duel Type", "type": "unit", "color": "white",
+    "level": 3, "cost": 2, "ap": 2, "hp": 3, "traits": ["G Generation"],
+    "linkCondition": "G Generation",
+    "keywords": { "blocker": true }
+  },
+  {
+    "number": "ST10-010", "name": "Mobile Worker (Tekkadan)", "type": "unit", "color": "white",
+    "level": 2, "cost": 2, "ap": 2, "hp": 1, "traits": ["G Generation"],
+    "keywords": { "blocker": true }
+  },
+  {
+    "number": "ST10-011", "name": "Kamille Bidan", "type": "pilot", "color": "blue",
+    "level": 4, "cost": 1, "apBonus": 2, "hpBonus": 1, "traits": ["G Generation", "Attack"],
+    "effectRefs": { "burst": "addSelfToHandBurst", "whenLinked": "kamilleBidanWhenLinked" }
+  },
+  {
+    "number": "ST10-012", "name": "Mark Guilder", "type": "pilot", "color": "white",
+    "level": 4, "cost": 1, "apBonus": 2, "hpBonus": 1, "traits": ["G Generation", "Support"],
+    "effectRefs": { "burst": "addSelfToHandBurst", "whenPaired": "markGuilderWhenPaired" }
+  },
+  {
+    "number": "ST10-013", "name": "Tactical Training", "type": "command", "color": "blue",
+    "level": 3, "cost": 1,
+    "effectRefs": { "burst": "tacticalTrainingBurst", "command": "tacticalTrainingCommand" }
+  },
+  {
+    "number": "ST10-014", "name": "Unlocking the Development Diagram", "type": "command", "color": "blue",
+    "level": 4, "cost": 4,
+    "effectRefs": { "command": "unlockingTheDevelopmentDiagramCommand" }
+  },
+  {
+    "number": "ST10-015", "name": "Diffuse Beam Cannon", "type": "command", "color": "white",
+    "level": 3, "cost": 1,
+    "pilotMode": { "name": "Claire Heathrow", "apBonus": 1, "hpBonus": 0 },
+    "effectRefs": { "command": "diffuseBeamCannonCommand" }
+  },
+  {
+    "number": "ST10-016", "name": "Luna Mana & Carry Base", "type": "base", "color": "blue",
+    "level": 4, "cost": 1, "ap": 0, "hp": 5, "traits": ["G Generation", "Warship"],
+    "effectRefs": { "burst": "simpleBurstBase", "deploy": "lunaManaCarryBaseDeploy" }
+  }
+]

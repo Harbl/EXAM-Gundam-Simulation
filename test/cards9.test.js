@@ -133,7 +133,7 @@ test('Hashmal deploys a Pluma token (once per turn) on a battle-damage kill and 
   assert.equal(player.battleArea.some((u) => u.def.name === 'Pluma'), true, 'a Pluma token was deployed');
 
   hashmal.damage = 4;
-  applyRepairAtEndOfTurn(player);
+  applyRepairAtEndOfTurn(state, player);
   assert.equal(hashmal.damage, 3, 'Repair 1 (one Calamity War token in play) recovered 1 HP');
 });
 
@@ -145,10 +145,10 @@ test('Andrew Waldfeld grants Repair 2 only while its paired Unit is a Link Unit'
   unit.pilot = createInstance(lookupCard('GD05-082'), 0);
   unit.damage = 4;
 
-  applyRepairAtEndOfTurn(player);
+  applyRepairAtEndOfTurn(state, player);
   assert.equal(unit.damage, 4, 'not linked yet, so no Repair');
 
   unit.isLinkUnit = true;
-  applyRepairAtEndOfTurn(player);
+  applyRepairAtEndOfTurn(state, player);
   assert.equal(unit.damage, 2, 'During Link grants Repair 2');
 });

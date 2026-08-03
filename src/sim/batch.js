@@ -1,7 +1,9 @@
 const { playGame } = require('./singleGame');
 
-/** Runs many games, yielding to the event loop between each so a host (worker thread) UI stays responsive. */
-async function runBatch(deckA, deckB, games, onProgress) {
+/** Runs many games, yielding to the event loop between each so a host (worker thread) UI stays responsive.
+ * `options` is passed straight through to playGame per game -- e.g. { engineA, engineB, mctsConfigA,
+ * mctsConfigB } from the skill-slider feature (src/ai/skillPresets.js). */
+async function runBatch(deckA, deckB, games, onProgress, options = {}) {
   const totals = {
     games,
     winsA: 0,
@@ -16,14 +18,17 @@ async function runBatch(deckA, deckB, games, onProgress) {
   };
 
   for (let i = 0; i < games; i++) {
-    const result = playGame(deckA, deckB);
+    const result = playGame(deckA, deckB, options);
 
     if (result.draw) totals.draws++;
     else if (result.timedOut) totals.timeouts++;
     else if (result.winner === 0) totals.winsA++;
     else totals.winsB++;
 
-    totals.turnsSum += result.turns;
+    // result.turns is state.turnNumber, which increments once per individual player's turn (not once
+    // per round) -- ceil(.../2) converts it to a "full turn" count both players would recognize
+    // (e.g. Player One's turn 1 + Player Two's turn 1 = 1 full turn, matching normal TCG parlance).
+    totals.turnsSum += Math.ceil(result.turns / 2);
     if (result.mulliganed[0]) totals.mulligansA++;
     if (result.mulliganed[1]) totals.mulligansB++;
     for (const key of ['turn1', 'turn2', 'turn3']) {

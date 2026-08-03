@@ -49,5 +49,63 @@
     "traits": ["CB", "Warship"],
     "lowLevelDamageImmuneCap": 3,
     "effectRefs": { "burst": "simpleBurstBase", "deploy": "simpleBaseDeployAddShield" }
+  },
+  {
+    "number": "ST07-002", "name": "Gundam Exia (ST07-002)", "type": "unit", "color": "purple",
+    "level": 4, "cost": 2, "ap": 4, "hp": 3, "traits": ["CB", "GN Drive"],
+    "linkCondition": "Setsuna F. Seiei"
+  },
+  {
+    "number": "ST07-003", "name": "Gundam Virtue (ST07-003)", "type": "unit", "color": "purple",
+    "level": 5, "cost": 3, "ap": 5, "hp": 4, "traits": ["CB", "GN Drive"],
+    "linkCondition": "Tieria Erde"
+  },
+  {
+    "number": "ST07-005", "name": "Gundam Dynames (LR)", "type": "unit", "color": "green",
+    "level": 4, "cost": 3, "ap": 2, "hp": 4, "traits": ["CB", "GN Drive"],
+    "linkCondition": "Lockon Stratos",
+    "duringLinkAp": 2,
+    "effectRefs": { "destroysEnemy": "gundamDynamesLRDestroysEnemy" }
+  },
+  {
+    "number": "ST07-006", "name": "Gundam Dynames (ST07-006)", "type": "unit", "color": "green",
+    "level": 3, "cost": 2, "ap": 3, "hp": 3, "traits": ["CB", "GN Drive"],
+    "linkCondition": "Lockon Stratos"
+  },
+  {
+    "number": "ST07-007", "name": "Gundam Kyrios (ST07-007)", "type": "unit", "color": "green",
+    "level": 3, "cost": 2, "ap": 2, "hp": 3, "traits": ["CB", "GN Drive"],
+    "linkCondition": "Allelujah Haptism/Hallelujah Haptism",
+    "effectRefs": { "startOfTurn": "gundamKyriosST07007StartOfTurn" }
+  },
+  {
+    "number": "ST07-008", "name": "Gundam Kyrios (Flight Mode)", "type": "unit", "color": "green",
+    "level": 2, "cost": 2, "ap": 3, "hp": 1, "traits": ["CB", "GN Drive"],
+    "linkCondition": "Allelujah Haptism/Hallelujah Haptism"
+  },
+  {
+    "number": "ST07-010", "name": "Tieria Erde", "type": "pilot", "color": "purple",
+    "level": 4, "cost": 1, "apBonus": 1, "hpBonus": 1, "traits": ["CB", "Innovade"],
+    "effectRefs": { "burst": "addSelfToHandBurst", "destroyed": "tieriaErdeST07010Destroyed" }
+  },
+  {
+    "number": "ST07-011", "name": "Lockon Stratos (Neil)", "type": "pilot", "color": "green",
+    "level": 4, "cost": 1, "apBonus": 1, "hpBonus": 2, "traits": ["CB"],
+    "effectRefs": { "burst": "addSelfToHandBurst", "whenPaired": "lockonStratosNeilWhenPaired" }
+  },
+  {
+    "number": "ST07-012", "name": "Allelujah Haptism", "type": "pilot", "color": "green",
+    "level": 3, "cost": 1, "apBonus": 1, "hpBonus": 1, "traits": ["CB", "Super Soldier"],
+    "effectRefs": { "burst": "addSelfToHandBurst", "startOfTurn": "allelujahHaptismStartOfTurn" }
+  },
+  {
+    "number": "ST07-013", "name": "Armed Intervention", "type": "command", "color": "purple",
+    "level": 4, "cost": 1,
+    "effectRefs": { "burst": "armedInterventionBurst", "command": "armedInterventionCommand" }
+  },
+  {
+    "number": "ST07-014", "name": "Tactical Visionary", "type": "command", "color": "green",
+    "level": 1, "cost": 1,
+    "effectRefs": { "command": "tacticalVisionaryCommand" }
   }
 ]

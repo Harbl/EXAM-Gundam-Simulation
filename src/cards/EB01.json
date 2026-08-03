@@ -1,5 +1,269 @@
 [
   {
+    "number": "EB01-001", "name": "Gundam Astray Red Frame Custom (EX)", "type": "unit", "color": "blue",
+    "level": 6, "cost": 5, "ap": 5, "hp": 4, "traits": ["G Generation"], "linkCondition": "Lowe Guele",
+    "effectRefs": { "activateMain": "gundamAstrayRedFrameCustomEXActivateMain" }
+  },
+  {
+    "number": "EB01-002", "name": "Hi-Nu Gundam (EX)", "type": "unit", "color": "blue",
+    "level": 8, "cost": 7, "ap": 6, "hp": 5, "traits": ["G Generation"], "linkCondition": "G Generation",
+    "effectRefs": { "deploy": "hiNuGundamEXDeploy", "attack": "hiNuGundamEXAttack" }
+  },
+  {
+    "number": "EB01-003", "name": "Narrative Gundam A-Packs (EX)", "type": "unit", "color": "blue",
+    "level": 5, "cost": 4, "ap": 4, "hp": 4, "traits": ["G Generation"], "linkCondition": "Jona Basta",
+    "keywords": { "repair": 2 },
+    "effectRefs": { "endOfTurn": "narrativeGundamAPacksEXEndOfTurn" }
+  },
+  {
+    "number": "EB01-004", "name": "Gundam Barbatos Lupus Rex (EX)", "type": "unit", "color": "blue",
+    "level": 6, "cost": 5, "ap": 3, "hp": 5, "traits": ["G Generation"], "linkCondition": "Attack",
+    "keywords": { "repair": 2 },
+    "effectRefs": { "recoversHP": "gundamBarbatosLupusRexEXRecoversHP" }
+  },
+  {
+    "number": "EB01-005", "name": "Zeta Gundam III P2 Type", "type": "unit", "color": "blue",
+    "level": 7, "cost": 6, "ap": 6, "hp": 4, "traits": ["G Generation"], "linkCondition": "Support",
+    "effectRefs": { "deploy": "zetaGundamIIIP2TypeDeploy" }
+  },
+  {
+    "number": "EB01-006", "name": "Gundam Astray Gold Frame Amatsu", "type": "unit", "color": "blue",
+    "level": 4, "cost": 3, "ap": 4, "hp": 3, "traits": ["G Generation"], "linkCondition": "Attack",
+    "effectRefs": { "deploy": "gundamAstrayGoldFrameAmatsuDeploy" }
+  },
+  {
+    "number": "EB01-007", "name": "Gundam TR-1 \"Hazel-Rah\"", "type": "unit", "color": "blue",
+    "level": 5, "cost": 3, "ap": 5, "hp": 4, "traits": ["G Generation"], "linkCondition": "Attack"
+  },
+  {
+    "number": "EB01-008", "name": "Gundam Delta Kai", "type": "unit", "color": "blue",
+    "level": 5, "cost": 4, "ap": 4, "hp": 4, "traits": ["G Generation"], "linkCondition": "G Generation",
+    "effectRefs": { "deploy": "gundamDeltaKaiDeploy" }
+  },
+  {
+    "number": "EB01-009", "name": "Gundam Full Armor (Thunderbolt) (EX)", "type": "unit", "color": "blue",
+    "level": 5, "cost": 4, "ap": 4, "hp": 4, "traits": ["G Generation"], "linkCondition": "Io Fleming",
+    "effectRefs": { "deploy": "gundamFullArmorThunderboltEXDeploy" }
+  },
+  {
+    "number": "EB01-010", "name": "Gundam Barbatos 6th Form", "type": "unit", "color": "blue",
+    "level": 5, "cost": 4, "ap": 5, "hp": 2, "traits": ["G Generation"],
+    "effectRefs": { "deploy": "gundamBarbatos6thFormDeploy" }
+  },
+  {
+    "number": "EB01-011", "name": "Beginning Gundam", "type": "unit", "color": "blue",
+    "level": 1, "cost": 1, "ap": 1, "hp": 1, "traits": ["G Generation"],
+    "keywords": { "blocker": true }
+  },
+  {
+    "number": "EB01-012", "name": "Dom Bein Nichts", "type": "unit", "color": "blue",
+    "level": 2, "cost": 2, "ap": 2, "hp": 2, "traits": ["G Generation"], "linkCondition": "Support"
+  },
+  {
+    "number": "EB01-013", "name": "Red Gundam(0085)", "type": "unit", "color": "blue",
+    "level": 2, "cost": 2, "ap": 0, "hp": 4, "traits": ["G Generation"],
+    "effectRefs": { "attack": "redGundam0085Attack" }
+  },
+  {
+    "number": "EB01-014", "name": "Gouf Vijayanta", "type": "unit", "color": "blue",
+    "level": 3, "cost": 2, "ap": 3, "hp": 3, "traits": ["G Generation"]
+  },
+  {
+    "number": "EB01-015", "name": "Prototype Asshimar TR-3 \"Kehaar\"", "type": "unit", "color": "blue",
+    "level": 3, "cost": 2, "ap": 1, "hp": 4, "traits": ["G Generation"],
+    "effectRefs": { "destroyed": "prototypeAsshimarTR3Destroyed" }
+  },
+  {
+    "number": "EB01-016", "name": "Tornado Gundam", "type": "unit", "color": "blue",
+    "level": 3, "cost": 2, "ap": 3, "hp": 3, "traits": ["G Generation"], "linkCondition": "G Generation"
+  },
+  {
+    "number": "EB01-017", "name": "Haro", "type": "unit", "color": "blue",
+    "level": 3, "cost": 3, "ap": 3, "hp": 3, "traits": ["G Generation"],
+    "effectRefs": { "destroyed": "haroDestroyed" }
+  },
+  {
+    "number": "EB01-018", "name": "Gundam Astray Blue Frame Second L", "type": "unit", "color": "blue",
+    "level": 4, "cost": 2, "ap": 3, "hp": 3, "traits": ["G Generation"],
+    "effectRefs": { "attack": "gundamAstrayBlueFrameSecondLAttack" }
+  },
+  {
+    "number": "EB01-019", "name": "Gundam Pixy", "type": "unit", "color": "blue",
+    "level": 4, "cost": 3, "ap": 2, "hp": 4, "traits": ["G Generation"], "linkCondition": "G Generation",
+    "effectRefs": { "attack": "gundamPixyAttack" }
+  },
+  {
+    "number": "EB01-020", "name": "Gundam Mk-III", "type": "unit", "color": "blue",
+    "level": 4, "cost": 3, "ap": 3, "hp": 2, "traits": ["G Generation"], "linkCondition": "Durability",
+    "effectRefs": { "activateAction": "gSkyEasyActivateAction" }
+  },
+  {
+    "number": "EB01-021", "name": "Build Strike Gundam (Full Package) (EX)", "type": "unit", "color": "green",
+    "level": 5, "cost": 4, "ap": 4, "hp": 4, "traits": ["G Generation"], "linkCondition": "Reiji",
+    "keywords": { "breach": 4 },
+    "effectRefs": { "whenPaired": "buildStrikeGundamFullPackageEXWhenPaired" }
+  },
+  {
+    "number": "EB01-022", "name": "Gundam Exia (EX)", "type": "unit", "color": "green",
+    "level": 8, "cost": 7, "ap": 6, "hp": 5, "traits": ["G Generation"], "linkCondition": "Attack",
+    "keywords": { "breach": 5 },
+    "effectRefs": { "endOfTurn": "gundamExiaEXEndOfTurn" }
+  },
+  {
+    "number": "EB01-023", "name": "Le Cygne (EX)", "type": "unit", "color": "green",
+    "level": 4, "cost": 3, "ap": 3, "hp": 3, "traits": ["G Generation"], "linkCondition": "Asuna Elmarit",
+    "effectRefs": { "attack": "leCygneEXAttack" }
+  },
+  {
+    "number": "EB01-024", "name": "GQuuuuuuX (Omega Psycommu)", "type": "unit", "color": "green",
+    "level": 5, "cost": 4, "ap": 4, "hp": 4, "traits": ["G Generation"], "linkCondition": "Attack",
+    "keywords": { "breach": 3 },
+    "effectRefs": { "attack": "gQuuuuuuXOmegaPsycommuAttack" }
+  },
+  {
+    "number": "EB01-025", "name": "Tallgeese II", "type": "unit", "color": "green",
+    "level": 6, "cost": 5, "ap": 5, "hp": 4, "traits": ["G Generation"], "linkCondition": "G Generation",
+    "duringPairLowLevelEnemyDamageImmuneCapIfOpponentEX": 5,
+    "effectRefs": { "deploy": "tallgeeseIIDeploy" }
+  },
+  {
+    "number": "EB01-026", "name": "Gundam Astaroth Origin", "type": "unit", "color": "green",
+    "level": 4, "cost": 2, "ap": 4, "hp": 3, "traits": ["G Generation"], "linkCondition": "Durability"
+  },
+  {
+    "number": "EB01-027", "name": "Tallgeese", "type": "unit", "color": "green",
+    "level": 4, "cost": 3, "ap": 4, "hp": 3, "traits": ["G Generation"], "linkCondition": "G Generation",
+    "effectRefs": { "deploy": "tallgeeseDeploy" }
+  },
+  {
+    "number": "EB01-028", "name": "Gundam Plutone", "type": "unit", "color": "green",
+    "level": 4, "cost": 3, "ap": 3, "hp": 3, "traits": ["G Generation"], "linkCondition": "Chall Acustica",
+    "effectRefs": { "allyAttack": "gundamPlutoneAllyAttack" }
+  },
+  {
+    "number": "EB01-029", "name": "Gundam Astaroth Rinascimento (EX)", "type": "unit", "color": "green",
+    "level": 4, "cost": 4, "ap": 4, "hp": 4, "traits": ["G Generation"], "linkCondition": "Support",
+    "effectRefs": { "deploy": "gundamAstarothRinascimentoEXDeploy" }
+  },
+  {
+    "number": "EB01-030", "name": "Big-Rang", "type": "unit", "color": "green",
+    "level": 5, "cost": 4, "ap": 5, "hp": 3, "traits": ["G Generation"],
+    "effectRefs": { "deploy": "bigRangDeploy" }
+  },
+  {
+    "number": "EB01-031", "name": "Oggo", "type": "unit", "color": "green",
+    "level": 3, "cost": 1, "ap": 1, "hp": 2, "traits": ["G Generation"],
+    "activeTargetLevelCap": 3
+  },
+  {
+    "number": "EB01-032", "name": "Gundam Ez8 High Mobility Custom", "type": "unit", "color": "green",
+    "level": 3, "cost": 2, "ap": 4, "hp": 3, "traits": ["G Generation"]
+  },
+  {
+    "number": "EB01-033", "name": "Taurus (Sanc Kingdom)", "type": "unit", "color": "green",
+    "level": 3, "cost": 2, "ap": 2, "hp": 3, "traits": ["G Generation"],
+    "effectRefs": { "activateAction": "taurusSancKingdomActivateAction" }
+  },
+  {
+    "number": "EB01-034", "name": "Gundam Lfrith Ur", "type": "unit", "color": "green",
+    "level": 3, "cost": 2, "ap": 2, "hp": 2, "traits": ["G Generation"], "linkCondition": "G Generation",
+    "effectRefs": { "whenLinked": "gundamLfrithUrWhenLinked" }
+  },
+  {
+    "number": "EB01-035", "name": "Gundam Lfrith Thorn", "type": "unit", "color": "green",
+    "level": 3, "cost": 2, "ap": 3, "hp": 3, "traits": ["G Generation"], "linkCondition": "Support",
+    "effectRefs": { "friendlyUnitDeployed": "gundamLfrithThornFriendlyUnitDeployed" }
+  },
+  {
+    "number": "EB01-036", "name": "Darilbalde", "type": "unit", "color": "green",
+    "level": 3, "cost": 3, "ap": 4, "hp": 3, "traits": ["G Generation"],
+    "effectRefs": { "startOfTurn": "darilbaldeStartOfTurn" }
+  },
+  {
+    "number": "EB01-037", "name": "Zudah Unit 1", "type": "unit", "color": "green",
+    "level": 4, "cost": 3, "ap": 4, "hp": 1, "traits": ["G Generation"], "linkCondition": "Jean Luc Duvall",
+    "immuneToBattleDamageWhileBattlingBlocker": true
+  },
+  {
+    "number": "EB01-038", "name": "G-Self", "type": "unit", "color": "green",
+    "level": 4, "cost": 3, "ap": 3, "hp": 2, "traits": ["G Generation"],
+    "effectRefs": { "deploy": "wingGundamBirdModeDeploy" }
+  },
+  {
+    "number": "EB01-039", "name": "Rising Freedom Gundam", "type": "unit", "color": "green",
+    "level": 6, "cost": 5, "ap": 4, "hp": 4, "traits": ["G Generation"], "linkCondition": "Support"
+  },
+  {
+    "number": "EB01-040", "name": "Gundam Epyon", "type": "unit", "color": "green",
+    "level": 8, "cost": 7, "ap": 6, "hp": 6, "traits": ["G Generation"], "linkCondition": "Attack"
+  },
+  {
+    "number": "EB01-041", "name": "Strike Freedom Gundam (EX)", "type": "unit", "color": "white",
+    "level": 7, "cost": 6, "ap": 5, "hp": 5, "traits": ["G Generation"], "linkCondition": "Attack",
+    "keywords": { "highManeuver": true },
+    "effectRefs": { "deploy": "strikeFreedomGundamEXDeploy" }
+  },
+  {
+    "number": "EB01-042", "name": "Psycho Haro (EX)", "type": "unit", "color": "white",
+    "level": 8, "cost": 7, "ap": 6, "hp": 6, "traits": ["G Generation"], "linkCondition": "G Generation",
+    "grantsBlockerToAllWhileRested": true,
+    "effectRefs": { "attack": "psychoHaroEXAttack" }
+  },
+  {
+    "number": "EB01-043", "name": "Blue Destiny Unit-1 (EX)", "type": "unit", "color": "white",
+    "level": 5, "cost": 3, "ap": 5, "hp": 3, "traits": ["G Generation"], "linkCondition": "Yuu Kajima",
+    "effectRefs": { "attack": "blueDestinyUnit1EXAttack" }
+  },
+  {
+    "number": "EB01-044", "name": "Justice Gundam (EX)", "type": "unit", "color": "white",
+    "level": 6, "cost": 5, "ap": 5, "hp": 4, "traits": ["G Generation"], "linkCondition": "Durability",
+    "keywords": { "blocker": true }
+  },
+  {
+    "number": "EB01-045", "name": "Psycho Zaku (EX)", "type": "unit", "color": "white",
+    "level": 7, "cost": 5, "ap": 4, "hp": 6, "traits": ["G Generation"], "linkCondition": "Daryl Lorenz",
+    "keywords": { "suppression": true },
+    "effectRefs": { "whenPaired": "psychoZakuEXWhenPaired" }
+  },
+  {
+    "number": "EB01-046", "name": "Striker Custom (EX)", "type": "unit", "color": "white",
+    "level": 3, "cost": 2, "ap": 3, "hp": 3, "traits": ["G Generation"], "linkCondition": "Ittou Tsurugi",
+    "effectRefs": { "attack": "strikerCustomEXAttack" }
+  },
+  {
+    "number": "EB01-047", "name": "Casval's Gundam", "type": "unit", "color": "white",
+    "level": 4, "cost": 3, "ap": 3, "hp": 4, "traits": ["G Generation"], "linkCondition": "G Generation",
+    "effectRefs": { "whenPaired": "casvalsGundamWhenPaired" }
+  },
+  {
+    "number": "EB01-048", "name": "S Gundam", "type": "unit", "color": "white",
+    "level": 4, "cost": 3, "ap": 4, "hp": 3, "traits": ["G Generation"], "linkCondition": "Attack",
+    "keywords": { "blocker": true }
+  },
+  {
+    "number": "EB01-049", "name": "Pale Rider (Ground Heavy Equipment Type)", "type": "unit", "color": "white",
+    "level": 6, "cost": 4, "ap": 5, "hp": 4, "traits": ["G Generation"],
+    "effectRefs": { "startOfTurn": "paleRiderGroundHeavyEquipmentTypeStartOfTurn" }
+  },
+  {
+    "number": "EB01-050", "name": "Saikoro Gundam", "type": "unit", "color": "white",
+    "level": 6, "cost": 6, "ap": 5, "hp": 6, "traits": ["G Generation"],
+    "effectRefs": { "attack": "saikoroGundamAttack" }
+  },
+  {
+    "number": "EB01-051", "name": "Ze'Gok", "type": "unit", "color": "white",
+    "level": 1, "cost": 1, "ap": 1, "hp": 2, "traits": ["G Generation"]
+  },
+  {
+    "number": "EB01-052", "name": "Hildolfr", "type": "unit", "color": "white",
+    "level": 2, "cost": 2, "ap": 0, "hp": 2, "traits": ["G Generation"], "linkCondition": "G Generation",
+    "effectRefs": { "deploy": "hildolfrDeploy" }
+  },
+  {
+    "number": "EB01-053", "name": "Gundam GP00", "type": "unit", "color": "white",
+    "level": 2, "cost": 2, "ap": 3, "hp": 2, "traits": ["G Generation"]
+  },
+  {
     "number": "EB01-054",
     "name": "Gaplant TR-5 \"Hrairoo\" Unit 1",
     "type": "unit",
@@ -10,5 +274,186 @@
     "hp": 3,
     "traits": ["G Generation"],
     "keywords": { "blocker": true }
+  },
+  {
+    "number": "EB01-055", "name": "Dom Gross Beil", "type": "unit", "color": "white",
+    "level": 3, "cost": 2, "ap": 2, "hp": 3, "traits": ["G Generation"]
+  },
+  {
+    "number": "EB01-056", "name": "Gundam Geminass 01", "type": "unit", "color": "white",
+    "level": 3, "cost": 2, "ap": 4, "hp": 3, "traits": ["G Generation"]
+  },
+  {
+    "number": "EB01-057", "name": "Gundam Geminass 02", "type": "unit", "color": "white",
+    "level": 4, "cost": 2, "ap": 3, "hp": 3, "traits": ["G Generation"],
+    "effectRefs": { "deploy": "gundamGeminass02Deploy" }
+  },
+  {
+    "number": "EB01-058", "name": "Extreme Gundam", "type": "unit", "color": "white",
+    "level": 4, "cost": 2, "ap": 3, "hp": 4, "traits": ["G Generation"]
+  },
+  {
+    "number": "EB01-059", "name": "Psycho Zaku", "type": "unit", "color": "white",
+    "level": 5, "cost": 3, "ap": 4, "hp": 4, "traits": ["G Generation"], "linkCondition": "Daryl Lorenz",
+    "effectRefs": { "attack": "psychoZakuAttack" }
+  },
+  {
+    "number": "EB01-060", "name": "Gundam Aquarius", "type": "unit", "color": "white",
+    "level": 5, "cost": 4, "ap": 4, "hp": 4, "traits": ["G Generation"], "linkCondition": "Support",
+    "effectRefs": { "whenPaired": "gundamAquariusWhenPaired" }
+  },
+  {
+    "number": "EB01-061", "name": "Ellis Claude", "type": "pilot", "color": "blue",
+    "level": 3, "cost": 1, "apBonus": 1, "hpBonus": 1, "traits": ["G Generation", "Support"],
+    "effectRefs": { "burst": "addSelfToHandBurst", "whenPaired": "ellisClaudeWhenPaired" }
+  },
+  {
+    "number": "EB01-062", "name": "Jona Basta", "type": "pilot", "color": "blue",
+    "level": 4, "cost": 1, "apBonus": 1, "hpBonus": 2, "traits": ["G Generation", "Durability"],
+    "effectRefs": { "burst": "addSelfToHandBurst", "attack": "jonaBastaAttack" }
+  },
+  {
+    "number": "EB01-063", "name": "Io Fleming", "type": "pilot", "color": "blue",
+    "level": 4, "cost": 1, "apBonus": 2, "hpBonus": 1, "traits": ["G Generation", "Durability"],
+    "effectRefs": { "burst": "addSelfToHandBurst", "startOfTurn": "ioFlemingStartOfTurn" }
+  },
+  {
+    "number": "EB01-064", "name": "Rondo Gina Sahaku", "type": "pilot", "color": "blue",
+    "level": 4, "cost": 1, "apBonus": 2, "hpBonus": 1, "traits": ["G Generation", "Attack"],
+    "effectRefs": { "burst": "addSelfToHandBurst", "startOfTurn": "rondoGinaSahakuStartOfTurn" }
+  },
+  {
+    "number": "EB01-065", "name": "Meir Siva", "type": "pilot", "color": "green",
+    "level": 4, "cost": 1, "apBonus": 1, "hpBonus": 2, "traits": ["G Generation", "Attack"],
+    "effectRefs": { "burst": "addSelfToHandBurst", "whenLinked": "meirSivaWhenLinked" }
+  },
+  {
+    "number": "EB01-066", "name": "Reiji", "type": "pilot", "color": "green",
+    "level": 4, "cost": 1, "apBonus": 2, "hpBonus": 1, "traits": ["G Generation", "Support"],
+    "effectRefs": { "burst": "addSelfToHandBurst", "whenPaired": "reijiWhenPaired" }
+  },
+  {
+    "number": "EB01-067", "name": "Asuna Elmarit", "type": "pilot", "color": "green",
+    "level": 4, "cost": 1, "apBonus": 1, "hpBonus": 2, "traits": ["G Generation", "Support"],
+    "effectRefs": { "burst": "addSelfToHandBurst", "whenPaired": "asunaElmaritWhenPaired" }
+  },
+  {
+    "number": "EB01-068", "name": "Chall Acustica", "type": "pilot", "color": "green",
+    "level": 4, "cost": 1, "apBonus": 1, "hpBonus": 2, "traits": ["G Generation", "Attack"],
+    "effectRefs": { "burst": "addSelfToHandBurst", "destroyed": "challAcusticaDestroyed" }
+  },
+  {
+    "number": "EB01-069", "name": "Beside Pain", "type": "pilot", "color": "white",
+    "level": 3, "cost": 1, "apBonus": 1, "hpBonus": 1, "traits": ["G Generation", "Durability"],
+    "effectRefs": { "burst": "addSelfToHandBurst", "attack": "besidePainAttack" }
+  },
+  {
+    "number": "EB01-070", "name": "Daryl Lorenz", "type": "pilot", "color": "white",
+    "level": 4, "cost": 1, "apBonus": 2, "hpBonus": 1, "traits": ["G Generation", "Support"],
+    "effectRefs": { "burst": "addSelfToHandBurst", "activateAction": "darylLorenzActivateAction" }
+  },
+  {
+    "number": "EB01-071", "name": "Ittou Tsurugi", "type": "pilot", "color": "white",
+    "level": 4, "cost": 1, "apBonus": 2, "hpBonus": 1, "traits": ["G Generation", "Attack"],
+    "duringLinkAp": 1,
+    "effectRefs": { "burst": "addSelfToHandBurst" }
+  },
+  {
+    "number": "EB01-072", "name": "Yuu Kajima", "type": "pilot", "color": "white",
+    "level": 4, "cost": 1, "apBonus": 1, "hpBonus": 2, "traits": ["G Generation", "Attack"],
+    "effectRefs": { "burst": "addSelfToHandBurst", "whenPaired": "yuuKajimaWhenPaired" }
+  },
+  {
+    "number": "EB01-073", "name": "Character Requests", "type": "command", "color": "blue",
+    "level": 6, "cost": 2,
+    "effectRefs": { "burst": "characterRequestsBurst", "command": "characterRequestsCommand" }
+  },
+  {
+    "number": "EB01-074", "name": "Eternal Road", "type": "command", "color": "blue",
+    "level": 3, "cost": 1,
+    "effectRefs": { "burst": "eternalRoadBurst", "command": "eternalRoadCommand" }
+  },
+  {
+    "number": "EB01-075", "name": "Fierce Enemy Assault", "type": "command", "color": "blue",
+    "level": 3, "cost": 1,
+    "effectRefs": { "command": "fierceEnemyAssaultCommand" }
+  },
+  {
+    "number": "EB01-076", "name": "Gerbera Straight", "type": "command", "color": "blue",
+    "level": 4, "cost": 1,
+    "pilotMode": { "name": "Lowe Guele", "apBonus": 1, "hpBonus": 1 },
+    "effectRefs": { "command": "gerberaStraightCommand" }
+  },
+  {
+    "number": "EB01-077", "name": "Master League Begins", "type": "command", "color": "green",
+    "level": 3, "cost": 1,
+    "effectRefs": { "burst": "masterLeagueBeginsBurst", "command": "masterLeagueBeginsCommand" }
+  },
+  {
+    "number": "EB01-078", "name": "Premium Unit Assembly", "type": "command", "color": "green",
+    "level": 1, "cost": 1,
+    "effectRefs": { "command": "premiumUnitAssemblyCommand" }
+  },
+  {
+    "number": "EB01-079", "name": "Modification", "type": "command", "color": "green",
+    "level": 3, "cost": 1,
+    "effectRefs": { "command": "modificationCommand" }
+  },
+  {
+    "number": "EB01-080", "name": "Sturm Faust", "type": "command", "color": "green",
+    "level": 4, "cost": 1,
+    "pilotMode": { "name": "Jean Luc Duvall", "apBonus": 1, "hpBonus": 1 },
+    "effectRefs": { "command": "sturmFaustCommand" }
+  },
+  {
+    "number": "EB01-081", "name": "MAP Weapon", "type": "command", "color": "white",
+    "level": 4, "cost": 2,
+    "effectRefs": { "burst": "mapWeaponBurst", "command": "mapWeaponCommand" }
+  },
+  {
+    "number": "EB01-082", "name": "Warship Cruise", "type": "command", "color": "white",
+    "level": 3, "cost": 1,
+    "effectRefs": { "burst": "warshipCruiseBurst", "command": "warshipCruiseCommand" }
+  },
+  {
+    "number": "EB01-083", "name": "SP Conversion Chips", "type": "command", "color": "white",
+    "level": 3, "cost": 1,
+    "effectRefs": { "command": "spConversionChipsCommand" }
+  },
+  {
+    "number": "EB01-084", "name": "30cm Cannon (APFSDS Round)", "type": "command", "color": "white",
+    "level": 4, "cost": 1,
+    "pilotMode": { "name": "Demeziere Sonnen", "apBonus": 1, "hpBonus": 1 },
+    "effectRefs": { "command": "cm30CannonAPFSDSRoundCommand" }
+  },
+  {
+    "number": "EB01-085", "name": "Kudelia Aina Bernstein & Isaribi", "type": "base", "color": "blue",
+    "level": 5, "cost": 1, "ap": 0, "hp": 5, "traits": ["G Generation", "Warship"],
+    "effectRefs": { "burst": "simpleBurstBase", "deploy": "kudeliaAinaBernsteinIsaribiDeploy" }
+  },
+  {
+    "number": "EB01-086", "name": "Kycilia Zabi & Gwazine", "type": "base", "color": "blue",
+    "level": 4, "cost": 2, "ap": 0, "hp": 5, "traits": ["G Generation", "Warship"],
+    "effectRefs": { "burst": "simpleBurstBase", "deploy": "simpleBaseDeployAddShield", "allyPaired": "kyciliaZabiGwazineAllyPaired" }
+  },
+  {
+    "number": "EB01-087", "name": "Marina Ismail & Ptolemaios 2", "type": "base", "color": "green",
+    "level": 3, "cost": 2, "ap": 0, "hp": 5, "traits": ["G Generation", "Warship"],
+    "effectRefs": { "burst": "simpleBurstBase", "deploy": "simpleBaseDeployAddShield", "friendlyUnitDestroysEnemy": "marinaIsmailPtolemaios2FriendlyUnitDestroysEnemy" }
+  },
+  {
+    "number": "EB01-088", "name": "Miorine Rembran & Academy Ship", "type": "base", "color": "green",
+    "level": 3, "cost": 1, "ap": 0, "hp": 5, "traits": ["G Generation", "Warship"],
+    "effectRefs": { "burst": "simpleBurstBase", "deploy": "simpleBaseDeployAddShield", "startOfTurn": "miorineRembranAcademyShipStartOfTurn" }
+  },
+  {
+    "number": "EB01-089", "name": "Lacus Clyne & Eternal", "type": "base", "color": "white",
+    "level": 3, "cost": 2, "ap": 0, "hp": 5, "traits": ["G Generation", "Warship"],
+    "effectRefs": { "burst": "simpleBurstBase", "deploy": "lacusClyneEternalDeploy" }
+  },
+  {
+    "number": "EB01-090", "name": "Tiffa Adill & Freeden", "type": "base", "color": "white",
+    "level": 2, "cost": 2, "ap": 0, "hp": 4, "traits": ["G Generation", "Warship"],
+    "effectRefs": { "burst": "simpleBurstBase", "deploy": "tiffaAdillFreedenDeploy" }
   }
 ]

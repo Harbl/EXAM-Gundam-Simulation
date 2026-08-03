@@ -58,7 +58,7 @@
     padding-bottom: 6px;
   }
   label { display: block; font-size: 12px; margin: 10px 0 4px; color: #ccc; }
-  textarea, input[type=number] {
+  textarea, input[type=number], select {
     width: 100%;
     background: #000;
     color: var(--white);
@@ -68,6 +68,8 @@
     font-size: 12px;
   }
   textarea { height: 160px; resize: vertical; }
+  .skillRow { display: flex; gap: 12px; }
+  .skillRow > div { flex: 1; }
   .buttons { display: flex; gap: 10px; margin-top: 14px; }
   button {
     flex: 1;
@@ -111,6 +113,16 @@
     <textarea id="deckA" placeholder="4 GM ST01-005&#10;4 Guntank GD01-008&#10;..."></textarea>
     <h2 style="margin-top:16px">Deck B</h2>
     <textarea id="deckB" placeholder="Paste the opposing decklist here"></textarea>
+    <div class="skillRow">
+      <div>
+        <label for="skillA">Deck A piloting skill</label>
+        <select id="skillA"></select>
+      </div>
+      <div>
+        <label for="skillB">Deck B piloting skill</label>
+        <select id="skillB"></select>
+      </div>
+    </div>
     <label for="games">Games to simulate</label>
     <input type="number" id="games" value="100" min="1" max="10000" />
     <div class="buttons">
@@ -145,6 +157,18 @@
 
   function pct(x) { return (x * 100).toFixed(1) + '%'; }
 
+  const skillASelect = document.getElementById('skillA');
+  const skillBSelect = document.getElementById('skillB');
+  for (const select of [skillASelect, skillBSelect]) {
+    for (const preset of window.sim.skillPresets) {
+      const option = document.createElement('option');
+      option.value = preset.id;
+      option.textContent = preset.label;
+      select.appendChild(option);
+    }
+    select.value = 'casual';
+  }
+
   runBtn.addEventListener('click', () => {
     const deckAText = document.getElementById('deckA').value;
     const deckBText = document.getElementById('deckB').value;
@@ -158,7 +182,7 @@
     cancelBtn.disabled = false;
     setStatus('busy', 'RUNNING');
 
-    window.sim.run(deckAText, deckBText, games);
+    window.sim.run(deckAText, deckBText, games, skillASelect.value, skillBSelect.value);
   });
 
   cancelBtn.addEventListener('click', () => {

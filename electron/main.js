@@ -26,11 +26,11 @@ app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') app.quit();
 });
 
-ipcMain.handle('run-batch', (event, { deckAText, deckBText, games }) => {
+ipcMain.handle('run-batch', (event, { deckAText, deckBText, games, skillA, skillB }) => {
   if (activeWorker) activeWorker.terminate();
 
   activeWorker = new Worker(path.join(__dirname, 'worker', 'batchWorker.js'), {
-    workerData: { deckAText, deckBText, games }
+    workerData: { deckAText, deckBText, games, skillA, skillB }
   });
 
   activeWorker.on('message', (msg) => {

@@ -37,6 +37,7 @@
     "hp": 5,
     "traits": ["Tekkadan", "Gundam Frame"],
     "linkCondition": "Mikazuki Augus",
+    "trashSynergy": { "traits": ["Tekkadan", "Teiwaz"], "threshold": 3 },
     "effectRefs": { "activateMain": "gundamBarbatosLupusActivateMain" }
   },
   {
@@ -240,5 +241,645 @@
     "traits": ["CB"],
     "linkCondition": "CB",
     "keywords": { "blocker": true }
+  },
+  {
+    "number": "GD03-002", "name": "The-O (LR+)", "type": "unit", "color": "blue",
+    "level": 7, "cost": 5, "ap": 5, "hp": 5, "traits": ["Titans", "Jupitris"],
+    "linkCondition": "Paptimus Scirocco",
+    "keywords": { "repair": 3 },
+    "effectRefs": { "allyAttack": "theOAllyAttack" }
+  },
+  {
+    "number": "GD03-003", "name": "Messala (R+)", "type": "unit", "color": "blue",
+    "level": 6, "cost": 4, "ap": 5, "hp": 4, "traits": ["Titans", "Jupitris"],
+    "linkCondition": "Jupitris",
+    "keywords": { "blocker": true, "repair": 1 }
+  },
+  {
+    "number": "GD03-004", "name": "Hambrabi", "type": "unit", "color": "blue",
+    "level": 5, "cost": 4, "ap": 5, "hp": 4, "traits": ["Titans"],
+    "linkCondition": "Yazan Gable",
+    "effectRefs": { "attack": "hambrabiAttack" }
+  },
+  {
+    "number": "GD03-005", "name": "Kshatriya Besserung", "type": "unit", "color": "blue",
+    "level": 6, "cost": 5, "ap": 4, "hp": 4, "traits": ["Neo Zeon"],
+    "linkCondition": "Marida Cruz",
+    "keywords": { "repair": 1 },
+    "effectRefs": { "deploy": "kshatriyaBesserungDeploy" }
+  },
+  {
+    "number": "GD03-006", "name": "Penelope (Middle Form)", "type": "unit", "color": "blue",
+    "level": 6, "cost": 5, "ap": 4, "hp": 4, "traits": ["Earth Federation"],
+    "linkCondition": "Lane Aim",
+    "effectRefs": { "deploy": "penelopeMiddleFormDeploy" }
+  },
+  {
+    "number": "GD03-007", "name": "Gundam NT-1 Full Armor", "type": "unit", "color": "blue",
+    "level": 3, "cost": 2, "ap": 2, "hp": 3, "traits": ["Earth Federation"],
+    "linkCondition": "Christina Mackenzie/Amuro Ray",
+    "effectRefs": { "destroyed": "gundamNT1FullArmorDestroyed" }
+  },
+  {
+    "number": "GD03-008", "name": "Bolinoak Sammahn", "type": "unit", "color": "blue",
+    "level": 4, "cost": 2, "ap": 3, "hp": 3, "traits": ["Titans", "Jupitris"],
+    "linkCondition": "Jupitris",
+    "duringPairKeywords": { "repair": 2 }
+  },
+  {
+    "number": "GD03-009", "name": "Palace Athene", "type": "unit", "color": "blue",
+    "level": 5, "cost": 3, "ap": 5, "hp": 3, "traits": ["Titans", "Jupitris"],
+    "linkCondition": "Reccoa Londe",
+    "effectRefs": { "deploy": "palaceAtheneDeploy" }
+  },
+  {
+    "number": "GD03-010", "name": "Full Armor Unicorn Gundam (Destroy Mode) (U+)", "type": "unit", "color": "blue",
+    "level": 8, "cost": 6, "ap": 6, "hp": 6, "traits": ["Civilian"],
+    "linkCondition": "Banagher Links",
+    "keywords": { "repair": 3 }
+  },
+  {
+    "number": "GD03-011", "name": "GM Sniper II", "type": "unit", "color": "blue",
+    "level": 2, "cost": 2, "ap": 2, "hp": 3, "traits": ["Earth Federation"]
+  },
+  {
+    "number": "GD03-012", "name": "Messala (MA Mode)", "type": "unit", "color": "blue",
+    "level": 3, "cost": 2, "ap": 3, "hp": 2, "traits": ["Titans", "Jupitris"],
+    "linkCondition": "Jupitris",
+    "keywords": { "repair": 1 }
+  },
+  {
+    "number": "GD03-013", "name": "Hizack", "type": "unit", "color": "blue",
+    "level": 2, "cost": 2, "ap": 2, "hp": 2, "traits": ["Titans", "Jupitris"],
+    "effectRefs": { "startOfTurn": "hizackStartOfTurn" }
+  },
+  {
+    "number": "GD03-014", "name": "Hizack Custom", "type": "unit", "color": "blue",
+    "level": 3, "cost": 2, "ap": 3, "hp": 2, "traits": ["Titans"],
+    "handCostReduction": { "trait": "Titans", "count": 2, "amount": 1 }
+  },
+  {
+    "number": "GD03-015", "name": "Baund Doc", "type": "unit", "color": "blue",
+    "level": 6, "cost": 5, "ap": 4, "hp": 5, "traits": ["Titans"],
+    "linkCondition": "Jerid Messa",
+    "effectRefs": { "activateMain": "baundDocActivateMain" }
+  },
+  {
+    "number": "GD03-016", "name": "Full Armor Unicorn Gundam (Unicorn Mode)", "type": "unit", "color": "blue",
+    "level": 5, "cost": 3, "ap": 5, "hp": 4, "traits": ["Civilian"],
+    "linkCondition": "Banagher Links"
+  },
+  {
+    "number": "GD03-019", "name": "Gundam AGE-2 Normal (LR+)", "type": "unit", "color": "green",
+    "level": 5, "cost": 4, "ap": 4, "hp": 4, "traits": ["Earth Federation", "AGE System"],
+    "linkCondition": "Asemu Asuno",
+    "duringPairTaunt": true,
+    "effectRefs": { "whenLinked": "gundamAge2NormalLRWhenLinked" }
+  },
+  {
+    "number": "GD03-020", "name": "Zaku II FZ (R+)", "type": "unit", "color": "green",
+    "level": 2, "cost": 2, "ap": 1, "hp": 2, "traits": ["Zeon", "Cyclops Team"],
+    "linkCondition": "Bernard Wiseman",
+    "immuneWhileUnitNameInPlay": "Ad Balloon",
+    "effectRefs": { "whenPaired": "zakuIIFZWhenPaired" }
+  },
+  {
+    "number": "GD03-021", "name": "Gundam Deathscythe Hell", "type": "unit", "color": "green",
+    "level": 8, "cost": 7, "ap": 6, "hp": 5, "traits": ["G Team"],
+    "linkCondition": "Duo Maxwell",
+    "effectRefs": { "deploy": "gundamDeathscytheHellGD03021Deploy" }
+  },
+  {
+    "number": "GD03-022", "name": "Gundam Kyrios (R+)", "type": "unit", "color": "green",
+    "level": 5, "cost": 3, "ap": 5, "hp": 3, "traits": ["CB", "GN Drive"],
+    "linkCondition": "Allelujah Haptism/Hallelujah Haptism",
+    "effectRefs": { "destroysEnemy": "gundamKyriosRPlusDestroysEnemy" }
+  },
+  {
+    "number": "GD03-023", "name": "G-Bouncer", "type": "unit", "color": "green",
+    "level": 4, "cost": 3, "ap": 4, "hp": 3, "traits": ["Earth Federation"],
+    "linkCondition": "Earth Federation",
+    "effectRefs": { "placesExResource": "gBouncerPlacesExResource" }
+  },
+  {
+    "number": "GD03-025", "name": "Gundam Sandrock Custom", "type": "unit", "color": "green",
+    "level": 5, "cost": 4, "ap": 5, "hp": 4, "traits": ["G Team"],
+    "linkCondition": "Quatre Raberba Winner",
+    "tauntTrait": "Maganac Corps"
+  },
+  {
+    "number": "GD03-026", "name": "Gundam Dynames", "type": "unit", "color": "green",
+    "level": 5, "cost": 3, "ap": 4, "hp": 4, "traits": ["CB", "GN Drive"],
+    "linkCondition": "Lockon Stratos",
+    "keywords": { "breach": 3 }
+  },
+  {
+    "number": "GD03-028", "name": "Auda's Maganac", "type": "unit", "color": "green",
+    "level": 3, "cost": 2, "ap": 2, "hp": 3, "traits": ["Maganac Corps"],
+    "linkCondition": "Maganac Corps",
+    "effectRefs": { "attack": "audasManganacAttack" }
+  },
+  {
+    "number": "GD03-029", "name": "Gundam Heavyarms Custom", "type": "unit", "color": "green",
+    "level": 6, "cost": 5, "ap": 4, "hp": 5, "traits": ["G Team"],
+    "linkCondition": "Trowa Barton",
+    "effectRefs": { "destroysEnemy": "gundamHeavyarmsCustomDestroysEnemy" }
+  },
+  {
+    "number": "GD03-030", "name": "Gundam Kyrios (Tail Unit Flight Mode)", "type": "unit", "color": "green",
+    "level": 3, "cost": 4, "ap": 3, "hp": 4, "traits": ["CB", "GN Drive"],
+    "linkCondition": "Allelujah Haptism/Hallelujah Haptism",
+    "handCostReduction": { "trait": "CB", "count": 1, "amount": 1, "linkUnitOnly": true }
+  },
+  {
+    "number": "GD03-031", "name": "Gundam AGE-1 Flat", "type": "unit", "color": "green",
+    "level": 4, "cost": 2, "ap": 4, "hp": 3, "traits": ["Earth Federation", "AGE System"],
+    "linkCondition": "Asuno Family"
+  },
+  {
+    "number": "GD03-033", "name": "Providence Gundam (LR+)", "type": "unit", "color": "red",
+    "level": 7, "cost": 5, "ap": 5, "hp": 5, "traits": ["ZAFT"],
+    "linkCondition": "Rau Le Creuset",
+    "effectRefs": { "startOfTurn": "providenceGundamLRStartOfTurn", "attack": "providenceGundamLRAttack" }
+  },
+  {
+    "number": "GD03-036", "name": "Xi Gundam (Flight Form) (R+)", "type": "unit", "color": "red",
+    "level": 5, "cost": 4, "ap": 4, "hp": 4, "traits": ["Mafty"],
+    "linkCondition": "Hathaway Noa",
+    "effectRefs": { "whenLinked": "xiGundamFlightFormWhenLinked" }
+  },
+  {
+    "number": "GD03-037", "name": "Bertigo (R+)", "type": "unit", "color": "red",
+    "level": 5, "cost": 4, "ap": 4, "hp": 4, "traits": ["SRA"],
+    "linkCondition": "Newtype",
+    "effectRefs": { "attack": "bertigoAttack" }
+  },
+  {
+    "number": "GD03-038", "name": "GuAIZ (Commander Type)", "type": "unit", "color": "red",
+    "level": 4, "cost": 3, "ap": 4, "hp": 3, "traits": ["ZAFT"],
+    "linkCondition": "Rau Le Creuset",
+    "effectRefs": { "activateMain": "guaizCommanderActivateMain" }
+  },
+  {
+    "number": "GD03-040", "name": "Gundam Virsago & Gundam Ashtaron", "type": "unit", "color": "red",
+    "level": 5, "cost": 3, "ap": 3, "hp": 5, "traits": ["New UNE"],
+    "linkCondition": "Shagia Frost/Olba Frost",
+    "duringLinkKeywords": { "highManeuver": true }
+  },
+  {
+    "number": "GD03-041", "name": "Patulia", "type": "unit", "color": "red",
+    "level": 7, "cost": 6, "ap": 5, "hp": 6, "traits": ["SRA"],
+    "linkCondition": "Carris Nautilus",
+    "effectRefs": { "deploy": "patuliaDeploy" }
+  },
+  {
+    "number": "GD03-042", "name": "Duel Gundam (Assault Shroud)", "type": "unit", "color": "red",
+    "level": 5, "cost": 3, "ap": 3, "hp": 4, "traits": ["ZAFT"],
+    "linkCondition": "Yzak Joule",
+    "activeTargetLevelCapWhileAPAtLeast": { "ap": 5, "cap": 5 }
+  },
+  {
+    "number": "GD03-043", "name": "Messer Type-F02", "type": "unit", "color": "red",
+    "level": 4, "cost": 3, "ap": 3, "hp": 2, "traits": ["Mafty"],
+    "linkCondition": "Mafty",
+    "effectRefs": { "whenPaired": "messerTypeF02WhenPaired" }
+  },
+  {
+    "number": "GD03-044", "name": "Daughtress Flyer", "type": "unit", "color": "red",
+    "level": 3, "cost": 2, "ap": 2, "hp": 3, "traits": ["New UNE"],
+    "effectRefs": { "deploy": "daughtressFlyerDeploy" }
+  },
+  {
+    "number": "GD03-045", "name": "Balient", "type": "unit", "color": "red",
+    "level": 3, "cost": 2, "ap": 2, "hp": 4, "traits": ["New UNE"],
+    "effectRefs": { "startOfTurn": "balientStartOfTurn" }
+  },
+  {
+    "number": "GD03-046", "name": "CGUE", "type": "unit", "color": "red",
+    "level": 2, "cost": 2, "ap": 2, "hp": 3, "traits": ["ZAFT"]
+  },
+  {
+    "number": "GD03-047", "name": "DINN (Commander Type)", "type": "unit", "color": "red",
+    "level": 4, "cost": 2, "ap": 3, "hp": 4, "traits": ["ZAFT"],
+    "linkCondition": "Rau Le Creuset"
+  },
+  {
+    "number": "GD03-048", "name": "GFreD", "type": "unit", "color": "red",
+    "level": 4, "cost": 2, "ap": 4, "hp": 2, "traits": ["Zeon"],
+    "linkCondition": "Nyaan",
+    "effectRefs": { "burst": "gfreDBurst" }
+  },
+  {
+    "number": "GD03-051", "name": "Gundam X Divider", "type": "unit", "color": "purple",
+    "level": 6, "cost": 4, "ap": 4, "hp": 4, "traits": ["Vulture"],
+    "linkCondition": "Garrod Ran/Jamil Neate",
+    "effectRefs": { "whenLinked": "gundamXDividerWhenLinked" }
+  },
+  {
+    "number": "GD03-052", "name": "Gundam Virtue (R+)", "type": "unit", "color": "purple",
+    "level": 5, "cost": 4, "ap": 3, "hp": 3, "traits": ["CB", "GN Drive"],
+    "linkCondition": "Tieria Erde",
+    "keywords": { "support": 2 },
+    "destroysOnBattleDamage": { "levelCap": 5, "requireControllerPilotTrait": "CB" },
+    "effectRefs": { "dealsBattleDamage": "gundamVirtueRPlusDealsBattleDamage" }
+  },
+  {
+    "number": "GD03-053", "name": "Gundam Gusion Rebake Full City (R+)", "type": "unit", "color": "purple",
+    "level": 6, "cost": 5, "ap": 5, "hp": 4, "traits": ["Tekkadan", "Gundam Frame"],
+    "linkCondition": "Akihiro Altland",
+    "keywords": { "blocker": true },
+    "effectRefs": { "friendlyUnitReceivesEffectDamage": "gundamGusionRebakeFriendlyUnitReceivesEffectDamage" }
+  },
+  {
+    "number": "GD03-054", "name": "Zeydra", "type": "unit", "color": "purple",
+    "level": 6, "cost": 5, "ap": 4, "hp": 5, "traits": ["Vagan"],
+    "linkCondition": "Zeheart Galette",
+    "effectRefs": { "whenPaired": "zeydraWhenPaired" }
+  },
+  {
+    "number": "GD03-055", "name": "Gundam Hajiroboshi (2nd Form)", "type": "unit", "color": "purple",
+    "level": 4, "cost": 2, "ap": 4, "hp": 3, "traits": ["Civilian", "Gundam Frame"],
+    "linkCondition": "Wistario Afam",
+    "effectRefs": { "whenPaired": "gundamHajiroboshi2ndFormWhenPaired" }
+  },
+  {
+    "number": "GD03-058", "name": "Farsia", "type": "unit", "color": "purple",
+    "level": 2, "cost": 2, "ap": 2, "hp": 2, "traits": ["UE", "Vagan"],
+    "linkCondition": "Yurin L'Ciel",
+    "costReductionInTrash": 1
+  },
+  {
+    "number": "GD03-059", "name": "Zedas R", "type": "unit", "color": "purple",
+    "level": 4, "cost": 3, "ap": 4, "hp": 3, "traits": ["Vagan"],
+    "linkCondition": "X-Rounder",
+    "effectRefs": { "attack": "zedasRAttack" }
+  },
+  {
+    "number": "GD03-060", "name": "CGS Mobile Worker (Commander Type)", "type": "unit", "color": "purple",
+    "level": 2, "cost": 2, "ap": 0, "hp": 2, "traits": ["Tekkadan"],
+    "effectRefs": { "receivesEffectDamage": "cgsMobileWorkerReceivesEffectDamage" }
+  },
+  {
+    "number": "GD03-061", "name": "Gundam Barbatos 6th Form", "type": "unit", "color": "purple",
+    "level": 6, "cost": 5, "ap": 5, "hp": 4, "traits": ["Tekkadan", "Gundam Frame"],
+    "repairIfHPExactly": { "hp": 1, "amount": 3 }
+  },
+  {
+    "number": "GD03-062", "name": "GX-Bit", "type": "unit", "color": "purple",
+    "level": 4, "cost": 2, "ap": 3, "hp": 3, "traits": ["Old UNE", "Vulture"],
+    "effectRefs": { "deploy": "gxBitDeploy" }
+  },
+  {
+    "number": "GD03-063", "name": "0 Gundam", "type": "unit", "color": "purple",
+    "level": 2, "cost": 1, "ap": 2, "hp": 2, "traits": ["CB", "GN Drive"]
+  },
+  {
+    "number": "GD03-064", "name": "Defurse", "type": "unit", "color": "purple",
+    "level": 5, "cost": 4, "ap": 2, "hp": 5, "traits": ["UE", "Vagan"],
+    "effectRefs": { "deploy": "defurseDeploy" }
+  },
+  {
+    "number": "GD03-065", "name": "Zedas M", "type": "unit", "color": "purple",
+    "level": 3, "cost": 2, "ap": 3, "hp": 3, "traits": ["Vagan"],
+    "linkCondition": "X-Rounder"
+  },
+  {
+    "number": "GD03-066", "name": "Gundam Barbatos 5th Form (Ground Type)", "type": "unit", "color": "purple",
+    "level": 5, "cost": 3, "ap": 5, "hp": 4, "traits": ["Tekkadan", "Gundam Frame"],
+    "linkCondition": "Mikazuki Augus"
+  },
+  {
+    "number": "GD03-068", "name": "Gundam Hajiroboshi", "type": "unit", "color": "purple",
+    "level": 3, "cost": 2, "ap": 3, "hp": 3, "traits": ["Civilian", "Gundam Frame"],
+    "linkCondition": "Wistario Afam",
+    "effectRefs": { "startOfTurn": "gundamHajiroboshiStartOfTurn" }
+  },
+  {
+    "number": "GD03-069", "name": "Graham's Union Flag Custom (LR+)", "type": "unit", "color": "white",
+    "level": 4, "cost": 3, "ap": 4, "hp": 2, "traits": ["Superpower Bloc"],
+    "linkCondition": "Graham Aker",
+    "keywords": { "highManeuver": true },
+    "effectRefs": { "whenLinked": "grahamsUnionFlagCustomWhenLinked", "endOfTurn": "grahamsUnionFlagCustomEndOfTurn" }
+  },
+  {
+    "number": "GD03-070", "name": "Freedom Gundam (GD03-070) (LR+)", "type": "unit", "color": "white",
+    "level": 6, "cost": 5, "ap": 4, "hp": 5, "traits": ["Triple Ship Alliance"],
+    "linkCondition": "Kira Yamato",
+    "shieldDamageImmuneWhileRested": true
+  },
+  {
+    "number": "GD03-071", "name": "Z Gundam (Biosensor) (R+)", "type": "unit", "color": "white",
+    "level": 7, "cost": 5, "ap": 5, "hp": 5, "traits": ["AEUG"],
+    "linkCondition": "Kamille Bidan",
+    "effectRefs": { "deploy": "zGundamBiosensorDeploy" }
+  },
+  {
+    "number": "GD03-072", "name": "Aile Strike Gundam", "type": "unit", "color": "white",
+    "level": 4, "cost": 3, "ap": 3, "hp": 4, "traits": ["Triple Ship Alliance"],
+    "linkCondition": "Mu La Flaga",
+    "keywords": { "blocker": true },
+    "effectRefs": { "deploy": "aileStrikeGundamGD03072Deploy" }
+  },
+  {
+    "number": "GD03-073", "name": "Graze Ein (R+)", "type": "unit", "color": "white",
+    "level": 7, "cost": 5, "ap": 6, "hp": 4, "traits": ["Gjallarhorn"],
+    "linkCondition": "Ein Dalton",
+    "keywords": { "blocker": true },
+    "effectRefs": { "activateAction": "grazeEinActivateAction" }
+  },
+  {
+    "number": "GD03-074", "name": "Tieren Taozi", "type": "unit", "color": "white",
+    "level": 3, "cost": 2, "ap": 3, "hp": 1, "traits": ["Superpower Bloc"],
+    "linkCondition": "Super Soldier",
+    "duringPairTauntIfTrait": "Superpower Bloc"
+  },
+  {
+    "number": "GD03-075", "name": "Super Gundam", "type": "unit", "color": "white",
+    "level": 5, "cost": 4, "ap": 4, "hp": 4, "traits": ["AEUG"],
+    "linkCondition": "AEUG",
+    "effectRefs": { "attack": "superGundamAttack" }
+  },
+  {
+    "number": "GD03-076", "name": "Freedom Gundam (Meteor)", "type": "unit", "color": "white",
+    "level": 8, "cost": 6, "ap": 6, "hp": 6, "traits": ["Triple Ship Alliance"],
+    "linkCondition": "Kira Yamato",
+    "effectRefs": { "friendlyUnitDealsBattleDamage": "freedomGundamMeteorFriendlyUnitDealsBattleDamage" }
+  },
+  {
+    "number": "GD03-077", "name": "Justice Gundam (METEOR)", "type": "unit", "color": "white",
+    "level": 8, "cost": 7, "ap": 6, "hp": 6, "traits": ["Triple Ship Alliance"],
+    "linkCondition": "Athrun Zala",
+    "effectRefs": { "whenLinked": "justiceGundamMeteorWhenLinked" }
+  },
+  {
+    "number": "GD03-078", "name": "Tieren High Mobility Type", "type": "unit", "color": "white",
+    "level": 2, "cost": 2, "ap": 3, "hp": 1, "traits": ["Superpower Bloc"],
+    "linkCondition": "Sergei Smirnov",
+    "effectRefs": { "destroyed": "tierenHighMobilityDestroyed" }
+  },
+  {
+    "number": "GD03-079", "name": "G-Defenser", "type": "unit", "color": "white",
+    "level": 3, "cost": 2, "ap": 3, "hp": 2, "traits": ["AEUG"],
+    "linkCondition": "AEUG",
+    "canRestInsteadOfBase": true
+  },
+  {
+    "number": "GD03-080", "name": "Gundam Kimaris Trooper (Trooper Mode)", "type": "unit", "color": "white",
+    "level": 6, "cost": 4, "ap": 5, "hp": 4, "traits": ["Gjallarhorn", "Gundam Frame"],
+    "linkCondition": "Gaelio Bauduin",
+    "effectRefs": { "whenLinked": "gundamKimarisTrooperWhenLinked" }
+  },
+  {
+    "number": "GD03-081", "name": "AEU Enact Demonstration Color", "type": "unit", "color": "white",
+    "level": 2, "cost": 1, "ap": 2, "hp": 1, "traits": ["Superpower Bloc"],
+    "linkCondition": "Superpower Bloc",
+    "attackRequiresTraitDeployedThisTurn": ["Superpower Bloc", "UN"]
+  },
+  {
+    "number": "GD03-082", "name": "Union Flag", "type": "unit", "color": "white",
+    "level": 3, "cost": 2, "ap": 4, "hp": 1, "traits": ["Superpower Bloc"],
+    "handCostReduction": { "traits": ["Superpower Bloc", "UN"], "count": 2, "amount": 1 }
+  },
+  {
+    "number": "GD03-083", "name": "AEU Hellion", "type": "unit", "color": "white",
+    "level": 1, "cost": 1, "ap": 1, "hp": 1, "traits": ["Superpower Bloc"],
+    "keywords": { "blocker": true }
+  },
+  {
+    "number": "GD03-084", "name": "Paptimus Scirocco (R+)", "type": "pilot", "color": "blue",
+    "level": 5, "cost": 1, "apBonus": 2, "hpBonus": 2, "traits": ["Titans", "Jupitris", "Newtype"],
+    "effectRefs": { "burst": "paptimusSciroccoRPlusBurst", "whenLinked": "paptimusSciroccoRPlusWhenLinked" }
+  },
+  {
+    "number": "GD03-085", "name": "Christina Mackenzie", "type": "pilot", "color": "blue",
+    "level": 3, "cost": 1, "apBonus": 1, "hpBonus": 1, "traits": ["Earth Federation"],
+    "freeCostIfPairUnitNameIncludes": "Gundam NT-1",
+    "effectRefs": { "burst": "christinaMackenzieBurst" }
+  },
+  {
+    "number": "GD03-086", "name": "Yazan Gable", "type": "pilot", "color": "blue",
+    "level": 4, "cost": 1, "apBonus": 1, "hpBonus": 2, "traits": ["Titans"],
+    "effectRefs": { "burst": "yazanGableBurst", "attack": "yazanGableAttack" }
+  },
+  {
+    "number": "GD03-087", "name": "Sarah Zabiarov", "type": "pilot", "color": "blue",
+    "level": 3, "cost": 1, "apBonus": 1, "hpBonus": 1, "traits": ["Titans", "Jupitris", "Newtype"],
+    "effectRefs": { "burst": "sarahZabiarovBurst", "whenLinked": "sarahZabiarovWhenLinked" }
+  },
+  {
+    "number": "GD03-088", "name": "Asemu Asuno (R+)", "type": "pilot", "color": "green",
+    "level": 4, "cost": 1, "apBonus": 2, "hpBonus": 1, "traits": ["Earth Federation", "Asuno Family"],
+    "duringLinkApIfTrait": { "trait": "AGE System", "amount": 1 },
+    "duringLinkBreachIfTrait": { "trait": "AGE System", "amount": 1 },
+    "effectRefs": { "burst": "asemuAsunoRPlusBurst" }
+  },
+  {
+    "number": "GD03-089", "name": "Bernard Wiseman", "type": "pilot", "color": "green",
+    "level": 2, "cost": 1, "apBonus": 0, "hpBonus": 1, "traits": ["Zeon", "Cyclops Team"],
+    "effectRefs": { "burst": "bernardWisemanBurst", "startOfTurn": "bernardWisemanStartOfTurn" }
+  },
+  {
+    "number": "GD03-091", "name": "Rau Le Creuset (R+)", "type": "pilot", "color": "red",
+    "level": 4, "cost": 1, "apBonus": 2, "hpBonus": 1, "traits": ["ZAFT"],
+    "effectRefs": { "burst": "rauLeCreusetRPlusBurst", "whenLinked": "rauLeCreusetRPlusWhenLinked" }
+  },
+  {
+    "number": "GD03-093", "name": "Carris Nautilus", "type": "pilot", "color": "red",
+    "level": 4, "cost": 1, "apBonus": 2, "hpBonus": 1, "traits": ["SRA", "Newtype"],
+    "effectRefs": { "burst": "carrisNautilusBurst", "startOfTurn": "carrisNautilusStartOfTurn" }
+  },
+  {
+    "number": "GD03-095", "name": "Azee Gurumin", "type": "pilot", "color": "purple",
+    "level": 4, "cost": 1, "apBonus": 1, "hpBonus": 2, "traits": ["Teiwaz"],
+    "effectRefs": { "burst": "azeeGuruminBurst", "receivesEffectDamage": "azeeGuruminReceivesEffectDamage" }
+  },
+  {
+    "number": "GD03-096", "name": "Jamil Neate", "type": "pilot", "color": "purple",
+    "level": 4, "cost": 1, "apBonus": 2, "hpBonus": 1, "traits": ["Vulture", "Newtype"],
+    "effectRefs": { "burst": "jamilNeateBurst", "attack": "jamilNeateAttack" }
+  },
+  {
+    "number": "GD03-097", "name": "Wistario Afam", "type": "pilot", "color": "purple",
+    "level": 4, "cost": 1, "apBonus": 1, "hpBonus": 2, "traits": ["Civilian"],
+    "effectRefs": { "burst": "wistarioAfamBurst", "destroysEnemy": "wistarioAfamDestroysEnemy" }
+  },
+  {
+    "number": "GD03-098", "name": "Graham Aker (R+)", "type": "pilot", "color": "white",
+    "level": 4, "cost": 1, "apBonus": 2, "hpBonus": 1, "traits": ["Superpower Bloc", "UN"],
+    "effectRefs": { "burst": "grahamAkerRPlusBurst", "setActiveByEffect": "grahamAkerRPlusSetActiveByEffect" }
+  },
+  {
+    "number": "GD03-099", "name": "Emma Sheen", "type": "pilot", "color": "white",
+    "level": 3, "cost": 1, "apBonus": 1, "hpBonus": 1, "traits": ["AEUG"],
+    "effectRefs": { "burst": "emmaSheenBurst", "destroyed": "emmaSheenDestroyed" }
+  },
+  {
+    "number": "GD03-100", "name": "Soma Peries", "type": "pilot", "color": "white",
+    "level": 3, "cost": 1, "apBonus": 1, "hpBonus": 1, "traits": ["Superpower Bloc", "UN", "Super Soldier"],
+    "effectRefs": { "burst": "somaPeriesBurst", "destroyed": "somaPeriesDestroyed" }
+  },
+  {
+    "number": "GD03-101", "name": "A Healthy Curiosity (R+)", "type": "command", "color": "blue",
+    "level": 3, "cost": 1,
+    "effectRefs": { "command": "aHealthyCuriosityRPlusCommand" }
+  },
+  {
+    "number": "GD03-102", "name": "Privileged Position", "type": "command", "color": "blue",
+    "level": 6, "cost": 2,
+    "effectRefs": { "burst": "privilegedPositionBurst", "command": "privilegedPositionCommand" }
+  },
+  {
+    "number": "GD03-103", "name": "Field Directive", "type": "command", "color": "blue",
+    "level": 4, "cost": 1,
+    "effectRefs": { "burst": "fieldDirectiveBurst", "command": "fieldDirectiveCommand" }
+  },
+  {
+    "number": "GD03-104", "name": "Reccoa's Shadow", "type": "command", "color": "blue",
+    "level": 3, "cost": 1, "traits": ["Titans", "Jupitris"],
+    "pilotMode": { "name": "Reccoa Londe", "apBonus": 1, "hpBonus": 0 },
+    "effectRefs": { "command": "reccoasShadowCommand" }
+  },
+  {
+    "number": "GD03-105", "name": "Bridge Crew (R+)", "type": "command", "color": "green",
+    "level": 4, "cost": 1,
+    "effectRefs": { "burst": "bridgeCrewRPlusBurst", "command": "bridgeCrewRPlusCommand" }
+  },
+  {
+    "number": "GD03-106", "name": "M.A.V. Tactics", "type": "command", "color": "green",
+    "level": 6, "cost": 4,
+    "effectRefs": { "command": "mavTacticsCommand" }
+  },
+  {
+    "number": "GD03-107", "name": "Over the River and Through the Woods", "type": "command", "color": "green",
+    "level": 4, "cost": 1, "traits": ["Zeon", "Cyclops Team"],
+    "pilotMode": { "name": "Hardie Steiner", "apBonus": 1, "hpBonus": 1 },
+    "effectRefs": { "command": "overTheRiverAndThroughTheWoodsCommand" }
+  },
+  {
+    "number": "GD03-108", "name": "How Many Miles to the Battlefield?", "type": "command", "color": "green",
+    "level": 3, "cost": 1, "traits": ["Zeon", "Cyclops Team"],
+    "pilotMode": { "name": "Gabriel Ramirez Garcia", "apBonus": 1, "hpBonus": 0 },
+    "effectRefs": { "command": "howManyMilesToTheBattlefieldCommand" }
+  },
+  {
+    "number": "GD03-110", "name": "Eliminate Target", "type": "command", "color": "red",
+    "level": 6, "cost": 1,
+    "effectRefs": { "command": "eliminateTargetCommand" }
+  },
+  {
+    "number": "GD03-111", "name": "Infiltrator Present", "type": "command", "color": "red",
+    "level": 3, "cost": 1, "traits": ["Mafty"],
+    "pilotMode": { "name": "Emeralda Zubin", "apBonus": 0, "hpBonus": 1 },
+    "effectRefs": { "command": "infiltratorPresentCommand" }
+  },
+  {
+    "number": "GD03-112", "name": "Warped Intent", "type": "command", "color": "red",
+    "level": 4, "cost": 1,
+    "effectRefs": { "burst": "warpedIntentBurst", "command": "warpedIntentCommand" }
+  },
+  {
+    "number": "GD03-113", "name": "Human Karma", "type": "command", "color": "red",
+    "level": 3, "cost": 2,
+    "effectRefs": { "command": "humanKarmaCommand" }
+  },
+  {
+    "number": "GD03-114", "name": "Look of Determination (R+)", "type": "command", "color": "purple",
+    "level": 2, "cost": 2,
+    "effectRefs": { "burst": "lookOfDeterminationCommand", "command": "lookOfDeterminationCommand" }
+  },
+  {
+    "number": "GD03-115", "name": "Distant Reunion", "type": "command", "color": "purple",
+    "level": 3, "cost": 1, "traits": ["Civilian", "Vagan", "X-Rounder"],
+    "pilotMode": { "name": "Yurin L'Ciel", "apBonus": 1, "hpBonus": 0 },
+    "effectRefs": { "command": "distantReunionCommand" }
+  },
+  {
+    "number": "GD03-116", "name": "Towards Destiny", "type": "command", "color": "purple",
+    "level": 3, "cost": 1,
+    "effectRefs": { "command": "towardsDestinyCommand" }
+  },
+  {
+    "number": "GD03-117", "name": "Orga's Order", "type": "command", "color": "purple",
+    "level": 3, "cost": 1,
+    "effectRefs": { "command": "orgasOrderCommand" }
+  },
+  {
+    "number": "GD03-118", "name": "Awakened Potential (R+)", "type": "command", "color": "white",
+    "level": 4, "cost": 1,
+    "effectRefs": { "burst": "awakenedPotentialRPlusBurst", "command": "awakenedPotentialRPlusCommand" }
+  },
+  {
+    "number": "GD03-119", "name": "Awkward Approach", "type": "command", "color": "white",
+    "level": 3, "cost": 1,
+    "effectRefs": { "command": "awkwardApproachCommand" }
+  },
+  {
+    "number": "GD03-120", "name": "Immortal Colasour", "type": "command", "color": "white",
+    "level": 2, "cost": 1, "traits": ["Superpower Bloc", "UN"],
+    "pilotMode": { "name": "Patrick Colasour", "apBonus": 1, "hpBonus": 0 },
+    "effectRefs": { "command": "immortalColasourCommand" }
+  },
+  {
+    "number": "GD03-121", "name": "Unheralded Attack", "type": "command", "color": "white",
+    "level": 1, "cost": 1, "traits": ["AEUG", "Newtype"],
+    "pilotMode": { "name": "Katz Kobayashi", "apBonus": 1, "hpBonus": 0 },
+    "effectRefs": { "command": "unheraldedAttackCommand" }
+  },
+  {
+    "number": "GD03-122", "name": "Veteran Tactics", "type": "command", "color": "white",
+    "level": 2, "cost": 1, "traits": ["Superpower Bloc", "UN"],
+    "pilotMode": { "name": "Sergei Smirnov", "apBonus": 0, "hpBonus": 1 },
+    "effectRefs": { "command": "veteranTacticsCommand" }
+  },
+  {
+    "number": "GD03-123", "name": "Jupitris", "type": "base", "color": "blue",
+    "level": 3, "cost": 1, "ap": 0, "hp": 5, "traits": ["Titans", "Jupitris", "Warship"],
+    "effectRefs": { "burst": "jupitrisBurst", "deploy": "jupitrisDeploy" }
+  },
+  {
+    "number": "GD03-124", "name": "Ribo Colony", "type": "base", "color": "blue",
+    "level": 0, "cost": 5, "ap": 0, "hp": 5, "traits": ["Earth Federation", "Stronghold"],
+    "effectRefs": { "burst": "riboColonyBurst", "deploy": "riboColonyDeploy", "allyPaired": "riboColonyAllyPaired" }
+  },
+  {
+    "number": "GD03-126", "name": "Cyclops Team", "type": "base", "color": "green",
+    "level": 4, "cost": 1, "ap": 0, "hp": 5, "traits": ["Zeon", "Cyclops Team"],
+    "effectRefs": { "burst": "cyclopsTeamBurst", "deploy": "cyclopsTeamDeploy", "startOfTurn": "cyclopsTeamStartOfTurn" }
+  },
+  {
+    "number": "GD03-127", "name": "Jachin Due", "type": "base", "color": "red",
+    "level": 6, "cost": 1, "ap": 0, "hp": 6, "traits": ["ZAFT", "Stronghold"],
+    "effectRefs": { "burst": "jachinDueBurst", "deploy": "jachinDueDeploy" }
+  },
+  {
+    "number": "GD03-128", "name": "Doritea", "type": "base", "color": "red",
+    "level": 4, "cost": 1, "ap": 0, "hp": 5, "traits": ["New UNE", "Warship"],
+    "effectRefs": {
+      "burst": "doriteaBurst", "deploy": "doriteaDeploy",
+      "friendlyUnitRestedByEnemyEffect": "doriteaFriendlyUnitRestedByEnemyEffect"
+    }
+  },
+  {
+    "number": "GD03-129", "name": "Hotarubi", "type": "base", "color": "purple",
+    "level": 4, "cost": 1, "ap": 0, "hp": 5, "traits": ["Tekkadan", "Warship"],
+    "effectRefs": {
+      "burst": "hotarubiBurst", "deploy": "hotarubiDeploy",
+      "friendlyUnitReceivesEffectDamage": "hotarubiFriendlyUnitReceivesEffectDamage"
+    }
+  },
+  {
+    "number": "GD03-130", "name": "Downes", "type": "base", "color": "purple",
+    "level": 5, "cost": 2, "ap": 0, "hp": 5, "traits": ["Vagan", "Stronghold"],
+    "effectRefs": { "burst": "downesBurst", "deploy": "downesDeploy" }
+  },
+  {
+    "number": "GD03-131", "name": "Eternal", "type": "base", "color": "white",
+    "level": 5, "cost": 2, "ap": 0, "hp": 5, "traits": ["Triple Ship Alliance", "Warship"],
+    "effectRefs": { "burst": "eternalBurst", "deploy": "eternalDeploy" }
+  },
+  {
+    "number": "GD03-132", "name": "Radish", "type": "base", "color": "white",
+    "level": 2, "cost": 1, "ap": 0, "hp": 5, "traits": ["AEUG", "Warship"],
+    "effectRefs": { "burst": "radishBurst", "deploy": "radishDeploy", "destroyed": "radishDestroyed" }
   }
 ]

@@ -5,7 +5,7 @@ const { lookupCard } = require('../src/cards/index');
 const { createInstance, createPlayer, createGame } = require('../src/rules/state');
 const { deployUnit, pairPilot, playCommand } = require('../src/rules/actions');
 const { resolveAttack } = require('../src/rules/combat');
-const { runCommands } = require('../src/ai/heuristic');
+const { runCommands, chooseAttackTarget } = require('../src/ai/heuristic');
 const { getRemainingHP, getAP } = require('../src/rules/management');
 
 test("Master Asia's Burst goes to hand normally, but deploys as an AP3/HP3 Unit once 3+ (MF) cards sit in the trash", () => {
@@ -87,6 +87,42 @@ test('Gundam Exia Repair force-destroys a Lv.4-or-lower enemy Unit with no paire
 
   resolveAttack(state, 0, exia, { type: 'unit', instance: survivor }, {});
   assert.equal(opponent.battleArea.includes(survivor), false, 'destroyed outright despite only 2 AP vs 10 HP');
+});
+
+test("chooseAttackTarget sends Gundam Exia Repair after a rested Lv.4-or-lower unpaired enemy it would normally rule out as a bad trade, since it force-destroys regardless of AP/HP", () => {
+  const player = createPlayer(0);
+  const opponent = createPlayer(1);
+  const state = createGame(player, opponent);
+  state.activePlayerIdx = 0;
+
+  const exia = deployUnit(state, player, lookupCard('GD05-050'));
+  exia.turnDeployed = 0;
+  // 10 HP and 3 AP: attackerAP(2) < remainingHP(10), and defenderAP(3) >= attacker's own remainingHP(1)
+  // -- the generic goodTrades filter would rule this out as an unsafe, unprofitable trade on raw stats.
+  const bigUnit = createInstance({ number: 'BIG', type: 'unit', level: 3, ap: 3, hp: 10 }, 1);
+  bigUnit.rested = true;
+  opponent.battleArea.push(bigUnit);
+
+  const target = chooseAttackTarget(opponent, exia);
+  assert.equal(target.type, 'unit');
+  assert.equal(target.instance, bigUnit, 'picks the force-destroy execution target over just attacking face');
+});
+
+test("chooseAttackTarget does not send Gundam Exia Repair after a paired enemy Unit, since the force-destroy text requires no paired Pilot", () => {
+  const player = createPlayer(0);
+  const opponent = createPlayer(1);
+  const state = createGame(player, opponent);
+  state.activePlayerIdx = 0;
+
+  const exia = deployUnit(state, player, lookupCard('GD05-050'));
+  exia.turnDeployed = 0;
+  const bigUnit = createInstance({ number: 'BIG', type: 'unit', level: 3, ap: 3, hp: 10 }, 1);
+  bigUnit.rested = true;
+  bigUnit.pilot = createInstance({ number: 'PILOT', type: 'pilot' }, 1);
+  opponent.battleArea.push(bigUnit);
+
+  const target = chooseAttackTarget(opponent, exia);
+  assert.equal(target.type, 'player', 'no legal execution or good trade, so it just attacks face');
 });
 
 test('Gundam Barbatos 1st Form only draws on Attack if it is already carrying damage', () => {

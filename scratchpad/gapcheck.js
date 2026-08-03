@@ -1,0 +1,11 @@
+const fs = require('fs');
+const path = require('path');
+const set = process.argv[2] || 'GD02';
+const listPath = 'E:\\Gundam TCG DB\\gundam-tcg-card-numbers.txt';
+const lines = fs.readFileSync(listPath, 'utf8').split(/\r?\n/).filter(Boolean);
+const all = lines.filter((l) => l.startsWith(set + '-'));
+const jsonPath = path.join(__dirname, '..', 'src', 'cards', set + '.json');
+const have = new Set(fs.existsSync(jsonPath) ? JSON.parse(fs.readFileSync(jsonPath, 'utf8')).map((c) => c.number) : []);
+const missing = all.filter((n) => !have.has(n));
+console.log(set, 'total in master list:', all.length, '| have:', have.size, '| missing:', missing.length);
+console.log(missing.join(','));

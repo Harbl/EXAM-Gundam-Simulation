@@ -74,5 +74,58 @@
     "hpBonus": 2,
     "traits": ["ZAFT", "Coordinator"],
     "effectRefs": { "burst": "athrunZalaST04011Burst", "whenLinked": "athrunZalaST04011WhenLinked" }
+  },
+  {
+    "number": "ST04-002", "name": "Strike Gundam", "type": "unit", "color": "white",
+    "level": 4, "cost": 2, "ap": 3, "hp": 3, "traits": ["Earth Alliance"],
+    "linkCondition": "Kira Yamato",
+    "effectRefs": { "deploy": "strikeGundamST04002Deploy" }
+  },
+  {
+    "number": "ST04-003", "name": "Moebius Zero", "type": "unit", "color": "white",
+    "level": 3, "cost": 2, "ap": 2, "hp": 4, "traits": ["Earth Alliance"],
+    "linkCondition": "Mu La Flaga"
+  },
+  {
+    "number": "ST04-004", "name": "Moebius", "type": "unit", "color": "white",
+    "level": 1, "cost": 1, "ap": 1, "hp": 1, "traits": ["Earth Alliance"],
+    "keywords": { "blocker": true }
+  },
+  {
+    "number": "ST04-005", "name": "Strike Dagger", "type": "unit", "color": "white",
+    "level": 2, "cost": 2, "ap": 3, "hp": 2, "traits": ["Earth Alliance"]
+  },
+  {
+    "number": "ST04-007", "name": "Aegis Gundam (MA Mode)", "type": "unit", "color": "red",
+    "level": 4, "cost": 3, "ap": 3, "hp": 4, "traits": ["ZAFT"],
+    "linkCondition": "Athrun Zala",
+    "keywords": { "breach": 3 }
+  },
+  {
+    "number": "ST04-008", "name": "Ginn", "type": "unit", "color": "red",
+    "level": 2, "cost": 1, "ap": 2, "hp": 2, "traits": ["ZAFT"]
+  },
+  {
+    "number": "ST04-009", "name": "Miguel's Ginn", "type": "unit", "color": "red",
+    "level": 2, "cost": 2, "ap": 3, "hp": 1, "traits": ["ZAFT"],
+    "linkCondition": "Miguel Ayman",
+    "effectRefs": { "destroyed": "miguelsGinnST04009Destroyed" }
+  },
+  {
+    "number": "ST04-013", "name": "Hawk of Endymion", "type": "command", "color": "white",
+    "level": 2, "cost": 1,
+    "pilotMode": { "name": "Mu La Flaga", "apBonus": 1, "hpBonus": 0 },
+    "effectRefs": { "command": "hawkOfEndymionCommand" }
+  },
+  {
+    "number": "ST04-014", "name": "The Magic Bullet of Dusk", "type": "command", "color": "red",
+    "level": 3, "cost": 1,
+    "pilotMode": { "name": "Miguel Ayman", "apBonus": 0, "hpBonus": 1 },
+    "effectRefs": { "command": "theMagicBulletOfDuskCommand" }
+  },
+  {
+    "number": "ST04-016", "name": "Vesalius", "type": "base", "color": "red",
+    "level": 3, "cost": 1, "ap": 0, "hp": 5, "traits": ["ZAFT", "Warship"],
+    "effectRefs": { "burst": "simpleBurstBase", "deploy": "simpleBaseDeployAddShield", "activateMain": "vesaliusActivateMain" }
   }
 ]

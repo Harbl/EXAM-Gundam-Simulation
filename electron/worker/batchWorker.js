@@ -4,6 +4,7 @@ const { validateDeck } = require('../../src/deck/validator');
 const { buildGameDeck } = require('../../src/deck/build');
 const { lookupCard } = require('../../src/cards/index');
 const { runBatch } = require('../../src/sim/batch');
+const { SKILL_PRESETS } = require('../../src/ai/skillPresets');
 const banlist = require('../../data/banlist.json');
 
 function loadDeck(text, label) {
@@ -15,15 +16,28 @@ function loadDeck(text, label) {
   return buildGameDeck({ main: parsed.main }, lookupCard);
 }
 
+function resolveSkill(skillName) {
+  const preset = SKILL_PRESETS[skillName] || SKILL_PRESETS.casual;
+  return { engine: preset.engine, mctsConfig: preset.mctsConfig };
+}
+
 async function main() {
-  const { deckAText, deckBText, games } = workerData;
+  const { deckAText, deckBText, games, skillA, skillB } = workerData;
   const deckA = loadDeck(deckAText, 'Deck A');
   const deckB = loadDeck(deckBText, 'Deck B');
+  const presetA = resolveSkill(skillA);
+  const presetB = resolveSkill(skillB);
 
   const startedAt = Date.now();
-  const stats = await runBatch(deckA, deckB, games, ({ completed, games: total }) => {
-    parentPort.postMessage({ type: 'progress', completed, games: total, elapsedMs: Date.now() - startedAt });
-  });
+  const stats = await runBatch(
+    deckA,
+    deckB,
+    games,
+    ({ completed, games: total }) => {
+      parentPort.postMessage({ type: 'progress', completed, games: total, elapsedMs: Date.now() - startedAt });
+    },
+    { engineA: presetA.engine, engineB: presetB.engine, mctsConfigA: presetA.mctsConfig, mctsConfigB: presetB.mctsConfig }
+  );
 
   parentPort.postMessage({ type: 'done', stats });
 }

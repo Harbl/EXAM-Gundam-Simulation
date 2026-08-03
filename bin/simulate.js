@@ -1,7 +1,10 @@
 #!/usr/bin/env node
 // Thin CLI for exercising src/sim directly, without the Electron UI.
-// Usage: node bin/simulate.js <deckA.txt> [deckB.txt] [games]
+// Usage: node bin/simulate.js <deckA.txt> [deckB.txt] [games] [--mcts=fast|balanced|strong]
 //   If deckB is omitted, deckA is mirrored against itself (a quick self-consistency sanity check).
+//   --mcts picks the MCTS_PRESETS tier for BOTH sides (default: fast, same as DEFAULT_MCTS_CONFIG) --
+//   lets a single/small-batch run opt into a deliberately stronger game from the terminal today,
+//   without waiting on the Phase 3 settings-window UI (see src/ai/mcts.js's MCTS_PRESETS).
 
 const fs = require('node:fs');
 const path = require('node:path');
@@ -10,6 +13,7 @@ const { validateDeck } = require('../src/deck/validator');
 const { buildGameDeck } = require('../src/deck/build');
 const { lookupCard } = require('../src/cards/index');
 const { playGame } = require('../src/sim/singleGame');
+const { MCTS_PRESETS } = require('../src/ai/mcts');
 const banlist = require('../data/banlist.json');
 
 function loadDeck(filePath) {
@@ -23,9 +27,18 @@ function loadDeck(filePath) {
 }
 
 function main() {
-  const [deckAPath, arg2, arg3] = process.argv.slice(2);
+  const rawArgs = process.argv.slice(2);
+  const mctsFlag = rawArgs.find((a) => a.startsWith('--mcts='));
+  const positional = rawArgs.filter((a) => !a.startsWith('--mcts='));
+  const [deckAPath, arg2, arg3] = positional;
   if (!deckAPath) {
-    console.error('Usage: node bin/simulate.js <deckA.txt> [deckB.txt] [games]');
+    console.error('Usage: node bin/simulate.js <deckA.txt> [deckB.txt] [games] [--mcts=fast|balanced|strong]');
+    process.exit(1);
+  }
+  const presetName = mctsFlag ? mctsFlag.slice('--mcts='.length) : 'fast';
+  const mctsConfig = MCTS_PRESETS[presetName];
+  if (!mctsConfig) {
+    console.error(`Unknown --mcts preset "${presetName}" -- choices: ${Object.keys(MCTS_PRESETS).join(', ')}`);
     process.exit(1);
   }
   const deckBPath = arg2 && Number.isNaN(Number(arg2)) ? arg2 : deckAPath;
@@ -41,15 +54,17 @@ function main() {
   let turnsTotal = 0;
 
   for (let i = 0; i < games; i++) {
-    const result = playGame(deckA, deckB);
+    const result = playGame(deckA, deckB, { mctsConfigA: mctsConfig, mctsConfigB: mctsConfig });
     if (result.draw) draws++;
     else if (result.timedOut) timeouts++;
     else if (result.winner === 0) winsA++;
     else winsB++;
-    turnsTotal += result.turns;
+    // state.turnNumber increments once per individual player's turn, not once per round -- convert to
+    // a "full turn" count (both players' turn 1 = 1 full turn) before averaging.
+    turnsTotal += Math.ceil(result.turns / 2);
   }
 
-  console.log(`Games: ${games}`);
+  console.log(`Games: ${games} (--mcts=${presetName}: ${JSON.stringify(mctsConfig)})`);
   console.log(`Deck A (${deckAPath}) wins: ${winsA} (${((winsA / games) * 100).toFixed(1)}%)`);
   console.log(`Deck B (${deckBPath}) wins: ${winsB} (${((winsB / games) * 100).toFixed(1)}%)`);
   console.log(`Draws: ${draws}`);

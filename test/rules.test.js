@@ -185,7 +185,7 @@ test('<Repair> recovers HP at end of turn, capped at 0 damage', () => {
   const unit = createInstance(unitDef({ hp: 5, keywords: { repair: 3 } }), 0);
   unit.damage = 2;
   player.battleArea.push(unit);
-  applyRepairAtEndOfTurn(player);
+  applyRepairAtEndOfTurn({}, player);
   assert.equal(unit.damage, 0);
 });
 

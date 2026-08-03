@@ -85,5 +85,22 @@
     "hp": 5,
     "traits": ["ZAFT", "Minerva Squad", "Warship"],
     "effectRefs": { "burst": "minervaBurst", "deploy": "minervaDeploy" }
+  },
+  {
+    "number": "ST09-003", "name": "Saviour Gundam", "type": "unit", "color": "red",
+    "level": 6, "cost": 5, "ap": 5, "hp": 4, "traits": ["ZAFT", "Minerva Squad"],
+    "linkCondition": "Athrun Zala",
+    "keywords": { "breach": 3 },
+    "trashSynergy": { "color": "purple", "threshold": 5 },
+    "effectRefs": { "whenLinked": "saviourGundamWhenLinked" }
+  },
+  {
+    "number": "ST09-005", "name": "Zaku Warrior", "type": "unit", "color": "purple",
+    "level": 2, "cost": 1, "ap": 2, "hp": 2, "traits": ["ZAFT", "Minerva Squad"]
+  },
+  {
+    "number": "ST09-009", "name": "Giant Killing", "type": "command", "color": "purple",
+    "level": 4, "cost": 3,
+    "effectRefs": { "command": "giantKillingCommand" }
   }
 ]

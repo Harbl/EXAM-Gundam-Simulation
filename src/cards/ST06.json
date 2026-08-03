@@ -108,5 +108,37 @@
     "level": 1,
     "cost": 1,
     "effectRefs": { "command": "schoolgirlAndSmugglerCommand" }
+  },
+  {
+    "number": "ST06-003", "name": "Gaia's Rick Dom (GQ)", "type": "unit", "color": "red",
+    "level": 2, "cost": 2, "ap": 2, "hp": 2, "traits": ["Clan"],
+    "linkCondition": "Gaia",
+    "keywords": { "support": 1 }
+  },
+  {
+    "number": "ST06-004", "name": "Gelgoog (GQ)", "type": "unit", "color": "red",
+    "level": 2, "cost": 1, "ap": 2, "hp": 2, "traits": ["Zeon"]
+  },
+  {
+    "number": "ST06-011", "name": "Ruthless Tactics", "type": "command", "color": "red",
+    "level": 3, "cost": 1,
+    "pilotMode": { "name": "Gaia (GQ)", "apBonus": 1, "hpBonus": 0 },
+    "effectRefs": { "command": "ruthlessTacticsCommand" }
+  },
+  {
+    "number": "ST06-013", "name": "Fierce Unity", "type": "command", "color": "green",
+    "level": 3, "cost": 1,
+    "pilotMode": { "name": "Ortega (GQ)", "apBonus": 1, "hpBonus": 0 },
+    "effectRefs": { "command": "fierceUnityCommand" }
+  },
+  {
+    "number": "ST06-014", "name": "Clan Battle", "type": "base", "color": "red",
+    "level": 3, "cost": 1, "ap": 0, "hp": 5, "traits": ["Clan", "Stronghold"],
+    "effectRefs": { "burst": "simpleBurstBase", "deploy": "simpleBaseDeployAddShield", "activateMain": "clanBattleActivateMain" }
+  },
+  {
+    "number": "ST06-015", "name": "Kaneban Co., Ltd.", "type": "base", "color": "green",
+    "level": 4, "cost": 2, "ap": 0, "hp": 5, "traits": ["Clan", "Stronghold"],
+    "effectRefs": { "burst": "simpleBurstBase", "deploy": "simpleBaseDeployAddShield", "allyPaired": "kanebanCoLtdAllyPaired" }
   }
 ]

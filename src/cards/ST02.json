@@ -51,5 +51,68 @@
     "duringLinkHp": 1,
     "traits": ["Operation Meteor"],
     "effectRefs": { "burst": "heeroYuy010Burst" }
+  },
+  {
+    "number": "ST02-003", "name": "Gundam Heavyarms", "type": "unit", "color": "green",
+    "level": 5, "cost": 3, "ap": 3, "hp": 4, "traits": ["Operation Meteor"],
+    "linkCondition": "Trowa Barton",
+    "effectRefs": { "destroysEnemy": "gundamHeavyarmsST02003DestroysEnemy" }
+  },
+  {
+    "number": "ST02-004", "name": "Gundam Sandrock", "type": "unit", "color": "green",
+    "level": 4, "cost": 2, "ap": 4, "hp": 3, "traits": ["Operation Meteor"],
+    "linkCondition": "Quatre Raberba Winner"
+  },
+  {
+    "number": "ST02-005", "name": "Maganac", "type": "unit", "color": "green",
+    "level": 2, "cost": 2, "ap": 3, "hp": 2, "traits": ["Maganac Corps"]
+  },
+  {
+    "number": "ST02-006", "name": "Tallgeese", "type": "unit", "color": "blue",
+    "level": 5, "cost": 4, "ap": 4, "hp": 4, "traits": ["OZ"],
+    "linkCondition": "Zechs Merquise",
+    "effectRefs": { "activateMain": "tallgeeseST02006ActivateMain" }
+  },
+  {
+    "number": "ST02-007", "name": "Leo", "type": "unit", "color": "blue",
+    "level": 2, "cost": 2, "ap": 2, "hp": 2, "traits": ["OZ"],
+    "linkCondition": "OZ"
+  },
+  {
+    "number": "ST02-008", "name": "Aries", "type": "unit", "color": "blue",
+    "level": 2, "cost": 2, "ap": 2, "hp": 1, "traits": ["OZ"],
+    "keywords": { "blocker": true }
+  },
+  {
+    "number": "ST02-009", "name": "Tragos", "type": "unit", "color": "blue",
+    "level": 1, "cost": 1, "ap": 1, "hp": 1, "traits": ["OZ"],
+    "keywords": { "blocker": true }
+  },
+  {
+    "number": "ST02-011", "name": "Zechs Merquise", "type": "pilot", "color": "blue",
+    "level": 5, "cost": 1, "apBonus": 2, "hpBonus": 1, "traits": ["OZ"],
+    "effectRefs": { "burst": "addSelfToHandBurst", "destroysEnemy": "zechsMerquiseDestroysEnemy" }
+  },
+  {
+    "number": "ST02-012", "name": "Simultaneous Fire", "type": "command", "color": "green",
+    "level": 4, "cost": 1,
+    "pilotMode": { "name": "Trowa Barton", "apBonus": 1, "hpBonus": 1 },
+    "effectRefs": { "command": "simultaneousFireCommand" }
+  },
+  {
+    "number": "ST02-013", "name": "Peaceful Timbre", "type": "command", "color": "green",
+    "level": 4, "cost": 1,
+    "pilotMode": { "name": "Quatre Raberba Winner", "apBonus": 1, "hpBonus": 1 },
+    "effectRefs": { "command": "peacefulTimbreCommand" }
+  },
+  {
+    "number": "ST02-014", "name": "Siege Ploy", "type": "command", "color": "blue",
+    "level": 3, "cost": 1,
+    "effectRefs": { "command": "siegePloyCommand", "burst": "siegePloyBurst" }
+  },
+  {
+    "number": "ST02-015", "name": "Saint Gabriel Institute", "type": "base", "color": "green",
+    "level": 2, "cost": 2, "ap": 0, "hp": 5, "traits": ["Academy", "Stronghold"],
+    "effectRefs": { "burst": "simpleBurstBase", "deploy": "saintGabrielInstituteDeploy" }
   }
 ]

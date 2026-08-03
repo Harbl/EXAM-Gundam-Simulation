@@ -1,0 +1,304 @@
+{
+  "archetypes": [
+    {
+      "slug": "barbatos-rush-char-aznable",
+      "name": "Barbatos Rush (Char Aznable)",
+      "wins": 2900,
+      "losses": 1600,
+      "total": 4700,
+      "winRate": 62
+    },
+    {
+      "slug": "one-year-war",
+      "name": "One Year War",
+      "wins": 2500,
+      "losses": 1600,
+      "total": 4200,
+      "winRate": 59
+    },
+    {
+      "slug": "nu-gundam",
+      "name": "Nu Gundam",
+      "wins": 9700,
+      "losses": 7100,
+      "total": 17200,
+      "winRate": 56
+    },
+    {
+      "slug": "neo-zeong-and-league-militaire",
+      "name": "Neo Zeong & League Militaire",
+      "wins": 764,
+      "losses": 553,
+      "total": 1400,
+      "winRate": 56
+    },
+    {
+      "slug": "strike-freedom-and-barbatos-lupus",
+      "name": "Strike Freedom & Barbatos Lupus",
+      "wins": 3400,
+      "losses": 2500,
+      "total": 6100,
+      "winRate": 56
+    },
+    {
+      "slug": "strike-freedom-and-league-militaire",
+      "name": "Strike Freedom & League Militaire",
+      "wins": 2200,
+      "losses": 1600,
+      "total": 4000,
+      "winRate": 55
+    },
+    {
+      "slug": "strike-freedom-blockers",
+      "name": "Strike Freedom Blockers",
+      "wins": 1900,
+      "losses": 1500,
+      "total": 3600,
+      "winRate": 54
+    },
+    {
+      "slug": "cyclops-team",
+      "name": "Cyclops Team",
+      "wins": 48,
+      "losses": 29,
+      "total": 78,
+      "winRate": 62
+    },
+    {
+      "slug": "league-militaire",
+      "name": "League Militaire",
+      "wins": 804,
+      "losses": 689,
+      "total": 1500,
+      "winRate": 52
+    },
+    {
+      "slug": "barbatos-rush-other",
+      "name": "Barbatos Rush Other",
+      "wins": 327,
+      "losses": 285,
+      "total": 631,
+      "winRate": 52
+    },
+    {
+      "slug": "banshee-norn-blockers",
+      "name": "Banshee Norn Blockers",
+      "wins": 121,
+      "losses": 101,
+      "total": 235,
+      "winRate": 51
+    },
+    {
+      "slug": "sazabi",
+      "name": "Sazabi",
+      "wins": 741,
+      "losses": 661,
+      "total": 1400,
+      "winRate": 51
+    },
+    {
+      "slug": "barbatos-lupus",
+      "name": "Barbatos Lupus",
+      "wins": 540,
+      "losses": 518,
+      "total": 1100,
+      "winRate": 49
+    },
+    {
+      "slug": "strike-freedom-and-maridas-banshee",
+      "name": "Strike Freedom & Marida's Banshee",
+      "wins": 3100,
+      "losses": 3100,
+      "total": 6400,
+      "winRate": 49
+    },
+    {
+      "slug": "banshee-norn-and-league-militaire",
+      "name": "Banshee Norn & League Militaire",
+      "wins": 530,
+      "losses": 508,
+      "total": 1100,
+      "winRate": 49
+    },
+    {
+      "slug": "char-other",
+      "name": "Char other",
+      "wins": 1500,
+      "losses": 1500,
+      "total": 3100,
+      "winRate": 49
+    },
+    {
+      "slug": "shining-and-master-gundam",
+      "name": "Shining & Master Gundam",
+      "wins": 5200,
+      "losses": 5000,
+      "total": 10700,
+      "winRate": 49
+    },
+    {
+      "slug": "unicorn-blockers",
+      "name": "Unicorn Blockers",
+      "wins": 810,
+      "losses": 767,
+      "total": 1700,
+      "winRate": 49
+    },
+    {
+      "slug": "strike-freedom-other",
+      "name": "Strike Freedom Other",
+      "wins": 511,
+      "losses": 532,
+      "total": 1100,
+      "winRate": 48
+    },
+    {
+      "slug": "zeon-gfred-rush",
+      "name": "Zeon GFred Rush",
+      "wins": 222,
+      "losses": 230,
+      "total": 470,
+      "winRate": 47
+    },
+    {
+      "slug": "barbatos-rush-purple-red",
+      "name": "Barbatos Rush (Purple Red)",
+      "wins": 751,
+      "losses": 757,
+      "total": 1600,
+      "winRate": 47
+    }
+  ],
+  "matchups": [
+    {
+      "deckA": {
+        "slug": "shining-and-master-gundam",
+        "name": "Shining & Master Gundam",
+        "winRate": 52
+      },
+      "deckB": {
+        "slug": "nu-gundam",
+        "name": "Nu Gundam",
+        "winRate": 48
+      },
+      "games": 2200
+    },
+    {
+      "deckA": {
+        "slug": "nu-gundam",
+        "name": "Nu Gundam",
+        "winRate": 56
+      },
+      "deckB": {
+        "slug": "strike-freedom-and-maridas-banshee",
+        "name": "Strike Freedom & Marida's Banshee",
+        "winRate": 44
+      },
+      "games": 1300
+    },
+    {
+      "deckA": {
+        "slug": "nu-gundam",
+        "name": "Nu Gundam",
+        "winRate": 51
+      },
+      "deckB": {
+        "slug": "strike-freedom-and-barbatos-lupus",
+        "name": "Strike Freedom & Barbatos Lupus",
+        "winRate": 49
+      },
+      "games": 1300
+    },
+    {
+      "deckA": {
+        "slug": "strike-freedom-and-maridas-banshee",
+        "name": "Strike Freedom & Marida's Banshee",
+        "winRate": 71
+      },
+      "deckB": {
+        "slug": "shining-and-master-gundam",
+        "name": "Shining & Master Gundam",
+        "winRate": 29
+      },
+      "games": 926
+    },
+    {
+      "deckA": {
+        "slug": "barbatos-rush-char-aznable",
+        "name": "Barbatos Rush (Char Aznable)",
+        "winRate": 64
+      },
+      "deckB": {
+        "slug": "nu-gundam",
+        "name": "Nu Gundam",
+        "winRate": 36
+      },
+      "games": 896
+    },
+    {
+      "deckA": {
+        "slug": "nu-gundam",
+        "name": "Nu Gundam",
+        "winRate": 51
+      },
+      "deckB": {
+        "slug": "strike-freedom-and-league-militaire",
+        "name": "Strike Freedom & League Militaire",
+        "winRate": 49
+      },
+      "games": 819
+    },
+    {
+      "deckA": {
+        "slug": "one-year-war",
+        "name": "One Year War",
+        "winRate": 59
+      },
+      "deckB": {
+        "slug": "nu-gundam",
+        "name": "Nu Gundam",
+        "winRate": 41
+      },
+      "games": 784
+    },
+    {
+      "deckA": {
+        "slug": "strike-freedom-blockers",
+        "name": "Strike Freedom Blockers",
+        "winRate": 51
+      },
+      "deckB": {
+        "slug": "nu-gundam",
+        "name": "Nu Gundam",
+        "winRate": 49
+      },
+      "games": 735
+    },
+    {
+      "deckA": {
+        "slug": "nu-gundam",
+        "name": "Nu Gundam",
+        "winRate": 52
+      },
+      "deckB": {
+        "slug": "char-other",
+        "name": "Char other",
+        "winRate": 48
+      },
+      "games": 625
+    },
+    {
+      "deckA": {
+        "slug": "nu-gundam",
+        "name": "Nu Gundam",
+        "winRate": 60
+      },
+      "deckB": {
+        "slug": "wing-zero-blockers",
+        "name": "Wing Zero Blockers",
+        "winRate": 40
+      },
+      "games": 417
+    }
+  ]
+}

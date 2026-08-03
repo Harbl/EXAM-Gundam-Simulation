@@ -58,5 +58,61 @@
     "hpBonus": 1,
     "traits": ["Tekkadan", "Alaya-Vijnana"],
     "effectRefs": { "burst": "reineforceJrBurst", "destroysEnemy": "akihiroAltlandDestroysEnemy" }
+  },
+  {
+    "number": "ST05-001", "name": "Gundam Barbatos 4th Form", "type": "unit", "color": "purple",
+    "level": 6, "cost": 4, "ap": 4, "hp": 5, "traits": ["Tekkadan", "Gundam Frame"],
+    "linkCondition": "Mikazuki Augus",
+    "keywordWhileDamaged": "suppression",
+    "effectRefs": { "deploy": "gundamBarbatos4thFormDeploy" }
+  },
+  {
+    "number": "ST05-002", "name": "Gundam Barbatos 2nd Form", "type": "unit", "color": "purple",
+    "level": 4, "cost": 2, "ap": 2, "hp": 4, "traits": ["Tekkadan", "Gundam Frame"],
+    "linkCondition": "Mikazuki Augus",
+    "apBonusWhileDamaged": 2
+  },
+  {
+    "number": "ST05-003", "name": "CGS Mobile Worker", "type": "unit", "color": "purple",
+    "level": 1, "cost": 1, "ap": 0, "hp": 2, "traits": ["Tekkadan"],
+    "effectRefs": { "activateMain": "cgsMobileWorkerActivateMain" }
+  },
+  {
+    "number": "ST05-005", "name": "Gundam Gusion Rebake", "type": "unit", "color": "purple",
+    "level": 4, "cost": 3, "ap": 3, "hp": 4, "traits": ["Tekkadan", "Gundam Frame"],
+    "linkCondition": "Akihiro Altland",
+    "effectRefs": { "destroyed": "gundamGusionRebakeST05005Destroyed" }
+  },
+  {
+    "number": "ST05-007", "name": "McGillis' Schwalbe Graze", "type": "unit", "color": "white",
+    "level": 4, "cost": 3, "ap": 4, "hp": 2, "traits": ["Gjallarhorn"],
+    "linkCondition": "McGillis Fareed",
+    "keywords": { "blocker": true },
+    "effectRefs": { "whenPaired": "mcgillisSchwalbeGrazeWhenPaired" }
+  },
+  {
+    "number": "ST05-008", "name": "Graze Commander Type", "type": "unit", "color": "white",
+    "level": 3, "cost": 2, "ap": 3, "hp": 2, "traits": ["Gjallarhorn"],
+    "linkCondition": "Gjallarhorn",
+    "keywords": { "blocker": true }
+  },
+  {
+    "number": "ST05-009", "name": "Graze", "type": "unit", "color": "white",
+    "level": 2, "cost": 1, "ap": 2, "hp": 2, "traits": ["Gjallarhorn"]
+  },
+  {
+    "number": "ST05-012", "name": "McGillis Fareed", "type": "pilot", "color": "white",
+    "level": 4, "cost": 1, "apBonus": 2, "hpBonus": 1, "traits": ["Gjallarhorn"],
+    "effectRefs": { "burst": "addSelfToHandBurst", "whenPaired": "mcgillisFareedWhenPaired" }
+  },
+  {
+    "number": "ST05-013", "name": "With Iron and Blood", "type": "command", "color": "purple",
+    "level": 2, "cost": 1,
+    "effectRefs": { "command": "withIronAndBloodCommand" }
+  },
+  {
+    "number": "ST05-014", "name": "Fatal Strike", "type": "command", "color": "purple",
+    "level": 4, "cost": 2,
+    "effectRefs": { "command": "fatalStrikeCommand", "burst": "fatalStrikeBurst" }
   }
 ]

@@ -35,11 +35,13 @@ function buildJakesDeck() {
   return buildGameDeck({ main: parsed.main }, lookupCard);
 }
 
-test('decideMulligan keeps a hand with an early play and mulligans one without', () => {
+test('decideMulligan keeps an on-curve hand and mulligans one with no/insufficient early plays', () => {
   const cheap = { def: { type: 'unit', cost: 1 } };
+  const onCurve = { def: { type: 'unit', cost: 3 } };
   const expensive = { def: { type: 'unit', cost: 5 } };
-  assert.equal(decideMulligan([cheap, expensive]), false);
-  assert.equal(decideMulligan([expensive, expensive]), true);
+  assert.equal(decideMulligan([cheap, onCurve, expensive, expensive, expensive]), false);
+  assert.equal(decideMulligan([expensive, expensive, expensive, expensive, expensive]), true, 'no early play at all');
+  assert.equal(decideMulligan([cheap, expensive, expensive, expensive, expensive]), true, 'only 1 on-curve card, stalls out');
 });
 
 test('runMainPhase deploys the highest-cost affordable Unit from hand', () => {
