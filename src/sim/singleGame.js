@@ -3,6 +3,7 @@ const { runStartPhase, runDrawPhase, runResourcePhase, runEndPhase, passTurn } =
 const { checkDefeat } = require('../rules/management');
 const { decideMulligan, lookaheadHooks, runMainPhase } = require('../ai/heuristic');
 const { runMainPhaseMCTS } = require('../ai/mcts');
+const { mulberry32 } = require('../rules/rng');
 
 const MAX_TURNS = 60; // safety cap against a stalemate/decking-out loop that never naturally ends
 
@@ -20,7 +21,10 @@ function playGame(deckA, deckB, options = {}) {
     return shouldMulligan;
   };
 
-  const state = initializeGame(deckA, deckB, { decideMulligan: trackedDecideMulligan });
+  // Seeded replay support: if options.seed is given, the whole game (shuffles + coin flip) becomes
+  // deterministic, so the replay viewer can re-run this exact game later from the seed alone.
+  const rng = options.seed !== undefined ? mulberry32(options.seed) : undefined;
+  const state = initializeGame(deckA, deckB, { decideMulligan: trackedDecideMulligan, rng });
   // Optional per-side scoreState weight override (deck A/B's identity, not turn-order first/second),
   // for A/B-testing alternative weight configs in self-play without threading a weights param through
   // every lookahead function -- see src/ai/score.js.
@@ -59,7 +63,7 @@ function playGame(deckA, deckB, options = {}) {
     passTurn(state);
   }
 
-  return summarize(state, mulliganed, openingCurve);
+  return summarize(state, mulliganed, openingCurve, options.seed, firstIdx);
 }
 
 /** Whether the (post-mulligan) opening hand had a playable card by turn 1/2/3, for curve-quality stats. */
@@ -70,14 +74,17 @@ function handCurve(player) {
   return { turn1: cheapestCost <= 1, turn2: cheapestCost <= 2, turn3: cheapestCost <= 3 };
 }
 
-function summarize(state, mulliganed, openingCurve) {
+function summarize(state, mulliganed, openingCurve, seed, firstPlayer) {
   return {
     winner: state.winner,
     turns: state.turnNumber,
     draw: state.draw,
     timedOut: state.winner === null && !state.draw,
     mulliganed,
-    openingCurve
+    openingCurve,
+    seed,
+    firstPlayer,
+    shields: state.players.map((p) => p.shields.length)
   };
 }
 

@@ -35,8 +35,33 @@ const { collectActivateCandidates } = require('./activations');
  * hardcoding card numbers, so any future card sharing this shape picks it up automatically. A
  * reasoned starting weight (same order of magnitude as one legal activation), not yet empirically
  * tuned -- same precedent as activationPotential above.
+ *
+ * exResourceHeld added 2026-08-03 (after fixing payCost to prefer normal Resources over the EX
+ * Resource token, see src/rules/cost.js): the generic `resources` weight already counts a still-in-
+ * play token the same as any normal Resource, but that undersells it -- a normal Resource merely
+ * being rested to pay a cost is free (still counts toward Level, 2-9-1), while spending a token
+ * Resource removes it from the game *permanently* (5-17-3-2-3), costing a Level point for the rest
+ * of the game. Real players hold an EX Resource for exactly this reason (often several turns, until
+ * around Level 3-4, per Jake) rather than spending it the instant it would help. This weight adds an
+ * *extra* premium specifically for a token still being in play (on top of the generic `resources`
+ * credit it already gets), so the search has a real incentive to prefer a cheaper play/pass over one
+ * that would force spending it, not just to stop wasting it when unnecessary (payCost's fix already
+ * covers that part). A reasoned starting weight (same order of magnitude as activationPotential,
+ * deliberately not so large it would stop the AI from ever making a genuinely strong play that's
+ * worth the Level point) -- empirically checked via scratchpad/weight_tune.js and
+ * scratchpad/check_ex_resource_timing.js before landing on this value, same precedent as
+ * activationPotential/trashSynergy's initial tuning.
  */
-const DEFAULT_WEIGHTS = { shields: 10, baseHP: 3, boardStats: 1, hand: 2, resources: 2, activationPotential: 4, trashSynergy: 3 };
+const DEFAULT_WEIGHTS = {
+  shields: 10,
+  baseHP: 3,
+  boardStats: 1,
+  hand: 2,
+  resources: 2,
+  activationPotential: 4,
+  trashSynergy: 3,
+  exResourceHeld: 5
+};
 
 /**
  * Board-evaluation function for AI lookahead: how good is this state for `playerIdx`, relative to
@@ -67,13 +92,16 @@ function boardValue(player, weights) {
   const baseHP = player.base ? getRemainingHP(player.base) : 0;
   const boardStats = player.battleArea.reduce((sum, u) => sum + getAP(u) + getRemainingHP(u), 0);
 
+  const exResourcesHeld = player.resourceArea.filter((r) => r.def.isToken).length;
+
   return (
     player.shields.length * weights.shields +
     baseHP * weights.baseHP +
     boardStats * weights.boardStats +
     player.hand.length * weights.hand +
     player.resourceArea.length * weights.resources +
-    trashSynergyValue(player) * weights.trashSynergy
+    trashSynergyValue(player) * weights.trashSynergy +
+    exResourcesHeld * weights.exResourceHeld
   );
 }
 

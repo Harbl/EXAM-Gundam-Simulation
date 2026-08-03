@@ -15,6 +15,47 @@ test("parses a card name containing a possessive/apostrophe", () => {
   assert.deepEqual(main, [{ quantity: 1, name: "Char's Gelgoog", number: 'GD01-023' }]);
 });
 
+test('parses "quantity, number, name" ordering (number before the name)', () => {
+  const { main } = parseDecklistText('2 GD01-039 Dopp');
+  assert.deepEqual(main, [{ quantity: 2, name: 'Dopp', number: 'GD01-039' }]);
+});
+
+test('parses "4xST05-004" -- an x-multiplier glued directly to both the quantity and the number, no name', () => {
+  const { main } = parseDecklistText('4xST05-004');
+  assert.deepEqual(main, [{ quantity: 4, name: '', number: 'ST05-004' }]);
+});
+
+test('parses "4 x ST01-005" -- an x-multiplier as its own spaced-out token, no name', () => {
+  const { main } = parseDecklistText('4 x ST01-005');
+  assert.deepEqual(main, [{ quantity: 4, name: '', number: 'ST01-005' }]);
+});
+
+test('parses "quantity, number" with no name and no x at all', () => {
+  const { main } = parseDecklistText('4 ST01-005');
+  assert.deepEqual(main, [{ quantity: 4, name: '', number: 'ST01-005' }]);
+});
+
+test('a name starting with "X" is never mistaken for an x-multiplier (Xi Gundam, not "4" x "i Gundam ST08-001")', () => {
+  const { main } = parseDecklistText('4 Xi Gundam ST08-001');
+  assert.deepEqual(main, [{ quantity: 4, name: 'Xi Gundam', number: 'ST08-001' }]);
+});
+
+test('mixed formats in the same decklist paste all parse correctly', () => {
+  const text = `
+2 GD01-039 Dopp
+4xST05-004
+4 GM ST01-005
+4 x ST01-010
+`;
+  const { main } = parseDecklistText(text);
+  assert.deepEqual(main, [
+    { quantity: 2, name: 'Dopp', number: 'GD01-039' },
+    { quantity: 4, name: '', number: 'ST05-004' },
+    { quantity: 4, name: 'GM', number: 'ST01-005' },
+    { quantity: 4, name: '', number: 'ST01-010' }
+  ]);
+});
+
 test('ignores comments and blank lines', () => {
   const { main } = parseDecklistText('// Main Deck\n\n4 Zaku II ST03-008\n');
   assert.equal(main.length, 1);

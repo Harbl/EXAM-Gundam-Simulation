@@ -98,6 +98,30 @@ test('scoreState is symmetric and rewards more shields/board presence', () => {
   assert.ok(scoreState(state, 0) > 0, 'the player with more shields should score higher for themselves');
 });
 
+test('scoreState gives extra, separate credit for still holding an unspent EX Resource token, beyond the generic resource-count credit', () => {
+  const player = createPlayer(0);
+  const state = createGame(player, createPlayer(1));
+  const normalResource = createInstance({ number: 'RESOURCE', type: 'resource' }, 0);
+  const exResource = createInstance({ number: 'EX-RESOURCE', type: 'resource', isToken: true }, 0);
+
+  player.resourceArea.push(normalResource);
+  const withOnlyNormal = scoreState(state, 0);
+
+  player.resourceArea.push(exResource);
+  const withTokenAlso = scoreState(state, 0);
+
+  // Both states have exactly 2 resources in play, so the plain `resources` count credit is the same
+  // for both -- any extra gap between them is specifically the exResourceHeld premium for the token
+  // still being unspent (not yet permanently lost, unlike a normal Resource that's merely rested).
+  player.resourceArea.pop();
+  const secondNormalInstead = createInstance({ number: 'RESOURCE', type: 'resource' }, 0);
+  player.resourceArea.push(secondNormalInstead);
+  const withTwoNormal = scoreState(state, 0);
+
+  assert.ok(withTokenAlso > withOnlyNormal, 'holding the token should score higher than not having it at all');
+  assert.ok(withTokenAlso > withTwoNormal, 'a token in play should score strictly higher than an equal-count all-normal resource area');
+});
+
 test('scoreState gives real, incremental credit for trash-threshold progress toward a trashSynergy-flagged card, not just a step at the threshold', () => {
   const player = createPlayer(0);
   const state = createGame(player, createPlayer(1));

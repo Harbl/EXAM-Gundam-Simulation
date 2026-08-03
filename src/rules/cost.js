@@ -129,12 +129,19 @@ function canAfford(player, def, opts = {}) {
 }
 
 /** 5-17-3-2-3: an EX Resource (or any Resource token) is removed from the game the moment it's
- * spent, rather than just resting -- a one-time bonus, not a recurring one. */
+ * spent, rather than just resting -- a one-time bonus, not a recurring one. Since a *rested* normal
+ * Resource still counts toward Level (2-9-1: active or rested both count), but a spent token is
+ * gone and never counts again, paying with normal Resources first (falling back to a token only
+ * once normal Resources run out) never costs anything and preserves the Level lead a token
+ * represents for as long as possible -- this is a real, well-known strategic reason to hold an EX
+ * Resource, not just a minor optimization, so it isn't a heuristic tradeoff to get right, it's
+ * strictly correct payment order. */
 function payCost(player, def, opts = {}) {
   const active = player.resourceArea.filter((r) => !r.rested);
+  const ordered = [...active.filter((r) => !r.def.isToken), ...active.filter((r) => r.def.isToken)];
   let usedExResource = false;
   for (let i = 0; i < effectiveCost(player, def, opts); i++) {
-    const resource = active[i];
+    const resource = ordered[i];
     if (resource.def.isToken) {
       player.resourceArea.splice(player.resourceArea.indexOf(resource), 1);
       usedExResource = true;

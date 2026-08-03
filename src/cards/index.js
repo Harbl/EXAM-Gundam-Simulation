@@ -38,4 +38,10 @@ function reloadCards() {
   cache = null;
 }
 
-module.exports = { lookupCard, reloadCards };
+/** Every researched card def, for the deck builder's browse/search screen. */
+function listAllCards() {
+  if (!cache) cache = loadAllCards();
+  return Array.from(cache.values());
+}
+
+module.exports = { lookupCard, reloadCards, listAllCards };

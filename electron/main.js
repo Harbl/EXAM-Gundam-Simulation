@@ -1,22 +1,50 @@
-const { app, BrowserWindow, ipcMain } = require('electron');
+const { app, BrowserWindow, ipcMain, dialog } = require('electron');
 const { Worker } = require('node:worker_threads');
 const path = require('node:path');
+const fs = require('node:fs');
+const { listDecks, saveDeck, loadDeck, deleteDeck } = require('../src/deck/store');
+const { listAllCards } = require('../src/cards/index');
+const { parseDecklistText } = require('../src/deck/parser');
+const { validateDeck } = require('../src/deck/validator');
+const banlist = require('../data/banlist.json');
 
 let mainWindow;
 let activeWorker = null;
+// The AI settings (+ deck texts) that produced the most recent batch's results -- the replay
+// viewer needs these to re-run one specific game's seed with the exact same engine/mctsConfig,
+// not just re-parse the same deck text with today's default settings.
+let lastBatchContext = null;
+const DECKS_DIR = () => path.join(app.getPath('userData'), 'decks');
 
 function createWindow() {
   mainWindow = new BrowserWindow({
-    width: 1000,
-    height: 700,
+    width: 1357,
+    height: 1040,
+    minWidth: 1050,
+    minHeight: 720,
+    useContentSize: true, // width/height above are the page's content area, not the outer frame --
+    // otherwise the OS window chrome (title bar/borders) eats into it and the page renders too small
+    // to show everything without the user manually resizing.
     backgroundColor: '#000000',
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
       contextIsolation: true,
-      nodeIntegration: false
+      nodeIntegration: false,
+      // Electron 20+ defaults sandbox:true, which restricts preload scripts to a small built-in
+      // require allow-list -- preload.js's `require('../src/ai/skillPresets')` (a local project
+      // file, not a bundled dependency) silently fails under that default, so contextBridge's whole
+      // exposeInMainWorld call never runs and window.sim ends up undefined in the renderer. Safe to
+      // disable here since this app only ever loads its own local, trusted index.html -- never
+      // remote or untrusted content -- and contextIsolation/nodeIntegration above still firewall the
+      // renderer itself from Node; this only restores full require() inside the preload script.
+      sandbox: false
     }
   });
 
+  // Previously started maximized (to guarantee nothing got cut off), but Jake didn't want a
+  // maximized launch -- and confirmed that un-maximizing back to windowed mode landed at exactly
+  // the right size, which is just the width/height set above. So: launch windowed at that size
+  // directly, no maximize() call.
   mainWindow.loadFile(path.join(__dirname, 'renderer', 'index.html'));
 }
 
@@ -36,6 +64,7 @@ ipcMain.handle('run-batch', (event, { deckAText, deckBText, games, skillA, skill
   activeWorker.on('message', (msg) => {
     if (msg.type === 'progress') mainWindow.webContents.send('batch-progress', msg);
     if (msg.type === 'done') {
+      lastBatchContext = msg.context;
       mainWindow.webContents.send('batch-result', msg.stats);
       activeWorker = null;
     }
@@ -55,4 +84,74 @@ ipcMain.handle('cancel-batch', () => {
     activeWorker.terminate();
     activeWorker = null;
   }
+});
+
+// Plain-data fields only -- a card def's `effects` object holds live function references (resolved
+// by cards/index.js from src/effects/registry.js), which the IPC structured-clone boundary can't
+// serialize, so the deck builder's browse screen only ever needs this subset anyway.
+ipcMain.handle('list-cards', () =>
+  listAllCards().map(({ number, name, type, color, level, cost, ap, hp, traits }) => ({
+    number,
+    name,
+    type,
+    color,
+    level,
+    cost,
+    ap,
+    hp,
+    traits
+  }))
+);
+
+ipcMain.handle('validate-decklist', (event, text) => {
+  try {
+    const parsed = parseDecklistText(text);
+    const byNumber = new Map(listAllCards().map((c) => [c.number, c]));
+    const result = validateDeck(parsed, (number) => byNumber.get(number), banlist);
+    return { parsed: parsed.main, ...result };
+  } catch (err) {
+    return { parsed: [], valid: false, errors: [err.message], missingCards: [] };
+  }
+});
+
+/** Saves a renderer-generated PNG (a data URL from a <canvas>.toDataURL()) to disk, via a native
+ * Save dialog -- backs the deck-image and stats-infographic export features. */
+ipcMain.handle('save-image', async (event, { dataUrl, suggestedName }) => {
+  const { canceled, filePath } = await dialog.showSaveDialog(mainWindow, {
+    title: 'Save Image',
+    defaultPath: suggestedName || 'export.png',
+    filters: [{ name: 'PNG Image', extensions: ['png'] }]
+  });
+  if (canceled || !filePath) return { saved: false };
+  const base64 = dataUrl.replace(/^data:image\/png;base64,/, '');
+  fs.writeFileSync(filePath, Buffer.from(base64, 'base64'));
+  return { saved: true, filePath };
+});
+
+ipcMain.handle('list-decks', () => listDecks(DECKS_DIR()));
+ipcMain.handle('save-deck', (event, { name, decklistText }) => saveDeck(DECKS_DIR(), name, decklistText));
+ipcMain.handle('load-deck', (event, name) => loadDeck(DECKS_DIR(), name));
+ipcMain.handle('delete-deck', (event, name) => deleteDeck(DECKS_DIR(), name));
+
+/** Re-simulates one past game (by seed) from the most recent batch's decks/AI settings, returning a
+ * structured turn-by-turn event log for the replay viewer. Runs in its own fresh worker_thread every
+ * time (never reused) -- src/sim/traceGame.js's function-patching approach needs a clean module
+ * registry, see its header comment. */
+ipcMain.handle('replay-game', (event, { seed }) => {
+  if (!lastBatchContext) return Promise.reject(new Error('No batch has been run yet this session.'));
+
+  return new Promise((resolve, reject) => {
+    const worker = new Worker(path.join(__dirname, 'worker', 'replayWorker.js'), {
+      workerData: { ...lastBatchContext, seed }
+    });
+    worker.on('message', (msg) => {
+      if (msg.type === 'done') resolve(msg.events);
+      else reject(new Error(msg.message));
+      worker.terminate();
+    });
+    worker.on('error', (err) => {
+      reject(err);
+      worker.terminate();
+    });
+  });
 });

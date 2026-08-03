@@ -50,3 +50,40 @@ test('runBatch aggregates results, reports progress every game, and yields well-
     assert.ok(side.turn2PlayRate <= side.turn3PlayRate);
   }
 });
+
+test('runBatch computes first-player win rate, length spread, margin of victory, and decisive win rate', async () => {
+  const deck = buildJakesDeck();
+  const stats = await runBatch(deck, deck, 12, null);
+
+  for (const side of [stats.deckA, stats.deckB]) {
+    assert.ok(side.winRateWhenFirst >= 0 && side.winRateWhenFirst <= 1);
+    assert.ok(side.winRateWhenSecond >= 0 && side.winRateWhenSecond <= 1);
+    assert.ok(side.decisiveWinRate >= 0 && side.decisiveWinRate <= 1);
+    assert.ok(side.marginOfVictory >= 0 && side.marginOfVictory <= 6, 'margin of victory should be a plausible shield count');
+  }
+
+  assert.ok(stats.shortestGame > 0);
+  assert.ok(stats.longestGame >= stats.shortestGame);
+  assert.ok(stats.medianGame >= stats.shortestGame && stats.medianGame <= stats.longestGame);
+
+  // Decisive win rate should exclude draws/timeouts, so it's normalized over a smaller (or equal)
+  // denominator than the headline win rate -- meaning it's never smaller in magnitude terms.
+  const decisiveGames = stats.deckA.wins + stats.deckB.wins;
+  if (decisiveGames > 0 && decisiveGames < stats.games) {
+    assert.ok(stats.deckA.decisiveWinRate >= stats.deckA.winRate);
+  }
+});
+
+test('runBatch records a per-game seed, so any individual game can be replayed later', async () => {
+  const deck = buildJakesDeck();
+  const stats = await runBatch(deck, deck, 5, null);
+
+  assert.equal(stats.perGame.length, 5);
+  const seeds = new Set();
+  for (const game of stats.perGame) {
+    assert.equal(typeof game.seed, 'number');
+    seeds.add(game.seed);
+    assert.ok(game.winner === 0 || game.winner === 1 || game.draw || game.timedOut);
+  }
+  assert.equal(seeds.size, 5, 'expected every game in the batch to get its own distinct seed');
+});

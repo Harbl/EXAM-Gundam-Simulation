@@ -265,18 +265,68 @@ const RESOLVERS = {
     const candidates = player.battleArea.filter((u) => u !== source);
     if (candidates.length === 0) return null;
     return { target: candidates.sort((a, b) => getAP(b) - getAP(a))[0] };
+  },
+  // --- The 5 "set THIS source as active" reactivation abilities (see REQUIRES_RESTED below) ---
+  // All 5 only do anything useful while the source is actually rested (reactivating an already-active
+  // source wastes the real cost -- 2 other Units, a resource payment, a trash exile, or a friendly
+  // Unit's life -- for zero benefit). The rules place no general restriction on activating an
+  // Activate*Main ability from a rested source (13-2-1-1: "during your main phase while the Unit is
+  // not attacking" -- nothing about the Unit's own rested state; the one keyword that *does* need an
+  // active source, <Support>, pays "Rest this Unit" as its own cost and is a separate, self-guarded
+  // code path in src/rules/effects.js, not this table), so gating on `source.rested` here is purely an
+  // AI-quality judgement call (never make this play when it's pointless), not a rules requirement.
+  //
+  // V2 Gundam GD05-001: Rest 2 of your other Units: set this Unit as active, once per turn -- rests
+  // the 2 lowest-AP other Units available (cheapest real cost), preserving stronger attackers.
+  'GD05-001': (state, player, opponent, source) => {
+    if (source.activationsUsed.setActive) return null;
+    const candidates = player.battleArea.filter((u) => u !== source && !u.rested);
+    if (candidates.length < 2) return null;
+    return { restUnits: [...candidates].sort((a, b) => getAP(a) - getAP(b)).slice(0, 2) };
+  },
+  // Unicorn Gundam 02 Banshee Norn (Destroy Mode) GD04-065: [During Link] Exile 3 blue cards from
+  // trash: set this Unit as active -- no once-per-turn flag in the real effect (self-limiting, each
+  // firing consumes 3 real trash cards, and firing sets the source active again, which the
+  // REQUIRES_RESTED gate below naturally stops offering again until it's rested once more).
+  'GD04-065': (state, player, opponent, source) => {
+    if (!source.isLinkUnit) return null;
+    return player.trash.filter((c) => c.def.color === 'blue').length >= 3 ? {} : null;
+  },
+  // Graham's Union Flag Custom II (GN Flag) (R+) GD04-071: exile 1 (Superpower Bloc) + 1 (UN) card
+  // from trash (must be 2 distinct cards): set this Unit as active, can't attack this turn -- mirrors
+  // the real effect's own candidate selection exactly so a "legal" offer never resolves to a no-op.
+  'GD04-071': (state, player) => {
+    const superpowerCandidates = player.trash.filter((c) => (c.def.traits || []).includes('Superpower Bloc'));
+    const unCandidates = player.trash.filter((c) => (c.def.traits || []).includes('UN'));
+    if (superpowerCandidates.length === 0 || unCandidates.length === 0) return null;
+    const superpower = superpowerCandidates[0];
+    const un = unCandidates.find((c) => c !== superpower) || unCandidates[0];
+    return superpower === un ? null : {};
+  },
+  // Gyunei's Jagd Doga GD05-057: destroy 1 of your other Units: set this Unit as active, can't
+  // attack the enemy player this turn, once per turn -- a real, compound cost (loses a friendly Unit
+  // outright), only worth it because the source itself needs reactivating.
+  'GD05-057': (state, player, opponent, source) => {
+    if (source.activationsUsed.selfDestroyRefresh) return null;
+    return player.battleArea.some((u) => u !== source) ? {} : null;
+  },
+  // Tallgeese ST02-006: (4): set this Unit as active, once per turn.
+  'ST02-006': (state, player, opponent, source) => {
+    if (source.activationsUsed.setActive) return null;
+    return player.resourceArea.filter((r) => !r.rested).length >= 4 ? {} : null;
   }
-  // Deliberately left unwired (Phase 5): V2 Gundam GD05-001, Unicorn Gundam 02 Banshee Norn (Destroy
-  // Mode) GD04-065, Graham's Union Flag Custom II (GN Flag) (R+) GD04-071, Gyunei's Jagd Doga GD05-057,
-  // and Tallgeese ST02-006 all center on "set THIS source as active" -- but the whole point of that is
-  // only realized when the source is currently rested, while collectActivateCandidates' own activator
-  // filter (below) requires `!c.rested` to consider something a legal activator at all. Under the
-  // current architecture these abilities can never be offered in a state where they'd do anything
-  // useful (firing while already active just wastes the real cost for zero benefit, or in Graham's/
-  // Gyunei's case actively hurts by applying a "can't attack"/self-destroy cost with no payoff).
-  // Fixing this for real needs relaxing the shared rested-filter for this specific ability shape --
-  // a small architecture change, not a per-card resolver, so it's flagged here rather than forced.
 };
+
+/**
+ * The 5 "set THIS source as active" reactivation abilities above are the sole exception to
+ * collectActivateCandidates' default "activator must be un-rested" filter -- see the comment block
+ * above their resolvers for why relaxing it just for these 5 (rather than for every resolver) is
+ * both rules-correct and the minimal-risk fix: every other resolver already assumes (several
+ * explicitly comment "already covered by the activator filter") that the default un-rested
+ * requirement holds, so changing the default for everyone would silently re-open the exact
+ * no-op-hazard these resolvers are built to avoid.
+ */
+const REQUIRES_RESTED = new Set(['GD05-001', 'GD04-065', 'GD04-071', 'GD05-057', 'ST02-006']);
 
 /**
  * Resolves which card's activateMain handler actually applies to `instance` -- almost always its own
@@ -299,15 +349,19 @@ function activateMainSource(instance) {
 function collectActivateCandidates(state, playerIdx) {
   const player = state.players[playerIdx];
   const opponent = state.players[1 - playerIdx];
-  const activators = [player.base, ...player.battleArea].filter((c) => c && !c.rested);
+  // Every source is a candidate activator regardless of rested state -- REQUIRES_RESTED flips the
+  // usual "must be un-rested" requirement to "must be rested" for the 5 reactivation abilities above.
+  const activators = [player.base, ...player.battleArea].filter(Boolean);
   const candidates = [];
   for (const source of activators) {
     const handlerInfo = activateMainSource(source);
     if (!handlerInfo || !RESOLVERS[handlerInfo.number]) continue;
+    const needsRested = REQUIRES_RESTED.has(handlerInfo.number);
+    if (needsRested ? !source.rested : source.rested) continue;
     const args = RESOLVERS[handlerInfo.number](state, player, opponent, source);
     if (args) candidates.push({ source, args, handler: handlerInfo.handler });
   }
   return candidates;
 }
 
-module.exports = { RESOLVERS, collectActivateCandidates, activateMainSource };
+module.exports = { RESOLVERS, collectActivateCandidates, activateMainSource, REQUIRES_RESTED };

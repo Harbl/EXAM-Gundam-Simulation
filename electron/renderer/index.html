@@ -6,112 +6,345 @@
 <style>
   :root {
     --red: #9B1B1E;
+    --red-glow: #d4282c;
     --grey: #333333;
     --black: #000000;
     --gold: #C9A951;
     --white: #FFFFFF;
+    /* Warm parchment-grey used for body/field/button text -- stark #FFFFFF read as out of place
+       against the brushed-metal/red/gold palette everywhere else, per Jake's feedback. */
+    --text: #D6D0C2;
+    --font-head: 'Bahnschrift', 'Arial Narrow', Impact, sans-serif;
+    --font-body: 'Segoe UI', Arial, Helvetica, sans-serif;
   }
   * { box-sizing: border-box; }
+
+  /* Chromium/Electron honors webkit scrollbar pseudo-elements -- without this the native
+     light-grey/white OS scrollbar shows up on every scrollable panel, textarea, and grid. */
+  ::-webkit-scrollbar { width: 10px; height: 10px; }
+  ::-webkit-scrollbar-track { background: #0a0a0a; }
+  ::-webkit-scrollbar-thumb { background: linear-gradient(180deg, #4a4a4a, var(--grey)); border: 1px solid #000; }
+  ::-webkit-scrollbar-thumb:hover { background: var(--red); }
+  ::-webkit-scrollbar-corner { background: #0a0a0a; }
+
+  /* Brushed-metal texture: a fine diagonal hairline pattern layered over a dark radial vignette,
+     CSS-only (no image asset) -- same approach used for the panels/header below. */
   body {
     margin: 0;
-    background: linear-gradient(180deg, #0a0a0a, var(--black));
-    color: var(--white);
-    font-family: Arial, Helvetica, sans-serif;
+    background:
+      repeating-linear-gradient(115deg, rgba(255,255,255,0.02) 0px, rgba(255,255,255,0.02) 1px, transparent 1px, transparent 3px),
+      radial-gradient(ellipse at 50% -10%, #1c1c1c 0%, #0a0a0a 45%, var(--black) 100%);
+    color: var(--text);
+    font-family: var(--font-body);
     height: 100vh;
     display: flex;
     flex-direction: column;
+    position: relative;
   }
+
   header {
-    padding: 10px 16px;
-    background: var(--grey);
+    padding: 10px 20px;
+    background: linear-gradient(180deg, #3a3a3a, var(--grey) 60%, #262626);
     border-bottom: 2px solid var(--red);
-    font-family: 'Arial Narrow', Arial, sans-serif;
+    box-shadow: 0 2px 10px -2px var(--red-glow);
+    font-family: var(--font-head);
     font-weight: bold;
-    letter-spacing: 2px;
+    letter-spacing: 3px;
     text-transform: uppercase;
     display: flex;
+    align-items: center;
     justify-content: space-between;
   }
-  header .status { color: var(--gold); }
+  header .brand { display: flex; align-items: center; gap: 10px; }
+  /* Original angular emblem mark (not the real Zeon crest) -- a gold diamond split by a chevron,
+     evoking the reference style board's "angular insignia" iconography without reproducing it. */
+  .emblem {
+    width: 18px;
+    height: 18px;
+    background: var(--gold);
+    clip-path: polygon(50% 0, 100% 50%, 50% 100%, 0 50%, 50% 20%, 30% 50%, 50% 80%, 70% 50%);
+    flex-shrink: 0;
+  }
+  header .status { color: var(--gold); letter-spacing: 2px; }
+  .appBody { flex: 1; display: flex; min-height: 0; }
+  nav {
+    width: 150px;
+    flex-shrink: 0;
+    background: linear-gradient(180deg, #161616, #0a0a0a);
+    border-right: 2px solid var(--red);
+    padding: 16px 0;
+  }
+  nav button {
+    display: block;
+    width: 100%;
+    background: none;
+    border: none;
+    border-left: 3px solid transparent;
+    color: #999;
+    font-family: var(--font-head);
+    font-weight: bold;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    font-size: 12px;
+    text-align: left;
+    padding: 12px 16px;
+    cursor: pointer;
+    clip-path: none;
+    flex: none;
+  }
+  nav button:not(:disabled):hover { filter: none; color: var(--text); background: rgba(255,255,255,0.03); }
+  nav button.active { color: var(--gold); border-left-color: var(--red); background: rgba(155,27,30,0.12); }
   main {
     flex: 1;
     display: flex;
-    gap: 16px;
-    padding: 16px;
-    overflow: auto;
+    gap: 18px;
+    padding: 20px;
+    overflow: hidden;
+    min-width: 0;
   }
+  .screen { display: contents; }
+  .screen.hidden { display: none; }
   .panel {
     flex: 1;
-    background: #111;
+    background: linear-gradient(160deg, #151515, #0d0d0d);
     border: 1px solid var(--grey);
     border-left: 3px solid var(--red);
-    padding: 14px;
+    box-shadow: -6px 0 16px -10px var(--red-glow) inset;
+    clip-path: polygon(0 0, calc(100% - 14px) 0, 100% 14px, 100% 100%, 0 100%);
+    padding: 16px 18px;
     min-width: 0;
+    position: relative;
+    /* A panel's own content (e.g. a long replay timeline) now scrolls within the panel itself
+       instead of growing past the viewport and forcing `main` to scroll as one unit, which used to
+       drag the other panel along with it. */
+    overflow-y: auto;
+    overflow-x: hidden;
   }
   h2 {
     margin: 0 0 10px;
-    font-size: 14px;
-    letter-spacing: 2px;
+    font-family: var(--font-head);
+    font-size: 15px;
+    font-weight: bold;
+    letter-spacing: 3px;
     text-transform: uppercase;
     color: var(--gold);
     border-bottom: 1px solid var(--grey);
-    padding-bottom: 6px;
+    padding-bottom: 7px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
   }
-  label { display: block; font-size: 12px; margin: 10px 0 4px; color: #ccc; }
-  textarea, input[type=number], select {
+  h2::before {
+    content: '';
+    display: inline-block;
+    width: 0;
+    height: 0;
+    border-top: 5px solid transparent;
+    border-bottom: 5px solid transparent;
+    border-left: 7px solid var(--red);
+  }
+  label {
+    display: block;
+    font-family: var(--font-head);
+    font-size: 11px;
+    font-weight: bold;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    margin: 12px 0 5px;
+    color: #999;
+  }
+  textarea, input[type=number], input[type=text], select {
     width: 100%;
     background: #000;
-    color: var(--white);
+    color: var(--text);
     border: 1px solid var(--grey);
-    padding: 6px;
-    font-family: monospace;
+    border-radius: 0;
+    padding: 7px 8px;
+    font-family: 'Consolas', monospace;
     font-size: 12px;
+    outline: none;
+    transition: border-color 0.15s, box-shadow 0.15s;
   }
+  textarea:focus, input[type=number]:focus, input[type=text]:focus, select:focus {
+    border-color: var(--red);
+    box-shadow: 0 0 6px -1px var(--red-glow);
+  }
+  select { appearance: none; cursor: pointer; }
+  select option { background: #111; color: var(--text); }
   textarea { height: 160px; resize: vertical; }
+  input[type=number]::-webkit-inner-spin-button,
+  input[type=number]::-webkit-outer-spin-button {
+    filter: invert(1) brightness(0.65);
+    cursor: pointer;
+  }
   .skillRow { display: flex; gap: 12px; }
   .skillRow > div { flex: 1; }
   .buttons { display: flex; gap: 10px; margin-top: 14px; }
   button {
     flex: 1;
-    padding: 10px;
+    padding: 11px;
+    font-family: var(--font-head);
     font-weight: bold;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    font-size: 13px;
+    border: none;
+    clip-path: polygon(10px 0, 100% 0, calc(100% - 10px) 100%, 0 100%);
+    cursor: pointer;
+    transition: filter 0.1s;
+  }
+  button:not(:disabled):hover { filter: brightness(1.15); }
+  button:not(:disabled):active { filter: brightness(0.9); }
+  #runBtn { background: linear-gradient(180deg, #b8282c, var(--red) 70%); color: var(--text); }
+  #runBtn:disabled { background: #3a1517; color: #755; cursor: not-allowed; }
+  #cancelBtn { background: linear-gradient(180deg, #3a3a3a, #222); color: var(--text); border: 1px solid var(--grey); }
+  #cancelBtn:disabled { color: #555; border-color: #222; background: #161616; cursor: not-allowed; }
+
+  .progressTrack { background: #1a1a1a; border: 1px solid var(--grey); height: 14px; margin-top: 14px; overflow: hidden; }
+  .progressFill {
+    background:
+      repeating-linear-gradient(115deg, rgba(255,255,255,0.15) 0px, rgba(255,255,255,0.15) 4px, transparent 4px, transparent 10px),
+      linear-gradient(180deg, var(--red-glow), var(--red));
+    height: 100%;
+    width: 0%;
+    transition: width 0.2s;
+  }
+  #progressText { font-family: 'Consolas', monospace; font-size: 11px; color: #999; margin-top: 6px; letter-spacing: 0.5px; }
+
+  #results { font-size: 14.5px; }
+  #results table { width: 100%; border-collapse: collapse; margin-top: 8px; }
+  #results th {
+    font-family: var(--font-head);
     letter-spacing: 1px;
     text-transform: uppercase;
-    border: none;
-    clip-path: polygon(8px 0, 100% 0, calc(100% - 8px) 100%, 0 100%);
-    cursor: pointer;
+    font-size: 11px;
+    color: var(--gold);
+    border-bottom: 1px solid var(--red);
   }
-  #runBtn { background: var(--red); color: var(--white); }
-  #runBtn:disabled { background: #4a1315; color: #888; cursor: not-allowed; }
-  #cancelBtn { background: transparent; color: var(--white); border: 1px solid var(--grey); }
-  #cancelBtn:disabled { color: #555; border-color: #222; cursor: not-allowed; }
-
-  .progressTrack { background: #222; border: 1px solid var(--grey); height: 14px; margin-top: 14px; }
-  .progressFill { background: var(--red); height: 100%; width: 0%; }
-  #progressText { font-size: 12px; color: #ccc; margin-top: 6px; }
-
-  #results { font-size: 13px; }
-  #results table { width: 100%; border-collapse: collapse; margin-top: 8px; }
-  #results td, #results th { padding: 4px 6px; border-bottom: 1px solid var(--grey); text-align: left; }
-  #error { color: var(--red); font-weight: bold; margin-top: 10px; white-space: pre-wrap; }
+  #results td, #results th { padding: 5px 8px; border-bottom: 1px solid var(--grey); text-align: left; }
+  #results td { font-family: 'Consolas', monospace; }
+  #results tr:nth-child(even) { background: rgba(255,255,255,0.02); }
+  #error { color: var(--red-glow); font-weight: bold; margin-top: 10px; white-space: pre-wrap; }
   .dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 6px; }
-  .dot.ready { background: #3ac13a; }
-  .dot.busy { background: var(--gold); }
-  .dot.alert { background: var(--red); }
+  .dot.ready { background: #3ac13a; box-shadow: 0 0 5px #3ac13a; }
+  .dot.busy { background: var(--gold); box-shadow: 0 0 5px var(--gold); }
+  .dot.alert { background: var(--red-glow); box-shadow: 0 0 5px var(--red-glow); }
+
+  .savedRow { display: flex; gap: 8px; margin-top: 8px; }
+  .savedRow select { flex: 1; }
+  .smallBtn { flex: none !important; padding: 7px 14px !important; font-size: 11px !important; background: linear-gradient(180deg, #3a3a3a, #222); color: var(--text); border: 1px solid var(--grey); }
+
+  .callouts { display: flex; flex-wrap: wrap; gap: 14px; margin: 8px 0 4px; }
+  .callout { flex: 1; min-width: 100px; text-align: center; border: 1px solid var(--grey); border-top: 2px solid var(--gold); padding: 9px 4px; }
+  .callout .num { font-family: var(--font-head); font-size: 26px; color: var(--gold); }
+  .callout .lbl { font-size: 11px; letter-spacing: 1px; text-transform: uppercase; color: #aaa; }
+  /* Smaller secondary row (games/draws/timeouts/game-length spread) -- these are single counts, not
+     headline A-vs-B numbers, so they don't need the same visual weight as the top callout row. */
+  .callouts.secondary { margin-top: 4px; }
+  .callouts.secondary .callout { min-width: 76px; border-top-width: 1px; padding: 6px 4px; }
+  .callouts.secondary .num { font-size: 17px; }
+  .statLine { font-size: 14px; margin: 4px 0; }
+  .chartLegend { display: flex; gap: 18px; font-size: 12.5px; color: #ccc; margin-top: 4px; }
+  .chartLegend .swatch { display: inline-block; width: 11px; height: 11px; margin-right: 5px; vertical-align: -1px; }
+  .swatchA { background: #c9383c; }
+  .swatchB { background: var(--gold); }
+  .smallStatus { font-size: 11.5px; color: var(--gold); margin-top: 4px; min-height: 14px; }
+  .buttons.builderActions .smallBtn { flex: 1 !important; }
+
+  #replaySection { border-top: 1px solid var(--grey); padding-top: 4px; }
+  .timeline { margin-top: 10px; max-height: 260px; overflow-y: auto; font-family: 'Consolas', monospace; font-size: 11.5px; }
+  .timeline .turn { color: var(--gold); font-family: var(--font-head); letter-spacing: 1px; margin-top: 8px; }
+  .timeline .evt { display: flex; align-items: center; gap: 8px; padding: 3px 0 3px 10px; border-left: 2px solid var(--grey); }
+  .timeline .evt.p0 { border-left-color: var(--red); }
+  .timeline .evt.p1 { border-left-color: #4a90d9; }
+  .timeline .evtThumb { width: 22px; height: 31px; object-fit: cover; background: #000; flex-shrink: 0; border: 1px solid #333; }
+  .timeline .end { color: var(--gold); font-weight: bold; margin-top: 6px; }
+
+  .filterRow { display: flex; gap: 8px; margin-bottom: 10px; }
+  .filterRow input { flex: 2; }
+  .filterRow select { flex: 1; }
+  .cardGrid { display: flex; flex-wrap: wrap; gap: 10px; max-height: 560px; overflow-y: auto; align-content: flex-start; }
+  .cardGrid .hint { color: #777; font-size: 12px; }
+  .cardTile { width: 108px; background: #111; border: 1px solid var(--grey); padding: 6px; text-align: center; }
+  .cardTile img { width: 96px; height: 134px; object-fit: cover; background: #000; display: block; margin: 0 auto 4px; }
+  .cardTile .name { font-size: 10.5px; font-weight: bold; line-height: 1.2; height: 24px; overflow: hidden; }
+  .cardTile .meta { font-size: 9.5px; color: #999; margin: 2px 0 4px; }
+  .cardTile .qtyRow { display: flex; align-items: center; justify-content: center; gap: 6px; }
+  /* These had no background/color of their own, so they fell back to the native OS button face
+     (light grey/white) instead of the theme -- same bug as the deckEntry steppers below, just never
+     given the matching fix when the deckEntry version was styled. */
+  .cardTile .qtyRow button {
+    flex: none; padding: 2px 7px; font-size: 12px; clip-path: none;
+    background: none; border: 1px solid var(--grey); color: #999; cursor: pointer;
+  }
+  .cardTile .qtyRow button:not(:disabled):hover { color: var(--gold); border-color: var(--gold); }
+  .cardTile .qty { font-family: 'Consolas', monospace; min-width: 14px; }
+  /* Expanded visual grid, not a compact text list -- each entry is a real card-art tile, same idea
+     as .cardTile in the Browse Cards grid, just with a quantity readout + remove button instead of
+     +/- steppers (quantity here comes from the Browse grid, an import, or a loaded saved deck). */
+  .deckList { display: flex; flex-wrap: wrap; gap: 10px; max-height: 460px; overflow-y: auto; margin: 8px 0; align-content: flex-start; }
+  .deckEntry { width: 100px; background: #111; border: 1px solid var(--grey); padding: 6px; text-align: center; }
+  .deckEntry img { width: 88px; height: 123px; object-fit: cover; background: #000; display: block; margin: 0 auto 4px; }
+  .deckEntry .entryName { display: block; font-size: 10.5px; font-weight: bold; line-height: 1.2; height: 24px; overflow: hidden; }
+  .deckEntry .entryQty { display: block; font-size: 9px; color: #777; margin: 3px 0 1px; }
+  /* +/- adjust the copy count without clearing the whole stack; x still removes every copy at once. */
+  .deckEntry .qtyRow { display: flex; align-items: center; justify-content: center; gap: 3px; }
+  .deckEntry .qtyRow .qty { font-family: 'Consolas', monospace; color: var(--gold); min-width: 12px; }
+  .deckEntry .qtyRow button { flex: none; background: none; border: 1px solid var(--grey); color: #999; padding: 1px 6px; font-size: 11px; clip-path: none; cursor: pointer; }
+  .deckEntry .entryRemove { color: var(--red-glow); border-color: #442; }
+  #builderErrors { color: var(--red-glow); font-size: 11px; white-space: pre-wrap; }
+
+  /* Shared hover-zoom preview -- both the Browse Cards grid and Your Deck grid wire their <img>s to
+     this single fixed overlay on mouseenter/mousemove, since the in-grid thumbnails are too small to
+     actually read a card's text. */
+  .cardZoom {
+    display: none;
+    position: fixed;
+    z-index: 500;
+    pointer-events: none;
+    border: 2px solid var(--gold);
+    box-shadow: 0 0 24px rgba(0,0,0,0.85);
+    background: #000;
+  }
+  .cardZoom img { display: block; width: 300px; height: 419px; object-fit: cover; }
 </style>
 </head>
 <body>
 
 <header>
-  <div>SIM STATUS // GUNDAM-OS</div>
+  <div class="brand"><span class="emblem"></span><span>SIM STATUS // GUNDAM-OS</span></div>
   <div class="status"><span class="dot ready" id="statusDot"></span><span id="statusText">READY</span></div>
 </header>
 
+<div class="appBody">
+<nav>
+  <button id="navSimulate" class="active">Simulate</button>
+  <button id="navBuilder">Deck Builder</button>
+</nav>
 <main>
+<div class="screen" id="simulateScreen">
   <div class="panel">
     <h2>Deck A</h2>
+    <div class="savedRow">
+      <select id="savedA"><option value="">Paste below, or load a saved deck...</option></select>
+    </div>
+    <div class="savedRow">
+      <input type="text" id="nameA" placeholder="Deck name" />
+      <button id="saveA" class="smallBtn">Save</button>
+      <button id="exportA" class="smallBtn">Export Image</button>
+    </div>
+    <div id="statusA" class="smallStatus"></div>
     <textarea id="deckA" placeholder="4 GM ST01-005&#10;4 Guntank GD01-008&#10;..."></textarea>
     <h2 style="margin-top:16px">Deck B</h2>
+    <div class="savedRow">
+      <select id="savedB"><option value="">Paste below, or load a saved deck...</option></select>
+    </div>
+    <div class="savedRow">
+      <input type="text" id="nameB" placeholder="Deck name" />
+      <button id="saveB" class="smallBtn">Save</button>
+      <button id="exportB" class="smallBtn">Export Image</button>
+    </div>
+    <div id="statusB" class="smallStatus"></div>
     <textarea id="deckB" placeholder="Paste the opposing decklist here"></textarea>
     <div class="skillRow">
       <div>
@@ -136,9 +369,64 @@
   <div class="panel">
     <h2>Results</h2>
     <div id="results">No batch run yet.</div>
+    <div id="chartLegend" class="chartLegend" style="display:none">
+      <span><span class="swatch swatchA"></span>Deck A</span>
+      <span><span class="swatch swatchB"></span>Deck B</span>
+    </div>
+    <canvas id="statsChart" width="620" height="460" style="display:none; max-width:100%; margin-top:6px;"></canvas>
+    <button id="exportStatsBtn" class="smallBtn" style="display:none; margin-top:10px;">Export Stats Infographic</button>
+    <div id="exportStatus" class="smallStatus"></div>
+    <div id="replaySection" style="display:none">
+      <h2 style="margin-top:16px">Replay a Game</h2>
+      <div class="savedRow">
+        <input type="number" id="replayGameNum" value="1" min="1" style="width:80px" />
+        <button id="replayBtn" class="smallBtn">View Replay</button>
+      </div>
+      <div id="replayTimeline"></div>
+    </div>
     <div id="error"></div>
   </div>
+</div>
+
+<div class="screen hidden" id="builderScreen">
+  <div class="panel" style="flex: 1.6">
+    <h2>Your Deck</h2>
+    <div class="savedRow">
+      <select id="savedBuilder"><option value="">Load a saved deck to view/edit...</option></select>
+    </div>
+    <div id="deckTotal">0 / 50 cards</div>
+    <div id="deckList" class="deckList"></div>
+    <div id="builderErrors"></div>
+    <label for="builderDeckName">Deck name</label>
+    <input type="text" id="builderDeckName" placeholder="Deck name" />
+    <label for="importText">Import a decklist paste</label>
+    <textarea id="importText" style="height:70px" placeholder="4 GM ST01-005&#10;..."></textarea>
+    <div class="buttons builderActions">
+      <button id="importBtn" class="smallBtn">Import</button>
+      <button id="saveBuilderBtn" class="smallBtn">Save Deck</button>
+    </div>
+    <div class="buttons builderActions">
+      <button id="exportBuilderBtn" class="smallBtn">Export Image</button>
+      <button id="clearBuilderBtn" class="smallBtn">Clear</button>
+    </div>
+    <div id="builderStatus" class="smallStatus"></div>
+  </div>
+
+  <div class="panel" style="flex: 1">
+    <h2>Browse Cards</h2>
+    <div class="filterRow">
+      <input type="text" id="cardSearch" placeholder="Search name or number..." />
+      <select id="filterColor"><option value="">Any color</option></select>
+      <select id="filterLevel"><option value="">Any Lv.</option></select>
+      <select id="filterCost"><option value="">Any Cost</option></select>
+    </div>
+    <div id="cardGrid" class="cardGrid"><p class="hint">Type a search term or pick a filter to browse the card database.</p></div>
+  </div>
+</div>
 </main>
+</div>
+
+<div id="cardZoom" class="cardZoom"><img id="cardZoomImg" alt="" /></div>
 
 <script>
   const runBtn = document.getElementById('runBtn');
@@ -159,15 +447,16 @@
 
   const skillASelect = document.getElementById('skillA');
   const skillBSelect = document.getElementById('skillB');
-  for (const select of [skillASelect, skillBSelect]) {
-    for (const preset of window.sim.skillPresets) {
-      const option = document.createElement('option');
-      option.value = preset.id;
-      option.textContent = preset.label;
-      select.appendChild(option);
-    }
-    select.value = 'casual';
-  }
+  const savedASelect = document.getElementById('savedA');
+  const savedBSelect = document.getElementById('savedB');
+  const statsChart = document.getElementById('statsChart');
+  const chartLegend = document.getElementById('chartLegend');
+  const exportStatsBtn = document.getElementById('exportStatsBtn');
+  const exportStatusEl = document.getElementById('exportStatus');
+  const replaySection = document.getElementById('replaySection');
+  const replayGameNum = document.getElementById('replayGameNum');
+  const replayTimeline = document.getElementById('replayTimeline');
+  let lastStats = null;
 
   runBtn.addEventListener('click', () => {
     const deckAText = document.getElementById('deckA').value;
@@ -200,21 +489,96 @@
       `${completed} / ${games} games — elapsed ${(elapsedMs / 1000).toFixed(1)}s — ETA ${(etaMs / 1000).toFixed(1)}s`;
   });
 
+  // Grouped horizontal bar chart, hand-rolled on <canvas> -- no charting dependency, matching this
+  // project's established no-build-step/no-framework approach. Red bars = Deck A, gold = Deck B
+  // (see the #chartLegend swatches in the markup, which use the same two colors).
+  // Margin of victory is shields-remaining (0-6), not a 0-1 rate -- normalized by /6 so it can share
+  // the same bar-area scale as every percentage row, with `fmt` overriding the printed value back to
+  // the real shields-left number instead of a percentage.
+  const CHART_GROUPS = (stats) => [
+    { label: 'Win rate', a: stats.deckA.winRate, b: stats.deckB.winRate },
+    { label: 'Decisive win', a: stats.deckA.decisiveWinRate, b: stats.deckB.decisiveWinRate },
+    { label: 'Win when 1st', a: stats.deckA.winRateWhenFirst, b: stats.deckB.winRateWhenFirst },
+    { label: 'Win when 2nd', a: stats.deckA.winRateWhenSecond, b: stats.deckB.winRateWhenSecond },
+    {
+      label: 'Margin (shields)', a: stats.deckA.marginOfVictory / 6, b: stats.deckB.marginOfVictory / 6,
+      fmt: (v) => (v * 6).toFixed(1)
+    },
+    { label: 'Mulligan', a: stats.deckA.mulliganRate, b: stats.deckB.mulliganRate },
+    { label: 'Turn 1 play', a: stats.deckA.turn1PlayRate, b: stats.deckB.turn1PlayRate },
+    { label: 'Turn 2 play', a: stats.deckA.turn2PlayRate, b: stats.deckB.turn2PlayRate },
+    { label: 'Turn 3 play', a: stats.deckA.turn3PlayRate, b: stats.deckB.turn3PlayRate }
+  ];
+
+  function drawBarChart(canvas, groups, fontSize) {
+    const ctx = canvas.getContext('2d');
+    const w = canvas.width, h = canvas.height;
+    ctx.clearRect(0, 0, w, h);
+    ctx.font = fontSize + 'px "Segoe UI", Arial, sans-serif';
+    const rowH = h / groups.length;
+    const labelW = fontSize * 9;
+    const barAreaW = w - labelW - fontSize * 4.5;
+    const barH = fontSize * 1.1;
+    groups.forEach((g, i) => {
+      const y = i * rowH;
+      const format = g.fmt || pct;
+      ctx.fillStyle = '#bbb';
+      ctx.fillText(g.label, 4, y + rowH / 2 - barH * 0.3);
+      const aw = Math.max(2, g.a * barAreaW);
+      ctx.fillStyle = '#c9383c';
+      ctx.fillRect(labelW, y + rowH * 0.14, aw, barH);
+      ctx.fillStyle = '#D6D0C2';
+      ctx.fillText(format(g.a), labelW + aw + 4, y + rowH * 0.14 + barH - 2);
+      const bw = Math.max(2, g.b * barAreaW);
+      ctx.fillStyle = '#C9A951';
+      ctx.fillRect(labelW, y + rowH * 0.14 + barH + 3, bw, barH);
+      ctx.fillStyle = '#D6D0C2';
+      ctx.fillText(format(g.b), labelW + bw + 4, y + rowH * 0.14 + barH * 2 + 1);
+    });
+  }
+
+  // Everything that used to be plain sentences (game length, went-first split, decisive win rate,
+  // margin of victory) is now either a chart row (CHART_GROUPS above) or a small callout tile below --
+  // per Jake's ask for the results panel to read as visual, not text.
+  function renderResultsHtml(stats) {
+    return `
+      <div class="callouts">
+        <div class="callout"><div class="num">${pct(stats.deckA.winRate)}</div><div class="lbl">Deck A win rate</div></div>
+        <div class="callout"><div class="num">${pct(stats.deckB.winRate)}</div><div class="lbl">Deck B win rate</div></div>
+        <div class="callout"><div class="num">${stats.averageTurns.toFixed(1)}</div><div class="lbl">Avg turns</div></div>
+      </div>
+      <div class="callouts secondary">
+        <div class="callout"><div class="num">${stats.games}</div><div class="lbl">Games</div></div>
+        <div class="callout"><div class="num">${stats.draws}</div><div class="lbl">Draws</div></div>
+        <div class="callout"><div class="num">${stats.timeouts}</div><div class="lbl">Timeouts</div></div>
+        <div class="callout"><div class="num">${stats.shortestGame}</div><div class="lbl">Shortest game</div></div>
+        <div class="callout"><div class="num">${stats.medianGame}</div><div class="lbl">Median game</div></div>
+        <div class="callout"><div class="num">${stats.longestGame}</div><div class="lbl">Longest game</div></div>
+      </div>
+    `;
+  }
+
   window.sim.onResult((stats) => {
     runBtn.disabled = false;
     cancelBtn.disabled = true;
     setStatus('ready', 'COMPLETE');
-    resultsEl.innerHTML = `
-      <table>
-        <tr><th></th><th>Deck A</th><th>Deck B</th></tr>
-        <tr><td>Win rate</td><td>${pct(stats.deckA.winRate)}</td><td>${pct(stats.deckB.winRate)}</td></tr>
-        <tr><td>Mulligan rate</td><td>${pct(stats.deckA.mulliganRate)}</td><td>${pct(stats.deckB.mulliganRate)}</td></tr>
-        <tr><td>Turn 1 play</td><td>${pct(stats.deckA.turn1PlayRate)}</td><td>${pct(stats.deckB.turn1PlayRate)}</td></tr>
-        <tr><td>Turn 2 play</td><td>${pct(stats.deckA.turn2PlayRate)}</td><td>${pct(stats.deckB.turn2PlayRate)}</td></tr>
-        <tr><td>Turn 3 play</td><td>${pct(stats.deckA.turn3PlayRate)}</td><td>${pct(stats.deckB.turn3PlayRate)}</td></tr>
-      </table>
-      <p>Games: ${stats.games} &nbsp; Timeouts: ${stats.timeouts} &nbsp; Avg length: ${stats.averageTurns.toFixed(1)} turns</p>
-    `;
+    lastStats = stats;
+    exportStatusEl.textContent = '';
+
+    resultsEl.innerHTML = renderResultsHtml(stats);
+
+    chartLegend.style.display = 'flex';
+    statsChart.style.display = 'block';
+    drawBarChart(statsChart, CHART_GROUPS(stats), 13);
+    exportStatsBtn.style.display = 'inline-block';
+
+    const hasGames = stats.perGame && stats.perGame.length > 0;
+    replaySection.style.display = hasGames ? 'block' : 'none';
+    if (hasGames) {
+      replayGameNum.max = String(stats.perGame.length);
+      replayGameNum.value = '1';
+    }
+    replayTimeline.innerHTML = '';
   });
 
   window.sim.onError((message) => {
@@ -222,8 +586,749 @@
     cancelBtn.disabled = true;
     setStatus('alert', 'ERROR');
     resultsEl.textContent = 'No batch run yet.';
+    chartLegend.style.display = 'none';
+    statsChart.style.display = 'none';
+    exportStatsBtn.style.display = 'none';
+    replaySection.style.display = 'none';
     errorEl.textContent = message;
   });
+
+  // --- Saved decks (Deck A / Deck B panels) ---
+  async function refreshSavedDecks() {
+    if (!window.deckStore) return;
+    const decks = await window.deckStore.list();
+    const targets = [
+      { select: savedASelect, placeholder: 'Paste below, or load a saved deck...' },
+      { select: savedBSelect, placeholder: 'Paste below, or load a saved deck...' },
+      { select: savedBuilderSelect, placeholder: 'Load a saved deck to view/edit...' }
+    ];
+    for (const { select, placeholder } of targets) {
+      const current = select.value;
+      select.innerHTML = `<option value="">${placeholder}</option>`;
+      for (const d of decks) select.appendChild(new Option(d.name, d.name));
+      select.value = current;
+    }
+  }
+
+  const nameAInput = document.getElementById('nameA');
+  const nameBInput = document.getElementById('nameB');
+
+  savedASelect.addEventListener('change', async () => {
+    if (!savedASelect.value) return;
+    const deck = await window.deckStore.load(savedASelect.value);
+    if (deck) {
+      document.getElementById('deckA').value = deck.decklistText;
+      nameAInput.value = deck.name;
+    }
+  });
+  savedBSelect.addEventListener('change', async () => {
+    if (!savedBSelect.value) return;
+    const deck = await window.deckStore.load(savedBSelect.value);
+    if (deck) {
+      document.getElementById('deckB').value = deck.decklistText;
+      nameBInput.value = deck.name;
+    }
+  });
+  // Electron's renderer does not implement window.prompt() (it throws "prompt() is and will not be
+  // supported") -- these used to silently fail on click for exactly that reason. Named inputs next
+  // to each Save button replace it.
+  document.getElementById('saveA').addEventListener('click', async () => {
+    const name = nameAInput.value.trim();
+    if (!name) { nameAInput.focus(); return; }
+    await window.deckStore.save(name, document.getElementById('deckA').value);
+    refreshSavedDecks();
+  });
+  document.getElementById('saveB').addEventListener('click', async () => {
+    const name = nameBInput.value.trim();
+    if (!name) { nameBInput.focus(); return; }
+    await window.deckStore.save(name, document.getElementById('deckB').value);
+    refreshSavedDecks();
+  });
+
+  // --- Replay viewer ---
+  function eventDescription(e) {
+    switch (e.type) {
+      case 'deploy': return `P${e.player} deploys ${e.card.name} (${e.card.number})`;
+      case 'deployBase': return `P${e.player} deploys Base ${e.card.name} (${e.card.number})`;
+      case 'command': return `P${e.player} plays ${e.card.name} (${e.card.number})`;
+      case 'pair': return `P${e.player} pairs ${e.pilot.name} onto ${e.unit.name}`;
+      case 'pairFromTrash': return `P${e.player} pairs ${e.pilot.name} (from trash) onto ${e.unit.name}`;
+      case 'attack': {
+        const targetDesc = e.target.type === 'player' ? `P${e.target.player} (face)` : e.target.unit.name;
+        return `P${e.player}'s ${e.attacker.name} attacks ${targetDesc}`;
+      }
+      case 'draw': return `P${e.player} draws a card${e.isPhaseDraw ? '' : ' (effect)'}`;
+      case 'resource': return `P${e.player} places a Resource`;
+      case 'burst': return `P${e.player}'s shield reveals ${e.card.name} (${e.card.number})${e.activated ? ' — Burst activated' : ''}`;
+      default: return null;
+    }
+  }
+
+  // The card whose art best represents this event, for the small inline thumbnail -- the actual
+  // card played/deployed for most event types, the attacking unit for an attack (not the target,
+  // to keep one thumbnail per row instead of two).
+  function eventCardNumber(e) {
+    switch (e.type) {
+      case 'deploy': case 'deployBase': case 'command': return e.card.number;
+      case 'pair': case 'pairFromTrash': return e.pilot.number;
+      case 'attack': return e.attacker.number;
+      case 'burst': return e.card.number;
+      default: return null;
+    }
+  }
+
+  function renderTimeline(events) {
+    let html = '';
+    for (const e of events) {
+      // Mulligan decisions happen during setup, before the first real turn -- rendered as setup
+      // notes (same styling as the gameStart line right after them), not as a per-turn .evt row.
+      if (e.type === 'mulligan') {
+        html += `<div class="turn">P${e.player} ${e.mulliganed ? 'mulligans' : 'keeps their opening hand'}</div>`;
+        continue;
+      }
+      if (e.type === 'gameStart') { html += `<div class="turn">First player: P${e.firstPlayer}</div>`; continue; }
+      // e.turn is the engine's raw per-player-turn counter (1=P0, 2=P1, 3=P0, 4=P1, ...), not a
+      // round number -- displaying it directly reads like turns are being skipped (Jake asked
+      // exactly this after a replay showed "Turn 2"/"Turn 3" as two different players' turns).
+      // Round = ceil(turn/2) makes both players' turns within the same round share one number.
+      if (e.type === 'turnStart') {
+        html += `<div class="turn">Round ${Math.ceil(e.turn / 2)} — P${e.player}'s turn</div>`;
+        continue;
+      }
+      if (e.type === 'gameEnd') {
+        const outcome = e.draw ? 'Draw' : e.timedOut ? 'Timed out' : `P${e.winner} wins`;
+        html += `<div class="end">${outcome} (round ${Math.ceil(e.turns / 2)})</div>`;
+        continue;
+      }
+      const desc = eventDescription(e);
+      if (!desc) continue;
+      const number = eventCardNumber(e);
+      const thumb = number
+        ? `<img class="evtThumb" data-number="${number}" src="${imgSrcFor(number)}" onerror="this.style.visibility='hidden'" />`
+        : '<span class="evtThumb"></span>';
+      html += `<div class="evt p${e.player}">${thumb}<span>${desc}</span></div>`;
+    }
+    replayTimeline.innerHTML = `<div class="timeline">${html}</div>`;
+    for (const img of replayTimeline.querySelectorAll('.evtThumb[data-number]')) {
+      wireHoverZoom(img, img.dataset.number);
+    }
+  }
+
+  document.getElementById('replayBtn').addEventListener('click', async () => {
+    if (!lastStats || !lastStats.perGame) return;
+    const game = lastStats.perGame[Number(replayGameNum.value) - 1];
+    if (!game) {
+      replayTimeline.innerHTML = '<p style="color:var(--red-glow)">No such game number.</p>';
+      return;
+    }
+    replayTimeline.innerHTML = 'Loading replay...';
+    try {
+      const events = await window.sim.replayGame(game.seed);
+      renderTimeline(events);
+    } catch (err) {
+      replayTimeline.innerHTML = '<p style="color:var(--red-glow)">' + err.message + '</p>';
+    }
+  });
+
+  // --- Nav: Simulate / Deck Builder ---
+  const navSimulate = document.getElementById('navSimulate');
+  const navBuilder = document.getElementById('navBuilder');
+  const simulateScreen = document.getElementById('simulateScreen');
+  const builderScreen = document.getElementById('builderScreen');
+
+  function showScreen(which) {
+    simulateScreen.classList.toggle('hidden', which !== 'simulate');
+    builderScreen.classList.toggle('hidden', which !== 'builder');
+    navSimulate.classList.toggle('active', which === 'simulate');
+    navBuilder.classList.toggle('active', which === 'builder');
+  }
+  navSimulate.addEventListener('click', () => showScreen('simulate'));
+  navBuilder.addEventListener('click', () => {
+    showScreen('builder');
+    initBuilderOnce();
+  });
+
+  // --- Deck Builder ---
+  let allCards = [];
+  const deckQty = new Map(); // card number -> quantity
+  const cardSearch = document.getElementById('cardSearch');
+  const filterColor = document.getElementById('filterColor');
+  const filterLevel = document.getElementById('filterLevel');
+  const filterCost = document.getElementById('filterCost');
+  const cardGrid = document.getElementById('cardGrid');
+  const deckListEl = document.getElementById('deckList');
+  const deckTotalEl = document.getElementById('deckTotal');
+  const builderErrorsEl = document.getElementById('builderErrors');
+  const savedBuilderSelect = document.getElementById('savedBuilder');
+  const MAX_RENDERED_CARDS = 60;
+
+  // Idempotent/cached via a shared promise -- both the Deck Builder nav (which also needs to
+  // populate the filter dropdowns, once) and the Deck A/B export buttons (which just need card
+  // names/art, and may run before the Deck Builder screen has ever been opened) call this.
+  let cardsLoadPromise = null;
+  function ensureCardsLoaded() {
+    if (!cardsLoadPromise) {
+      cardsLoadPromise = window.cards
+        ? window.cards.list().then((list) => { allCards = list; return list; })
+        : Promise.resolve([]);
+    }
+    return cardsLoadPromise;
+  }
+
+  let filtersPopulated = false;
+  async function initBuilderOnce() {
+    await ensureCardsLoaded();
+    if (filtersPopulated) return;
+    filtersPopulated = true;
+    const colors = [...new Set(allCards.map((c) => c.color).filter(Boolean))].sort();
+    const levels = [...new Set(allCards.map((c) => c.level).filter((v) => v !== undefined && v !== null))].sort((a, b) => a - b);
+    const costs = [...new Set(allCards.map((c) => c.cost).filter((v) => v !== undefined && v !== null))].sort((a, b) => a - b);
+    for (const c of colors) filterColor.appendChild(new Option(c[0].toUpperCase() + c.slice(1), c));
+    for (const l of levels) filterLevel.appendChild(new Option('Lv.' + l, l));
+    for (const c of costs) filterCost.appendChild(new Option('Cost ' + c, c));
+  }
+
+  function cardByNumber(number) {
+    return allCards.find((c) => c.number === number);
+  }
+
+  // Loading a saved deck into the builder replaces deckQty wholesale and re-renders it through the
+  // same expanded card-art grid renderDeckList() already draws -- this is the "view a saved deck in
+  // an expanded format" Jake asked for, distinct from the small Deck A/B dropdowns on the Simulate
+  // screen (which just load raw text into a textarea).
+  savedBuilderSelect.addEventListener('change', async () => {
+    if (!savedBuilderSelect.value || !window.deckStore || !window.cards) return;
+    const deck = await window.deckStore.load(savedBuilderSelect.value);
+    if (!deck) return;
+    await ensureCardsLoaded();
+    const result = await window.cards.validate(deck.decklistText);
+    deckQty.clear();
+    for (const entry of result.parsed) {
+      deckQty.set(entry.number, (deckQty.get(entry.number) || 0) + entry.quantity);
+    }
+    builderDeckNameInput.value = deck.name;
+    renderDeckList();
+    renderCardGrid();
+    validateBuilderDeck();
+    builderStatusEl.textContent = `Loaded "${deck.name}".`;
+  });
+
+  // Card art lives locally at E:\Gundam TCG DB\{number}.webp (Jake's own machine, populated by
+  // bin/download-images.js) -- not bundled into the app, so a missing file just hides the <img>
+  // instead of showing a broken-image icon.
+  function imgSrcFor(number) {
+    return 'file:///E:/Gundam%20TCG%20DB/' + encodeURIComponent(number) + '.webp';
+  }
+
+  // Shared hover-zoom: both the Browse Cards grid and Your Deck grid wire their thumbnails to this
+  // one fixed-position overlay, since the in-grid art is too small to actually read a card's text.
+  const cardZoomEl = document.getElementById('cardZoom');
+  const cardZoomImg = document.getElementById('cardZoomImg');
+
+  function wireHoverZoom(imgEl, number) {
+    imgEl.addEventListener('mouseenter', () => {
+      cardZoomImg.src = imgSrcFor(number);
+      cardZoomEl.style.display = 'block';
+    });
+    imgEl.addEventListener('mousemove', (ev) => {
+      const zoomW = cardZoomEl.offsetWidth || 300;
+      const zoomH = cardZoomEl.offsetHeight || 419;
+      let x = ev.clientX + 24;
+      let y = ev.clientY + 24;
+      if (x + zoomW > window.innerWidth) x = ev.clientX - zoomW - 24;
+      if (y + zoomH > window.innerHeight) y = ev.clientY - zoomH - 24;
+      cardZoomEl.style.left = Math.max(0, x) + 'px';
+      cardZoomEl.style.top = Math.max(0, y) + 'px';
+    });
+    imgEl.addEventListener('mouseleave', () => {
+      cardZoomEl.style.display = 'none';
+    });
+  }
+
+  function cardTileHtml(c) {
+    const qty = deckQty.get(c.number) || 0;
+    return `
+      <div class="cardTile" data-number="${c.number}">
+        <img src="${imgSrcFor(c.number)}" onerror="this.style.display='none'" />
+        <div class="name">${c.name}</div>
+        <div class="meta">${c.number} — ${c.color || ''} Lv.${c.level ?? '-'} Cost ${c.cost ?? '-'}</div>
+        <div class="qtyRow">
+          <button class="qtyMinus" type="button">-</button>
+          <span class="qty">${qty}</span>
+          <button class="qtyPlus" type="button">+</button>
+        </div>
+      </div>`;
+  }
+
+  function adjustQty(number, delta) {
+    const next = Math.max(0, (deckQty.get(number) || 0) + delta);
+    if (next === 0) deckQty.delete(number);
+    else deckQty.set(number, next);
+    renderCardGrid();
+    renderDeckList();
+    validateBuilderDeck();
+  }
+
+  function renderCardGrid() {
+    const term = cardSearch.value.trim().toLowerCase();
+    const color = filterColor.value;
+    const level = filterLevel.value;
+    const cost = filterCost.value;
+    if (!term && !color && !level && !cost) {
+      cardGrid.innerHTML = '<p class="hint">Type a search term or pick a filter to browse the card database.</p>';
+      return;
+    }
+    const matches = allCards.filter((c) => {
+      if (term && !(c.name.toLowerCase().includes(term) || c.number.toLowerCase().includes(term))) return false;
+      if (color && c.color !== color) return false;
+      if (level && String(c.level) !== level) return false;
+      if (cost && String(c.cost) !== cost) return false;
+      return true;
+    });
+    const shown = matches.slice(0, MAX_RENDERED_CARDS);
+    cardGrid.innerHTML =
+      shown.map(cardTileHtml).join('') +
+      (matches.length > MAX_RENDERED_CARDS
+        ? `<p class="hint">...and ${matches.length - MAX_RENDERED_CARDS} more — narrow your search.</p>`
+        : '');
+    for (const el of cardGrid.querySelectorAll('.cardTile')) {
+      const number = el.dataset.number;
+      el.querySelector('.qtyPlus').addEventListener('click', () => adjustQty(number, 1));
+      el.querySelector('.qtyMinus').addEventListener('click', () => adjustQty(number, -1));
+      wireHoverZoom(el.querySelector('img'), number);
+    }
+  }
+
+  function buildDecklistText() {
+    return [...deckQty.entries()].map(([number, qty]) => `${qty} ${number}`).join('\n');
+  }
+
+  function renderDeckList() {
+    let total = 0;
+    const rows = [];
+    for (const [number, qty] of deckQty) {
+      total += qty;
+      const c = cardByNumber(number);
+      rows.push(`
+        <div class="deckEntry" data-number="${number}">
+          <img src="${imgSrcFor(number)}" onerror="this.style.display='none'" />
+          <span class="entryName">${c ? c.name : number}</span>
+          <span class="entryQty">${number}</span>
+          <div class="qtyRow">
+            <button class="qtyMinus" type="button" title="Remove one">-</button>
+            <span class="qty">${qty}</span>
+            <button class="qtyPlus" type="button" title="Add one">+</button>
+            <button class="entryRemove" type="button" title="Remove all copies">&times;</button>
+          </div>
+        </div>`);
+    }
+    deckTotalEl.textContent = `${total} / 50 cards`;
+    deckListEl.innerHTML = rows.join('') || '<p class="hint">No cards added yet.</p>';
+    for (const el of deckListEl.querySelectorAll('.deckEntry')) {
+      const number = el.dataset.number;
+      el.querySelector('.qtyPlus').addEventListener('click', () => adjustQty(number, 1));
+      el.querySelector('.qtyMinus').addEventListener('click', () => adjustQty(number, -1));
+      el.querySelector('.entryRemove').addEventListener('click', () => {
+        deckQty.delete(number);
+        renderDeckList();
+        renderCardGrid();
+        validateBuilderDeck();
+      });
+      wireHoverZoom(el.querySelector('img'), number);
+    }
+  }
+
+  async function validateBuilderDeck() {
+    if (!window.cards) return;
+    const text = buildDecklistText();
+    if (!text) {
+      builderErrorsEl.textContent = '';
+      return;
+    }
+    const result = await window.cards.validate(text);
+    builderErrorsEl.textContent = result.errors.join('\n');
+  }
+
+  cardSearch.addEventListener('input', renderCardGrid);
+  filterColor.addEventListener('change', renderCardGrid);
+  filterLevel.addEventListener('change', renderCardGrid);
+  filterCost.addEventListener('change', renderCardGrid);
+
+  document.getElementById('importBtn').addEventListener('click', async () => {
+    const text = document.getElementById('importText').value;
+    if (!text.trim() || !window.cards) return;
+    const result = await window.cards.validate(text);
+    for (const entry of result.parsed) {
+      deckQty.set(entry.number, (deckQty.get(entry.number) || 0) + entry.quantity);
+    }
+    renderDeckList();
+    renderCardGrid();
+    validateBuilderDeck();
+  });
+
+  const builderStatusEl = document.getElementById('builderStatus');
+  const builderDeckNameInput = document.getElementById('builderDeckName');
+
+  document.getElementById('saveBuilderBtn').addEventListener('click', async () => {
+    const name = builderDeckNameInput.value.trim();
+    if (!name) { builderDeckNameInput.focus(); return; }
+    if (!window.deckStore) return;
+    await window.deckStore.save(name, buildDecklistText());
+    refreshSavedDecks();
+    builderStatusEl.textContent = `Saved "${name}".`;
+  });
+
+  document.getElementById('clearBuilderBtn').addEventListener('click', () => {
+    deckQty.clear();
+    renderDeckList();
+    renderCardGrid();
+    builderErrorsEl.textContent = '';
+    builderStatusEl.textContent = '';
+  });
+
+  // --- Export: deck card-collage images + the stats infographic ---
+  function loadCardImage(src) {
+    return new Promise((resolve) => {
+      const img = new Image();
+      img.onload = () => resolve(img);
+      img.onerror = () => resolve(null);
+      img.src = src;
+    });
+  }
+
+  function wrapText(ctx, text, x, y, maxWidth, lineHeight) {
+    const words = text.split(' ');
+    let line = '';
+    let curY = y;
+    for (const word of words) {
+      const test = line + word + ' ';
+      if (line && ctx.measureText(test).width > maxWidth) {
+        ctx.fillText(line, x, curY);
+        line = word + ' ';
+        curY += lineHeight;
+      } else {
+        line = test;
+      }
+    }
+    ctx.fillText(line, x, curY);
+  }
+
+  async function groupedEntriesFromText(text) {
+    await ensureCardsLoaded();
+    if (!text.trim() || !window.cards) return [];
+    const result = await window.cards.validate(text);
+    const byNumber = new Map();
+    for (const entry of result.parsed) {
+      byNumber.set(entry.number, (byNumber.get(entry.number) || 0) + entry.quantity);
+    }
+    return [...byNumber.entries()].map(([number, qty]) => {
+      const c = cardByNumber(number);
+      return { number, qty, name: c ? c.name : number };
+    });
+  }
+
+  function groupedEntriesFromMap(map) {
+    return [...map.entries()].map(([number, qty]) => {
+      const c = cardByNumber(number);
+      return { number, qty, name: c ? c.name : number };
+    });
+  }
+
+  // Source card art is 600x838 real pixels (bin/download-images.js pulls the "-640w.webp" scan) --
+  // the old 140x196 export size threw away almost all of that detail, which is why Jake couldn't
+  // read any card text in the exported PNGs. Sized close to source resolution instead (aspect ratio
+  // preserved exactly: 838/600) so the export is actually legible when viewed/zoomed.
+  const DECK_IMG_CARD_W = 300;
+  const DECK_IMG_CARD_H = Math.round((300 * 838) / 600);
+  const DECK_IMG_GAP = 16;
+  const DECK_IMG_COLS = 5;
+
+  // Draws one card cell: real art if it loaded, otherwise a name/number placeholder box so a card
+  // is never silently dropped just because its art file is missing. For qty > 1, a bold "xN" bar
+  // spans the bottom of the card -- modeled directly on the reference deck-export image Jake shared
+  // (ExBurst.dev's deckbuilder export), not a generic corner badge.
+  function drawCardCell(ctx, x, y, w, h, img, entry) {
+    if (img) {
+      ctx.drawImage(img, x, y, w, h);
+    } else {
+      ctx.fillStyle = '#1a1a1a';
+      ctx.fillRect(x, y, w, h);
+      ctx.strokeStyle = '#444';
+      ctx.strokeRect(x, y, w, h);
+      ctx.fillStyle = '#ccc';
+      ctx.font = Math.round(h * 0.06) + 'px "Segoe UI", Arial, sans-serif';
+      wrapText(ctx, entry.name, x + 8, y + h * 0.13, w - 16, h * 0.08);
+      ctx.fillStyle = '#777';
+      ctx.font = Math.round(h * 0.05) + 'px "Segoe UI", Arial, sans-serif';
+      ctx.fillText(entry.number, x + 8, y + h - 10);
+    }
+    if (entry.qty > 1) {
+      const badgeH = Math.max(20, h * 0.16);
+      const by = y + h - badgeH;
+      ctx.fillStyle = 'rgba(0,0,0,0.8)';
+      ctx.fillRect(x, by, w, badgeH);
+      ctx.strokeStyle = '#9B1B1E';
+      ctx.lineWidth = 2;
+      ctx.strokeRect(x, by, w, badgeH);
+      ctx.fillStyle = '#fff';
+      ctx.font = 'bold ' + Math.round(badgeH * 0.6) + 'px "Segoe UI", Arial, sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText('x' + entry.qty, x + w / 2, by + badgeH * 0.72);
+      ctx.textAlign = 'left';
+    }
+  }
+
+  // One picture per unique card, laid out in a grid -- per Jake's request for a shareable deck poster.
+  async function composeDeckImageCanvas(entries, title) {
+    const images = await Promise.all(entries.map((e) => loadCardImage(imgSrcFor(e.number))));
+    const cols = Math.max(1, Math.min(DECK_IMG_COLS, entries.length));
+    const rows = Math.max(1, Math.ceil(entries.length / cols));
+    const headerH = 70;
+    const w = cols * DECK_IMG_CARD_W + (cols + 1) * DECK_IMG_GAP;
+    const h = headerH + rows * DECK_IMG_CARD_H + (rows + 1) * DECK_IMG_GAP;
+
+    const canvas = document.createElement('canvas');
+    canvas.width = w;
+    canvas.height = h;
+    const ctx = canvas.getContext('2d');
+    ctx.fillStyle = '#0a0a0a';
+    ctx.fillRect(0, 0, w, h);
+    ctx.fillStyle = '#9B1B1E';
+    ctx.fillRect(0, 0, w, 5);
+    ctx.fillStyle = '#C9A951';
+    ctx.font = 'bold 26px "Bahnschrift", "Arial Narrow", Impact, sans-serif';
+    ctx.fillText(title, 18, 40);
+    const totalCount = entries.reduce((sum, e) => sum + e.qty, 0);
+    ctx.fillStyle = '#999';
+    ctx.font = '13px "Segoe UI", Arial, sans-serif';
+    ctx.fillText(`${entries.length} unique card${entries.length === 1 ? '' : 's'}, ${totalCount} total`, 18, 58);
+
+    entries.forEach((e, i) => {
+      const col = i % cols;
+      const row = Math.floor(i / cols);
+      const x = DECK_IMG_GAP + col * (DECK_IMG_CARD_W + DECK_IMG_GAP);
+      const y = headerH + DECK_IMG_GAP + row * (DECK_IMG_CARD_H + DECK_IMG_GAP);
+      drawCardCell(ctx, x, y, DECK_IMG_CARD_W, DECK_IMG_CARD_H, images[i], e);
+    });
+
+    return canvas;
+  }
+
+  // Draws a labeled grid of card cells starting at (startX, startY) and returns the y-coordinate
+  // just below it, so callers can stack sections vertically without pre-computing every height by
+  // hand. Shared by the stats infographic's per-deck visual list sections below.
+  function drawDeckGridSection(ctx, entries, images, startX, startY, cols, cardW, cardH, gap, label) {
+    ctx.fillStyle = '#C9A951';
+    ctx.font = 'bold 18px "Bahnschrift", "Arial Narrow", Impact, sans-serif';
+    ctx.fillText(label, startX, startY);
+    const gridTop = startY + 14;
+    entries.forEach((e, i) => {
+      const col = i % cols;
+      const row = Math.floor(i / cols);
+      const x = startX + col * (cardW + gap);
+      const y = gridTop + row * (cardH + gap);
+      drawCardCell(ctx, x, y, cardW, cardH, images[i], e);
+    });
+    const rows = Math.max(1, Math.ceil(entries.length / cols));
+    return gridTop + rows * (cardH + gap);
+  }
+
+  // A standalone matchup-report image reusing the exact same drawBarChart function the on-screen
+  // chart uses (drawn to an offscreen canvas, then composited in), so the export can never drift
+  // from what's actually shown on screen.
+  // Same resolution reasoning as DECK_IMG_CARD_W above -- sized for legibility, not a small summary
+  // thumbnail. REPORT_W grows with it (5 cols at this size, computed below) rather than squeezing a
+  // fixed page width.
+  const REPORT_DECK_CARD_W = 220;
+  const REPORT_DECK_CARD_H = Math.round((220 * 838) / 600);
+  const REPORT_DECK_GAP = 16;
+  const REPORT_MARGIN = 24;
+  const REPORT_COLS = 5;
+  const REPORT_W = REPORT_COLS * REPORT_DECK_CARD_W + (REPORT_COLS - 1) * REPORT_DECK_GAP + 2 * REPORT_MARGIN;
+
+  // Includes a visual deck list per side (real card art + qty badges, same look as the standalone
+  // deck-image export) below the usual stats -- per Jake's request, modeled on the reference
+  // deckbuilder-export image he shared. Height is computed from however many unique cards each deck
+  // actually has, not a fixed guess, since that varies deck to deck.
+  async function composeStatsInfographicCanvas(stats, titleA, titleB, entriesA, entriesB) {
+    const chartCanvas = document.createElement('canvas');
+    chartCanvas.width = 620;
+    chartCanvas.height = 460;
+    drawBarChart(chartCanvas, CHART_GROUPS(stats), 13);
+
+    const cols = REPORT_COLS; // REPORT_W above is derived from this, not the other way around
+    const [imagesA, imagesB] = await Promise.all([
+      Promise.all(entriesA.map((e) => loadCardImage(imgSrcFor(e.number)))),
+      Promise.all(entriesB.map((e) => loadCardImage(imgSrcFor(e.number))))
+    ]);
+
+    const statsBlockBottom = 730; // header + callouts + secondary callouts + taller chart, fixed layout below
+    const deckSectionH = (entries) => {
+      const rows = Math.max(1, Math.ceil(entries.length / cols));
+      return 14 + 24 + rows * (REPORT_DECK_CARD_H + REPORT_DECK_GAP);
+    };
+    const deckASectionTop = statsBlockBottom + 10;
+    const deckBSectionTop = deckASectionTop + deckSectionH(entriesA) + 20;
+    const h = deckBSectionTop + deckSectionH(entriesB) + 40;
+
+    const canvas = document.createElement('canvas');
+    canvas.width = REPORT_W;
+    canvas.height = h;
+    const ctx = canvas.getContext('2d');
+    ctx.fillStyle = '#0a0a0a';
+    ctx.fillRect(0, 0, REPORT_W, h);
+    ctx.fillStyle = '#9B1B1E';
+    ctx.fillRect(0, 0, REPORT_W, 6);
+
+    ctx.fillStyle = '#C9A951';
+    ctx.font = 'bold 28px "Bahnschrift", "Arial Narrow", Impact, sans-serif';
+    ctx.fillText('GUNDAM TCG SIM — MATCHUP REPORT', 24, 46);
+    ctx.fillStyle = '#999';
+    ctx.font = '13px "Segoe UI", Arial, sans-serif';
+    ctx.fillText(`${titleA} vs ${titleB}  |  ${stats.games} games  |  ${new Date().toLocaleString()}`, 24, 66);
+
+    const callouts = [
+      [pct(stats.deckA.winRate), 'DECK A WIN RATE'],
+      [pct(stats.deckB.winRate), 'DECK B WIN RATE'],
+      [stats.averageTurns.toFixed(1), 'AVG TURNS']
+    ];
+    const calloutW = (REPORT_W - 48 - 32) / 3;
+    callouts.forEach(([num, lbl], i) => {
+      const x = 24 + i * (calloutW + 16);
+      ctx.strokeStyle = '#333';
+      ctx.strokeRect(x, 86, calloutW, 78);
+      ctx.fillStyle = '#C9A951';
+      ctx.textAlign = 'center';
+      ctx.font = 'bold 32px "Bahnschrift", "Arial Narrow", Impact, sans-serif';
+      ctx.fillText(num, x + calloutW / 2, 134);
+      ctx.fillStyle = '#999';
+      ctx.font = '11px "Segoe UI", Arial, sans-serif';
+      ctx.fillText(lbl, x + calloutW / 2, 154);
+      ctx.textAlign = 'left';
+    });
+
+    // Secondary row -- same counts/game-length tiles as the on-screen `.callouts.secondary` row,
+    // kept as small visual tiles here too instead of a text sentence.
+    const secondary = [
+      [stats.games, 'GAMES'], [stats.draws, 'DRAWS'], [stats.timeouts, 'TIMEOUTS'],
+      [stats.shortestGame, 'SHORTEST'], [stats.medianGame, 'MEDIAN'], [stats.longestGame, 'LONGEST']
+    ];
+    const secW = (REPORT_W - 48 - 5 * 12) / 6;
+    secondary.forEach(([num, lbl], i) => {
+      const x = 24 + i * (secW + 12);
+      ctx.strokeStyle = '#2a2a2a';
+      ctx.strokeRect(x, 178, secW, 54);
+      ctx.fillStyle = '#C9A951';
+      ctx.textAlign = 'center';
+      ctx.font = 'bold 18px "Bahnschrift", "Arial Narrow", Impact, sans-serif';
+      ctx.fillText(String(num), x + secW / 2, 206);
+      ctx.fillStyle = '#999';
+      ctx.font = '9px "Segoe UI", Arial, sans-serif';
+      ctx.fillText(lbl, x + secW / 2, 222);
+      ctx.textAlign = 'left';
+    });
+
+    ctx.drawImage(chartCanvas, 24, 250, REPORT_W - 48, 460);
+
+    drawDeckGridSection(
+      ctx, entriesA, imagesA, 24, deckASectionTop, cols, REPORT_DECK_CARD_W, REPORT_DECK_CARD_H, REPORT_DECK_GAP,
+      `${titleA} — Deck List (${entriesA.length} unique, ${entriesA.reduce((s, e) => s + e.qty, 0)} total)`
+    );
+    drawDeckGridSection(
+      ctx, entriesB, imagesB, 24, deckBSectionTop, cols, REPORT_DECK_CARD_W, REPORT_DECK_CARD_H, REPORT_DECK_GAP,
+      `${titleB} — Deck List (${entriesB.length} unique, ${entriesB.reduce((s, e) => s + e.qty, 0)} total)`
+    );
+
+    ctx.fillStyle = '#666';
+    ctx.font = '11px "Segoe UI", Arial, sans-serif';
+    ctx.fillText('Generated by Gundam TCG Sim', 24, h - 16);
+
+    return canvas;
+  }
+
+  async function saveCanvasAsImage(canvas, suggestedName, statusEl) {
+    if (!window.exporter) {
+      statusEl.textContent = 'Export is not available.';
+      return;
+    }
+    statusEl.textContent = 'Saving...';
+    try {
+      const dataUrl = canvas.toDataURL('image/png');
+      const result = await window.exporter.saveImage(dataUrl, suggestedName);
+      statusEl.textContent = result.saved ? `Saved to ${result.filePath}` : 'Export cancelled.';
+    } catch (err) {
+      statusEl.textContent = 'Export failed: ' + err.message;
+    }
+  }
+
+  document.getElementById('exportA').addEventListener('click', async () => {
+    const statusEl = document.getElementById('statusA');
+    statusEl.textContent = 'Preparing image...';
+    const entries = await groupedEntriesFromText(document.getElementById('deckA').value);
+    if (!entries.length) { statusEl.textContent = 'Nothing to export — paste or load a deck first.'; return; }
+    const title = nameAInput.value.trim() || 'Deck A';
+    const canvas = await composeDeckImageCanvas(entries, title);
+    await saveCanvasAsImage(canvas, title.replace(/[^a-z0-9]+/gi, '-') + '.png', statusEl);
+  });
+
+  document.getElementById('exportB').addEventListener('click', async () => {
+    const statusEl = document.getElementById('statusB');
+    statusEl.textContent = 'Preparing image...';
+    const entries = await groupedEntriesFromText(document.getElementById('deckB').value);
+    if (!entries.length) { statusEl.textContent = 'Nothing to export — paste or load a deck first.'; return; }
+    const title = nameBInput.value.trim() || 'Deck B';
+    const canvas = await composeDeckImageCanvas(entries, title);
+    await saveCanvasAsImage(canvas, title.replace(/[^a-z0-9]+/gi, '-') + '.png', statusEl);
+  });
+
+  document.getElementById('exportBuilderBtn').addEventListener('click', async () => {
+    await ensureCardsLoaded();
+    if (deckQty.size === 0) { builderStatusEl.textContent = 'Nothing to export — add some cards first.'; return; }
+    const title = builderDeckNameInput.value.trim() || 'My Deck';
+    const entries = groupedEntriesFromMap(deckQty);
+    builderStatusEl.textContent = 'Preparing image...';
+    const canvas = await composeDeckImageCanvas(entries, title);
+    await saveCanvasAsImage(canvas, title.replace(/[^a-z0-9]+/gi, '-') + '.png', builderStatusEl);
+  });
+
+  exportStatsBtn.addEventListener('click', async () => {
+    if (!lastStats) return;
+    exportStatusEl.textContent = 'Preparing infographic...';
+    const titleA = nameAInput.value.trim() || 'Deck A';
+    const titleB = nameBInput.value.trim() || 'Deck B';
+    // Uses whatever is currently pasted/loaded in the Deck A/B textareas to build the visual deck
+    // lists -- same assumption the standalone per-deck "Export Image" buttons already make (the
+    // batch's own decks aren't separately cached beyond lastBatchContext's engine/mctsConfig).
+    const entriesA = await groupedEntriesFromText(document.getElementById('deckA').value);
+    const entriesB = await groupedEntriesFromText(document.getElementById('deckB').value);
+    const canvas = await composeStatsInfographicCanvas(lastStats, titleA, titleB, entriesA, entriesB);
+    await saveCanvasAsImage(canvas, 'matchup-report.png', exportStatusEl);
+  });
+
+  // Populated last and defensively: everything above (buttons, progress, results, error wiring)
+  // must keep working even if this throws -- a preload-side failure to expose skillPresets
+  // shouldn't be able to silently kill the whole page's event handlers again (see main.js's
+  // sandbox:false comment for the bug this guards against).
+  try {
+    const presets = (window.sim && window.sim.skillPresets) || [];
+    for (const select of [skillASelect, skillBSelect]) {
+      for (const preset of presets) {
+        const option = document.createElement('option');
+        option.value = preset.id;
+        option.textContent = preset.label;
+        select.appendChild(option);
+      }
+      if (presets.some((p) => p.id === 'casual')) select.value = 'casual';
+    }
+  } catch (err) {
+    errorEl.textContent = 'Skill presets failed to load: ' + err.message;
+  }
+
+  try {
+    refreshSavedDecks();
+  } catch (err) {
+    errorEl.textContent = 'Saved decks failed to load: ' + err.message;
+  }
 </script>
 </body>
 </html>

@@ -39,7 +39,18 @@ async function main() {
     { engineA: presetA.engine, engineB: presetB.engine, mctsConfigA: presetA.mctsConfig, mctsConfigB: presetB.mctsConfig }
   );
 
-  parentPort.postMessage({ type: 'done', stats });
+  // Handed back alongside stats so main.js can cache exactly what produced this batch (deck texts +
+  // resolved AI settings) -- the replay viewer needs it to re-run any single game's seed later with
+  // the *same* engine/mctsConfig, not just the same decks.
+  const context = {
+    deckAText,
+    deckBText,
+    engineA: presetA.engine,
+    engineB: presetB.engine,
+    mctsConfigA: presetA.mctsConfig,
+    mctsConfigB: presetB.mctsConfig
+  };
+  parentPort.postMessage({ type: 'done', stats, context });
 }
 
 main().catch((err) => {

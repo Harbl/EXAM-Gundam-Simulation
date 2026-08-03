@@ -17,7 +17,7 @@ const {
   defaultHooks,
   lookaheadHooks
 } = require('./heuristic');
-const { RESOLVERS, collectActivateCandidates, activateMainSource } = require('./activations');
+const { RESOLVERS, collectActivateCandidates, activateMainSource, REQUIRES_RESTED } = require('./activations');
 
 /**
  * MCTS AI: searches the whole main phase as one interleaved sequence of atomic actions (deploy one
@@ -215,9 +215,14 @@ function applyAction(state, playerIdx, action, hooks) {
   if (action.type === 'activate') {
     const opponent = state.players[1 - playerIdx];
     const source = findOwnSourceById(player, action.sourceId);
-    if (!source || source.rested) return;
+    if (!source) return;
     const handlerInfo = activateMainSource(source);
     if (!handlerInfo) return;
+    // Same exception as collectActivateCandidates: the 5 reactivation abilities need the source
+    // rested, every other resolver needs it un-rested (re-checked here, not just at offer time,
+    // since state may have moved on between getLegalActions and applyAction).
+    const needsRested = REQUIRES_RESTED.has(handlerInfo.number);
+    if (needsRested ? !source.rested : source.rested) return;
     const resolver = RESOLVERS[handlerInfo.number];
     if (!resolver) return;
     const args = resolver(state, player, opponent, source);

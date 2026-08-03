@@ -17,7 +17,7 @@ const { drawCard } = require('./phases');
  * Resolves one full attack (8-1 through 8-6): attack, block, action, damage, battle-end steps.
  * `declaredTarget` is {type:'player'} or {type:'unit', instance}.
  * `hooks` (all optional): chooseBlocker(defendingPlayer, attacker, target) => blockerInstance|null,
- * actionStep(state, {attacker, target}), chooseBurst(shieldInstance) => boolean.
+ * actionStep(state, {attacker, target}), chooseBurst(shieldInstance, state) => boolean.
  */
 function resolveAttack(state, attackerPlayerIdx, attacker, declaredTarget, hooks = {}) {
   const attackingPlayer = state.players[attackerPlayerIdx];
@@ -536,7 +536,7 @@ function applyBreach(state, defendingPlayer, amount, hooks, attacker) {
  */
 function resolveBurst(state, defendingPlayer, shieldInstance, hooks) {
   const burstEffect = shieldInstance.def.effects && shieldInstance.def.effects.burst;
-  const activate = burstEffect && hooks && hooks.chooseBurst ? hooks.chooseBurst(shieldInstance) : false;
+  const activate = burstEffect && hooks && hooks.chooseBurst ? hooks.chooseBurst(shieldInstance, state) : false;
   if (activate) burstEffect(state, defendingPlayer, shieldInstance, {});
   if (!isCardTracked(defendingPlayer, shieldInstance)) {
     defendingPlayer.trash.push(shieldInstance);

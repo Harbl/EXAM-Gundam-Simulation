@@ -131,12 +131,85 @@ test('Nena Trinity (Pilot) is discovered via the paired Unit, not her own (nonex
   assert.equal(ally.buffs.some((b) => b.ap === 2), true);
 });
 
-test('V2 Gundam is deliberately never offered -- its setActive benefit only matters while rested, which the shared activator filter excludes', () => {
+test('V2 Gundam is only offered while rested (2 other un-rested Units available to pay the cost)', () => {
   const player = createPlayer(0);
   const state = createGame(player, createPlayer(1));
   const source = deployUnit(state, player, lookupCard('GD05-001'));
-  player.battleArea.push(createInstance({ number: 'A', type: 'unit' }, 0), createInstance({ number: 'B', type: 'unit' }, 0));
+  const [a, b] = [createInstance({ number: 'A', type: 'unit', ap: 3 }, 0), createInstance({ number: 'B', type: 'unit', ap: 1 }, 0)];
+  player.battleArea.push(a, b);
+
+  assert.deepEqual(collectActivateCandidates(state, 0), [], 'active -- reactivating it would do nothing');
+
+  source.rested = true;
+  const candidates = collectActivateCandidates(state, 0);
+  assert.equal(candidates.length, 1);
+  assert.deepEqual(candidates[0].args.restUnits, [b, a], 'rests the 2 lowest-AP other Units, cheapest cost first');
+
+  candidates[0].handler(state, player, source, candidates[0].args);
+  assert.equal(source.rested, false, 'the real effect reactivates it');
+  assert.equal(collectActivateCandidates(state, 0).length, 0, 'once-per-turn guard, and no longer rested anyway');
+});
+
+test('Unicorn Gundam 02 Banshee Norn (Destroy Mode) only offers reactivating while rested and Linked, with 3+ blue cards in trash', () => {
+  const player = createPlayer(0);
+  const state = createGame(player, createPlayer(1));
+  const source = deployUnit(state, player, lookupCard('GD04-065'));
+  source.rested = true;
+
+  assert.deepEqual(collectActivateCandidates(state, 0), [], 'not a Link Unit yet');
+  source.isLinkUnit = true;
+  assert.deepEqual(collectActivateCandidates(state, 0), [], 'not enough blue cards in trash yet');
+
+  for (let i = 0; i < 3; i++) player.trash.push(createInstance({ number: `Bl${i}`, type: 'unit', color: 'blue' }, 0));
+  assert.equal(collectActivateCandidates(state, 0).length, 1);
+
+  source.rested = false;
+  assert.deepEqual(collectActivateCandidates(state, 0), [], 'active -- nothing to reactivate');
+});
+
+test("Graham's Union Flag Custom II only offers exiling 2 distinct qualifying cards, not the same card counted twice", () => {
+  const player = createPlayer(0);
+  const state = createGame(player, createPlayer(1));
+  const source = deployUnit(state, player, lookupCard('GD04-071'));
   source.rested = true;
 
   assert.deepEqual(collectActivateCandidates(state, 0), []);
+
+  const both = createInstance({ number: 'X', type: 'unit', traits: ['Superpower Bloc', 'UN'] }, 0);
+  player.trash.push(both);
+  assert.deepEqual(collectActivateCandidates(state, 0), [], 'only 1 real card qualifies for both slots');
+
+  player.trash.push(createInstance({ number: 'Y', type: 'unit', traits: ['UN'] }, 0));
+  assert.equal(collectActivateCandidates(state, 0).length, 1, 'now 2 distinct cards can fill the 2 slots');
+});
+
+test("Gyunei's Jagd Doga only offers self-destroy-to-reactivate while rested and with another friendly Unit to sacrifice", () => {
+  const player = createPlayer(0);
+  const state = createGame(player, createPlayer(1));
+  const source = deployUnit(state, player, lookupCard('GD05-057'));
+  source.rested = true;
+
+  assert.deepEqual(collectActivateCandidates(state, 0), [], 'no other Unit to sacrifice');
+
+  const ally = createInstance({ number: 'A', type: 'unit' }, 0);
+  player.battleArea.push(ally);
+  const candidates = collectActivateCandidates(state, 0);
+  assert.equal(candidates.length, 1);
+
+  candidates[0].handler(state, player, source, candidates[0].args);
+  assert.equal(player.battleArea.includes(ally), false, 'the sacrifice really destroys the ally');
+  assert.equal(source.rested, false);
+});
+
+test('Tallgeese only offers reactivating while rested and 4 Resources are active', () => {
+  const player = createPlayer(0);
+  const state = createGame(player, createPlayer(1));
+  const source = deployUnit(state, player, lookupCard('ST02-006'));
+  source.rested = true;
+  resource(player, 3);
+
+  assert.deepEqual(collectActivateCandidates(state, 0), [], 'only 3 active Resources, needs 4');
+
+  resource(player, 1);
+  assert.equal(collectActivateCandidates(state, 0).length, 1);
 });
