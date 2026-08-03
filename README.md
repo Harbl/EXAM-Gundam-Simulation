@@ -1,4 +1,4 @@
-# Gundam TCG Sim
+# EXAM — Gundam TCG Sim
 
 Windows desktop app (Electron) that simulates batches of Gundam Card Game matches
 between two pasted decklists and reports aggregate stats (win rate, mulligan rate,

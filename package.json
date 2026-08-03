@@ -16,11 +16,11 @@
     "electron-builder": "^25.0.0"
   },
   "build": {
-    "appId": "com.jake.gundamtcgsim",
-    "productName": "Gundam TCG Sim",
+    "appId": "com.jake.exam",
+    "productName": "EXAM",
+    "icon": "build/icon.png",
     "win": {
-      "target": "nsis",
-      "signAndEditExecutable": false
+      "target": "nsis"
     },
     "files": [
       "electron/**/*",

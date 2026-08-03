@@ -2,7 +2,7 @@
 <html>
 <head>
 <meta charset="utf-8">
-<title>Gundam TCG Sim</title>
+<title>EXAM — Gundam TCG Sim</title>
 <style>
   :root {
     --red: #9B1B1E;
@@ -260,6 +260,61 @@
   .timeline .evtThumb { width: 22px; height: 31px; object-fit: cover; background: #000; flex-shrink: 0; border: 1px solid #333; }
   .timeline .end { color: var(--gold); font-weight: bold; margin-top: 6px; }
 
+  .viewToggle { display: flex; gap: 8px; margin: 10px 0 4px; }
+  .viewToggle button.active { border-color: var(--gold); color: var(--gold); }
+  .playbackControls { display: flex; align-items: center; gap: 8px; margin-top: 8px; }
+  .playbackControls input[type=range] { flex: 1; }
+  #eventCaption { font-size: 11.5px; color: var(--gold); margin: 6px 0; min-height: 14px; }
+  .board { display: flex; flex-direction: column; gap: 10px; margin-top: 4px; font-size: 12px; max-height: 520px; overflow-y: auto; }
+  .boardPlayer { border: 1px solid var(--grey); border-left: 2px solid transparent; padding: 8px; background: #0d0d0d; }
+  .boardPlayer.active { border-left-color: var(--gold); }
+  .boardPlayerHead {
+    display: flex; justify-content: space-between; align-items: center;
+    font-family: var(--font-head); letter-spacing: 1px; color: var(--gold);
+    text-transform: uppercase; font-size: 11px; margin-bottom: 6px;
+  }
+  .boardRow { margin-bottom: 7px; }
+  .boardRow .rowLabel { font-size: 9.5px; color: #888; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 3px; }
+  .boardTiles, .shieldRow, .handRow { display: flex; flex-wrap: wrap; gap: 5px; }
+  .unitTile { width: 62px; background: #111; border: 1px solid var(--grey); padding: 3px; text-align: center; transition: opacity 300ms; }
+  .unitTile.rested { opacity: 0.5; }
+  .unitTile img { width: 54px; height: 76px; object-fit: cover; background: #000; display: block; margin: 0 auto 2px; }
+  .unitTile .uName { font-size: 8px; line-height: 1.15; height: 18px; overflow: hidden; }
+  .unitTile .hpTrack { background: #222; height: 4px; margin-top: 2px; }
+  .unitTile .hpFill { background: var(--red-glow); height: 100%; transition: width 420ms ease; }
+  .unitTile .pilotBadge { font-size: 7.5px; color: var(--gold); overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+  .miniStat { font-size: 10px; color: #999; }
+  .shieldBack { width: 24px; height: 34px; background: linear-gradient(160deg, #3a3a3a, #111); border: 1px solid var(--grey); flex-shrink: 0; }
+  .shieldFront { width: 24px; height: 34px; flex-shrink: 0; }
+  .shieldFront img { width: 24px; height: 34px; object-fit: cover; border: 1px solid var(--gold); display: block; }
+  .handTile { width: 42px; flex-shrink: 0; }
+  .handTile img { width: 42px; height: 59px; object-fit: cover; border: 1px solid var(--grey); display: block; }
+
+  /* Full-motion board animation primitives -- everything is driven by JS (FLIP position/scale
+     transforms via inline style, applied by flipFrom/animateExitTo in the script below) except three
+     one-shot cues that are pure CSS @keyframes: a tile fading/scaling in on first appearance, fading/
+     scaling out on generic removal, and a Shield's card-back-to-front reveal squeeze. */
+  .enterAnim { animation: tileEnter 320ms ease-out; }
+  @keyframes tileEnter { from { opacity: 0; transform: scale(0.5); } to { opacity: 1; transform: scale(1); } }
+  .exitAnim { animation: tileExit 380ms ease-in forwards; pointer-events: none; }
+  @keyframes tileExit { from { opacity: 1; transform: scale(1); } to { opacity: 0; transform: scale(0.35); } }
+  .shieldFlip { animation: shieldFlip 320ms ease-in-out; }
+  @keyframes shieldFlip { 0% { transform: scaleX(1); } 50% { transform: scaleX(0.05); } 100% { transform: scaleX(1); } }
+  .flashAttack { animation: flashAttack 380ms ease-out; }
+  @keyframes flashAttack {
+    0% { box-shadow: 0 0 0 0 rgba(155,27,30,0); transform: translateY(0); }
+    30% { box-shadow: 0 0 14px 3px var(--red-glow); transform: translateY(-4px); }
+    100% { box-shadow: 0 0 0 0 rgba(155,27,30,0); transform: translateY(0); }
+  }
+  .flashHit { animation: flashHit 380ms ease-out; }
+  @keyframes flashHit { 0% { filter: none; } 25% { filter: brightness(2) saturate(2); } 100% { filter: none; } }
+  .flashBlock { animation: flashBlock 420ms ease-out; }
+  @keyframes flashBlock {
+    0% { box-shadow: 0 0 0 0 rgba(74,144,217,0); }
+    35% { box-shadow: 0 0 14px 4px #4a90d9; }
+    100% { box-shadow: 0 0 0 0 rgba(74,144,217,0); }
+  }
+
   .filterRow { display: flex; gap: 8px; margin-bottom: 10px; }
   .filterRow input { flex: 2; }
   .filterRow select { flex: 1; }
@@ -312,7 +367,7 @@
 <body>
 
 <header>
-  <div class="brand"><span class="emblem"></span><span>SIM STATUS // GUNDAM-OS</span></div>
+  <div class="brand"><span class="emblem"></span><span>EXAM // GUNDAM TCG SIM</span></div>
   <div class="status"><span class="dot ready" id="statusDot"></span><span id="statusText">READY</span></div>
 </header>
 
@@ -382,7 +437,21 @@
         <input type="number" id="replayGameNum" value="1" min="1" style="width:80px" />
         <button id="replayBtn" class="smallBtn">View Replay</button>
       </div>
+      <div class="viewToggle">
+        <button id="logViewBtn" class="smallBtn active" type="button">Log View</button>
+        <button id="boardViewBtn" class="smallBtn" type="button">Board View</button>
+      </div>
       <div id="replayTimeline"></div>
+      <div id="replayBoard" style="display:none">
+        <div class="playbackControls">
+          <button id="playbackPrev" class="smallBtn" type="button">◀ Prev</button>
+          <button id="playbackPlay" class="smallBtn" type="button">Play</button>
+          <button id="playbackNext" class="smallBtn" type="button">Next ▶</button>
+          <input type="range" id="playbackScrub" min="0" max="0" value="0" />
+        </div>
+        <div id="eventCaption"></div>
+        <div id="boardRoot" class="board"></div>
+      </div>
     </div>
     <div id="error"></div>
   </div>
@@ -660,6 +729,7 @@
       case 'draw': return `P${e.player} draws a card${e.isPhaseDraw ? '' : ' (effect)'}`;
       case 'resource': return `P${e.player} places a Resource`;
       case 'burst': return `P${e.player}'s shield reveals ${e.card.name} (${e.card.number})${e.activated ? ' — Burst activated' : ''}`;
+      case 'block': return `P${e.player}'s ${e.blocker.name} blocks, intercepting ${e.attacker.name}`;
       default: return null;
     }
   }
@@ -671,6 +741,7 @@
     switch (e.type) {
       case 'deploy': case 'deployBase': case 'command': return e.card.number;
       case 'pair': case 'pairFromTrash': return e.pilot.number;
+      case 'block': return e.blocker.number;
       case 'attack': return e.attacker.number;
       case 'burst': return e.card.number;
       default: return null;
@@ -714,6 +785,557 @@
     }
   }
 
+  // --- Board View: a client-side reducer that replays the event log up to some index into a
+  // display-only snapshot (hands, shields, battle areas, HP), and a persistent, keyed-DOM renderer
+  // that turns single-step-forward transitions into real motion (a deployed Unit visibly flies from
+  // the hand zone into the battle area, a destroyed Unit flies into the trash counter, etc.) via the
+  // classic FLIP technique (measure position before a DOM mutation, apply the mutation, then animate
+  // from the old position/size to the new one). Every trackable entity (a hand card, a battle-area
+  // Unit/Base, a face-down Shield slot) gets a stable `_key`, derived from the event that created it
+  // so the SAME key is produced every time buildSnapshot replays the same event range -- this is what
+  // lets the renderer recognize "this hand card is the same physical object as that new Unit tile"
+  // across two consecutive steps and reuse (move) its actual DOM node instead of destroying and
+  // recreating it. Jumping via Prev/scrubber does a plain instant rebuild (no prior DOM state to
+  // sensibly animate from); only advancing exactly one event forward (Next/Play) animates.
+  function removeFromHandByNumber(hand, number) {
+    const idx = hand.findIndex((c) => c.number === number);
+    if (idx !== -1) hand.splice(idx, 1);
+  }
+
+  function newUnit(unitRef) {
+    return { id: unitRef.id, number: unitRef.number, name: unitRef.name, damage: 0, rested: false, pilot: null, _key: 'unit-' + unitRef.id };
+  }
+
+  function buildSnapshot(events, uptoIdx) {
+    const players = [0, 1].map(() => ({
+      hand: [], shieldCount: 6, base: null, battleArea: [], resourceCount: 0, trashCount: 0, pendingBaseReveal: false
+    }));
+    let activePlayer = null;
+    for (let i = 0; i <= uptoIdx && i < events.length; i++) {
+      const e = events[i];
+      const p = e.player !== undefined ? players[e.player] : null;
+      switch (e.type) {
+        case 'openingHand':
+          players[e.player].hand.push(...e.hand.map((c, idx) => ({ ...c, _key: `hand-${e.player}-${i}-${idx}` })));
+          break;
+        case 'gameStart': activePlayer = e.firstPlayer; break;
+        case 'turnStart': {
+          activePlayer = e.player;
+          // Start-phase active step: only the turn's own player untaps their Units/Base -- this is
+          // also what clears a Blocker's rested state after it intercepted an attack on an earlier turn.
+          for (const u of p.battleArea) u.rested = false;
+          if (p.base) p.base.rested = false;
+          break;
+        }
+        case 'draw': p.hand.push({ ...e.card, _key: `hand-${e.player}-${i}` }); break;
+        case 'resource': p.resourceCount++; break;
+        case 'deploy':
+          removeFromHandByNumber(p.hand, e.card.number);
+          p.battleArea.push(newUnit(e.unit));
+          break;
+        case 'deployBase':
+          // A becomeBase-driven deployBase (see the 'burst' case below) does NOT come from hand --
+          // removing by card number here would be wrong whenever a second copy of the same Base
+          // happens to be sitting in hand at the same time (real case: Jake's deck runs 2x Jaburo,
+          // one can be a Shield while the other is still in hand). p.pendingBaseReveal, set by the
+          // burst that triggered this, is the actual origin signal, not a same-number hand guess.
+          if (p.pendingBaseReveal) p.pendingBaseReveal = false;
+          else removeFromHandByNumber(p.hand, e.card.number);
+          if (p.base) p.trashCount++;
+          p.base = newUnit(e.unit);
+          break;
+        case 'command':
+          removeFromHandByNumber(p.hand, e.card.number);
+          p.trashCount++;
+          break;
+        case 'pair':
+        case 'pairFromTrash': {
+          if (e.type === 'pair') removeFromHandByNumber(p.hand, e.pilot.number);
+          const unit = p.battleArea.find((u) => u.id === e.unit.id) || (p.base && p.base.id === e.unit.id ? p.base : null);
+          if (unit) unit.pilot = { number: e.pilot.number, name: e.pilot.name };
+          break;
+        }
+        case 'attack': {
+          const unit = p.battleArea.find((u) => u.id === e.attacker.id);
+          if (unit) unit.rested = true;
+          players[0].shieldCount = e.shieldsAfter[0];
+          players[1].shieldCount = e.shieldsAfter[1];
+          break;
+        }
+        case 'block': {
+          // e.player is the blocker's own controller (the defending side) -- traceGame.js's chooseBlocker
+          // wrapper reports state.players.indexOf(defendingPlayer), not the attacker's side.
+          const blockerUnit = p.battleArea.find((u) => u.id === e.blocker.id);
+          if (blockerUnit) blockerUnit.rested = true;
+          break;
+        }
+        case 'burst':
+          // The Shield's real fate (hand / becomes-a-Base / trash) is resolved by the renderer's own
+          // key-transition logic (applyKeyTransition below), keyed off this same event -- the snapshot
+          // only needs shieldCount to drop the instant the Shield is revealed (it leaves the row right
+          // then, not later when the enclosing attack event's shieldsAfter eventually confirms it;
+          // that later overwrite is still authoritative and just re-applies the same value) and the
+          // revealed card to land in hand when that's genuinely its fate.
+          p.shieldCount = Math.max(0, p.shieldCount - 1);
+          if (e.endedUpInHand) {
+            p.hand.push({ ...e.card, _key: `hand-${e.player}-${i}` });
+          } else {
+            // Every Base card's Burst text converts the Shield straight into that player's Base
+            // (becomeBase -- e.g. Jaburo, White Base, Archangel; grep-confirmed 68/68 Base cards work
+            // this way, not just Jaburo). That case is handled by the 'deployBase' event traceGame.js
+            // now emits from becomeBase, so it must NOT be double-counted into trash here. Any other
+            // (non-Base) Burst that doesn't end up in hand really does go to trash.
+            const def = cardByNumber(e.card.number);
+            if (def && def.type === 'base') p.pendingBaseReveal = true; // consumed by the deployBase above
+            else p.trashCount++;
+          }
+          break;
+        case 'damage': {
+          const unit = p.battleArea.find((u) => u.id === e.instance.id) || (p.base && p.base.id === e.instance.id ? p.base : null);
+          if (unit) unit.damage += e.amount;
+          break;
+        }
+        case 'destroy': {
+          const idx = p.battleArea.findIndex((u) => u.id === e.unit.id);
+          if (idx !== -1) p.battleArea.splice(idx, 1);
+          else if (p.base && p.base.id === e.unit.id) p.base = null;
+          p.trashCount++;
+          break;
+        }
+        case 'discard':
+          removeFromHandByNumber(p.hand, e.card.number);
+          p.trashCount++;
+          break;
+      }
+    }
+    return { players, activePlayer, event: events[uptoIdx] || null };
+  }
+
+  function eventCaptionText(e) {
+    if (!e) return 'Start of game';
+    const desc = eventDescription(e);
+    if (desc) return desc;
+    switch (e.type) {
+      case 'mulligan': return `P${e.player} ${e.mulliganed ? 'mulligans' : 'keeps their opening hand'}`;
+      case 'openingHand': return `P${e.player}'s opening hand is set`;
+      case 'gameStart': return `First player: P${e.firstPlayer}`;
+      case 'turnStart': return `Round ${Math.ceil(e.turn / 2)} — P${e.player}'s turn`;
+      case 'destroy': return `P${e.player}'s ${e.unit.name} is destroyed`;
+      case 'damage': return `P${e.player}'s ${e.instance.name} takes ${e.amount} damage`;
+      case 'discard': return `P${e.player} discards ${e.card.name} (hand limit)`;
+      case 'gameEnd': return e.draw ? 'Draw' : e.timedOut ? 'Timed out' : `P${e.winner} wins`;
+      default: return e.type;
+    }
+  }
+
+  // --- Persistent keyed DOM + FLIP animation ---
+  const boardRootEl = document.getElementById('boardRoot');
+  let boardZones = null; // [{root,label,counts,shieldsEl,baseEl,battleEl,handEl}, ...] built once per replay
+  let boardNodeRegistry = new Map(); // stable _key -> the one persistent element representing it
+
+  function ensureBoardSkeleton() {
+    if (boardZones) return;
+    boardRootEl.innerHTML = [0, 1].map((i) => `
+      <div class="boardPlayer" data-player="${i}">
+        <div class="boardPlayerHead"><span class="playerLabel"></span><span class="playerCounts"></span></div>
+        <div class="boardRow"><div class="rowLabel">Shields</div><div class="shieldRow boardTiles" data-zone="shields"></div></div>
+        <div class="boardRow"><div class="rowLabel">Base</div><div class="boardTiles" data-zone="base"></div></div>
+        <div class="boardRow"><div class="rowLabel">Battle Area</div><div class="boardTiles" data-zone="battle"></div></div>
+        <div class="boardRow"><div class="rowLabel">Hand</div><div class="handRow boardTiles" data-zone="hand"></div></div>
+      </div>`).join('');
+    boardZones = [0, 1].map((i) => {
+      const root = boardRootEl.children[i];
+      return {
+        root,
+        label: root.querySelector('.playerLabel'),
+        counts: root.querySelector('.playerCounts'),
+        shieldsEl: root.querySelector('[data-zone="shields"]'),
+        baseEl: root.querySelector('[data-zone="base"]'),
+        battleEl: root.querySelector('[data-zone="battle"]'),
+        handEl: root.querySelector('[data-zone="hand"]')
+      };
+    });
+  }
+
+  function resetBoard() {
+    boardNodeRegistry.clear();
+    boardZones = null;
+    boardRootEl.innerHTML = '';
+  }
+
+  // Builds (or, for a role change, rebuilds) an element's actual markup for its current role. Only
+  // called on first creation or when a re-keyed element is taking on a new shape (e.g. a hand card
+  // becoming a battle-area Unit) -- everyday updates to an unchanged role go through refreshTile
+  // instead, which only touches the specific sub-nodes that changed so their own CSS transitions
+  // (HP bar width, rested opacity) actually have an old value to animate from.
+  function setTileRole(el, role, item, cardDef) {
+    el.dataset.role = role;
+    if (role === 'shieldBack') {
+      el.className = 'shieldBack';
+      el.innerHTML = '';
+      return;
+    }
+    if (role === 'hand') {
+      el.className = 'handTile';
+      el.dataset.number = item.number;
+      el.innerHTML = `<img src="${imgSrcFor(item.number)}" onerror="this.style.visibility='hidden'" />`;
+      wireHoverZoom(el.querySelector('img'), item.number);
+      return;
+    }
+    // role === 'unit' (Battle Area member or Base)
+    el.className = 'unitTile' + (item.rested ? ' rested' : '');
+    el.dataset.number = item.number;
+    const maxHp = cardDef ? cardDef.hp : null;
+    el.innerHTML = `
+      <img src="${imgSrcFor(item.number)}" onerror="this.style.visibility='hidden'" />
+      <div class="uName">${item.name}</div>
+      ${maxHp ? `<div class="hpTrack"><div class="hpFill" style="width:100%"></div></div><div class="miniStat">${maxHp}/${maxHp} HP</div>` : ''}
+    `;
+    wireHoverZoom(el.querySelector('img'), item.number);
+    refreshTile(el, role, item, cardDef);
+  }
+
+  function refreshTile(el, role, item, cardDef) {
+    if (role !== 'unit') return;
+    el.classList.toggle('rested', !!item.rested);
+    const maxHp = cardDef ? cardDef.hp : null;
+    if (maxHp) {
+      const remaining = Math.max(0, maxHp - item.damage);
+      const pct = Math.max(0, Math.min(100, (remaining / maxHp) * 100));
+      const fill = el.querySelector('.hpFill');
+      if (fill) fill.style.width = pct + '%';
+      const stat = el.querySelector('.miniStat');
+      if (stat) stat.textContent = `${remaining}/${maxHp} HP`;
+    }
+    let badge = el.querySelector('.pilotBadge');
+    if (item.pilot) {
+      if (!badge) { badge = document.createElement('div'); badge.className = 'pilotBadge'; el.appendChild(badge); }
+      badge.textContent = '+ ' + item.pilot.name;
+    } else if (badge) {
+      badge.remove();
+    }
+  }
+
+  // Reconciles one zone's DOM children against its current items list: reuses (updates or, on a role
+  // change, rebuilds) each item's persistent element by key, creates one for a genuinely new key
+  // (with an enter animation, only when `animate`), and always appendChild's every item in list order
+  // -- appendChild on an already-present child just reorders it, so this also keeps zone order correct
+  // for free. Returns the set of keys it rendered, so the caller can tell which registry entries were
+  // NOT claimed by anything this step (those departed and need an exit animation).
+  function reconcileZone(container, items, role, cardDefFn, animate) {
+    const seen = new Set();
+    for (const item of items) {
+      const key = item._key;
+      seen.add(key);
+      const cardDef = cardDefFn ? cardDefFn(item) : null;
+      let el = boardNodeRegistry.get(key);
+      if (!el) {
+        el = document.createElement('div');
+        boardNodeRegistry.set(key, el);
+        setTileRole(el, role, item, cardDef);
+        if (animate) {
+          el.classList.add('enterAnim');
+          el.addEventListener('animationend', () => el.classList.remove('enterAnim'), { once: true });
+        }
+      } else if (el.dataset.role !== role) {
+        setTileRole(el, role, item, cardDef);
+      } else {
+        refreshTile(el, role, item, cardDef);
+      }
+      container.appendChild(el);
+    }
+    return seen;
+  }
+
+  function findVanishedKey(prevList, newList) {
+    const newKeys = new Set(newList.map((c) => c._key));
+    const vanished = prevList.find((c) => !newKeys.has(c._key));
+    return vanished ? vanished._key : null;
+  }
+
+  // Moves a still-live entity from one key to another without touching the DOM -- reconcileZone will
+  // discover it under its new key next, see its role doesn't match yet, and rebuild its content/class
+  // for the new role while FLIP (driven separately, from the rect captured before any of this ran)
+  // carries it visually from its old position to wherever reconcileZone parents it.
+  function rekey(oldKey, newKey) {
+    if (!oldKey) return;
+    const el = boardNodeRegistry.get(oldKey);
+    if (!el) return;
+    boardNodeRegistry.delete(oldKey);
+    boardNodeRegistry.set(newKey, el);
+  }
+
+  // A departing entity with a real destination on screen (the trash counter, or the Unit it's pairing
+  // onto) -- unlike rekey, nothing will claim this element again, so it's removed from the registry
+  // immediately and animates itself out independently of the zone reconciliation happening this step.
+  function animateExitTo(el, targetEl, scale) {
+    const before = el.getBoundingClientRect();
+    const targetRect = targetEl ? targetEl.getBoundingClientRect() : before;
+    const dx = targetRect.left + targetRect.width / 2 - (before.left + before.width / 2);
+    const dy = targetRect.top + targetRect.height / 2 - (before.top + before.height / 2);
+    el.style.transition = 'none';
+    el.style.zIndex = '50';
+    requestAnimationFrame(() => {
+      el.style.transition = 'transform 380ms ease-in, opacity 380ms ease-in';
+      el.style.transform = `translate(${dx}px, ${dy}px) scale(${scale})`;
+      el.style.opacity = '0';
+    });
+    setTimeout(() => el.remove(), 420);
+  }
+
+  function exitToward(key, player) {
+    if (!key) return;
+    const el = boardNodeRegistry.get(key);
+    if (!el) return;
+    boardNodeRegistry.delete(key);
+    animateExitTo(el, boardZones[player].counts, 0.3);
+  }
+
+  function mergeInto(fromKey, unitKey) {
+    if (!fromKey) return;
+    const el = boardNodeRegistry.get(fromKey);
+    if (!el) return;
+    boardNodeRegistry.delete(fromKey);
+    animateExitTo(el, boardNodeRegistry.get(unitKey) || null, 0.2);
+  }
+
+  // Computes and applies this step's one cross-zone identity change (if any) BEFORE the zones are
+  // reconciled, so reconcileZone finds the right element already sitting under its new key. Derives
+  // "which specific hand/Shield element this event is about" by diffing prevSnapshot vs snapshot's
+  // hand list rather than trusting the event's own card number alone, since duplicate copies of a
+  // card can coexist in hand -- exactly one entry ever vanishes per event, so whichever key that is
+  // is unambiguous.
+  function applyKeyTransition(prevSnapshot, snapshot, event) {
+    if (!event || event.player === undefined) return;
+    const p = event.player;
+    switch (event.type) {
+      case 'deploy':
+        rekey(findVanishedKey(prevSnapshot.players[p].hand, snapshot.players[p].hand), 'unit-' + event.unit.id);
+        break;
+      case 'deployBase': {
+        let fromKey = findVanishedKey(prevSnapshot.players[p].hand, snapshot.players[p].hand);
+        // Not played from hand -> must be a Shield's Burst becoming a Base (becomeBase), parked under
+        // this short-lived key by the 'burst' case below at the moment it was revealed.
+        if (!fromKey && boardNodeRegistry.has('pendingReveal-' + p)) fromKey = 'pendingReveal-' + p;
+        rekey(fromKey, 'unit-' + event.unit.id);
+        break;
+      }
+      case 'command':
+      case 'discard':
+        exitToward(findVanishedKey(prevSnapshot.players[p].hand, snapshot.players[p].hand), p);
+        break;
+      case 'pair':
+        mergeInto(findVanishedKey(prevSnapshot.players[p].hand, snapshot.players[p].hand), 'unit-' + event.unit.id);
+        break;
+      // pairFromTrash has no on-screen origin to animate from -- the trash is count-only.
+      case 'destroy':
+        exitToward('unit-' + event.unit.id, p);
+        break;
+      case 'burst': {
+        const slotIdx = prevSnapshot.players[p].shieldCount - 1;
+        const fromKey = 'shieldback-' + p + '-' + slotIdx;
+        const el = boardNodeRegistry.get(fromKey);
+        if (!el) break;
+        boardNodeRegistry.delete(fromKey);
+        // Swap the back for the real front art and play a quick squeeze -- a lightweight stand-in for
+        // a true two-sided 3D flip, cheap and framework-free, still reads as "this Shield is revealed."
+        el.dataset.role = 'shieldFront';
+        el.className = 'shieldFront shieldFlip';
+        el.innerHTML = `<img src="${imgSrcFor(event.card.number)}" onerror="this.style.visibility='hidden'" />`;
+        wireHoverZoom(el.querySelector('img'), event.card.number);
+        el.addEventListener('animationend', () => el.classList.remove('shieldFlip'), { once: true });
+        if (event.endedUpInHand) {
+          const hand = snapshot.players[p].hand;
+          boardNodeRegistry.set(hand[hand.length - 1]._key, el);
+        } else {
+          const def = cardByNumber(event.card.number);
+          if (def && def.type === 'base') {
+            // becomeBase always follows (possibly a few events later, if the Base's own Deploy
+            // ability fires other traceable effects first) -- 'pendingReveal-' keys are exempt from
+            // the generic departed-entity cleanup below, so this waits safely until then.
+            boardNodeRegistry.set('pendingReveal-' + p, el);
+          } else {
+            setTimeout(() => animateExitTo(el, boardZones[p].counts, 0.3), 160);
+          }
+        }
+        break;
+      }
+    }
+  }
+
+  function flashClass(el, cls) {
+    if (!el) return;
+    el.classList.remove(cls);
+    void el.offsetWidth; // restart the animation even if this exact class never finished clearing
+    el.classList.add(cls);
+    el.addEventListener('animationend', () => el.classList.remove(cls), { once: true });
+  }
+
+  function applyFlashes(event) {
+    if (!event) return;
+    switch (event.type) {
+      case 'attack':
+        flashClass(boardNodeRegistry.get('unit-' + event.attacker.id), 'flashAttack');
+        if (event.target.type === 'unit') flashClass(boardNodeRegistry.get('unit-' + event.target.unit.id), 'flashHit');
+        break;
+      case 'block':
+        flashClass(boardNodeRegistry.get('unit-' + event.blocker.id), 'flashBlock');
+        break;
+      case 'damage':
+        flashClass(boardNodeRegistry.get('unit-' + event.instance.id), 'flashHit');
+        break;
+    }
+  }
+
+  // The FLIP payoff: given an element's rect from before this step's DOM mutations, work out how far
+  // it moved/resized and animate it from there back to identity, so a re-parented or reordered element
+  // glides to its new spot instead of jumping there instantly.
+  function flipFrom(el, beforeRect) {
+    const after = el.getBoundingClientRect();
+    const dx = beforeRect.left - after.left;
+    const dy = beforeRect.top - after.top;
+    const sx = beforeRect.width / (after.width || 1);
+    const sy = beforeRect.height / (after.height || 1);
+    if (Math.abs(dx) < 1 && Math.abs(dy) < 1 && Math.abs(sx - 1) < 0.02 && Math.abs(sy - 1) < 0.02) return;
+    el.style.transition = 'none';
+    el.style.transform = `translate(${dx}px, ${dy}px) scale(${sx}, ${sy})`;
+    requestAnimationFrame(() => {
+      el.style.transition = 'transform 380ms ease';
+      el.style.transform = '';
+      // Hands the transition property back to the stylesheet afterward, so this element's other,
+      // ordinary CSS transitions (rested-state opacity, HP bar width) keep working on later steps.
+      setTimeout(() => { el.style.transition = ''; }, 400);
+    });
+  }
+
+  async function renderBoard(prevSnapshot, snapshot, animate) {
+    await ensureCardsLoaded();
+    ensureBoardSkeleton();
+
+    let beforeRects = null;
+    if (animate) {
+      beforeRects = new Map();
+      for (const el of boardNodeRegistry.values()) beforeRects.set(el, el.getBoundingClientRect());
+      applyKeyTransition(prevSnapshot, snapshot, snapshot.event);
+    }
+
+    const seenAll = new Set();
+    snapshot.players.forEach((p, i) => {
+      const zone = boardZones[i];
+      zone.root.classList.toggle('active', snapshot.activePlayer === i);
+      zone.label.textContent = `Player ${i}${snapshot.activePlayer === i ? ' (active)' : ''}`;
+      zone.counts.textContent = `Resources: ${p.resourceCount} · Trash: ${p.trashCount}`;
+
+      const shieldItems = Array.from({ length: p.shieldCount }, (_, slot) => ({ _key: `shieldback-${i}-${slot}` }));
+      for (const k of reconcileZone(zone.shieldsEl, shieldItems, 'shieldBack', null, animate)) seenAll.add(k);
+      for (const k of reconcileZone(zone.baseEl, p.base ? [p.base] : [], 'unit', (u) => cardByNumber(u.number), animate)) seenAll.add(k);
+      for (const k of reconcileZone(zone.battleEl, p.battleArea, 'unit', (u) => cardByNumber(u.number), animate)) seenAll.add(k);
+      for (const k of reconcileZone(zone.handEl, p.hand, 'hand', null, animate)) seenAll.add(k);
+    });
+
+    // Anything still registered but not claimed by any zone above departed this step without one of
+    // applyKeyTransition's own explicit handlers already having removed and animated it (e.g. a stray
+    // edge case) -- give it a generic fade/shrink instead of silently vanishing. 'pendingReveal-'
+    // entries are a deliberate exception: parked mid-flight between a Burst reveal and the becomeBase
+    // event that will claim them, not actually abandoned.
+    for (const [key, el] of [...boardNodeRegistry.entries()]) {
+      if (seenAll.has(key) || key.indexOf('pendingReveal-') === 0) continue;
+      boardNodeRegistry.delete(key);
+      if (animate) { el.classList.add('exitAnim'); setTimeout(() => el.remove(), 400); }
+      else el.remove();
+    }
+
+    if (animate && beforeRects) {
+      for (const el of boardNodeRegistry.values()) {
+        const before = beforeRects.get(el);
+        if (before) flipFrom(el, before);
+      }
+      applyFlashes(snapshot.event);
+    }
+  }
+
+  // --- Board View playback: Prev/Next/scrubber + a step-through auto-play. Only advancing exactly
+  // one event forward (Next, or Play's own tick) triggers the FLIP/move animations above -- jumping
+  // via Prev or the scrubber has no sensible "previous DOM state" to animate from, so those do a
+  // plain instant rebuild instead (see replayLastRenderedIndex below).
+  let currentReplayEvents = null;
+  let currentReplayIndex = 0;
+  let replayLastRenderedIndex = null;
+  let playbackTimer = null;
+  let replayViewMode = 'log';
+
+  const logViewBtn = document.getElementById('logViewBtn');
+  const boardViewBtn = document.getElementById('boardViewBtn');
+  const replayBoardEl = document.getElementById('replayBoard');
+  const eventCaptionEl = document.getElementById('eventCaption');
+  const playbackScrub = document.getElementById('playbackScrub');
+  const playbackPrev = document.getElementById('playbackPrev');
+  const playbackNext = document.getElementById('playbackNext');
+  const playbackPlay = document.getElementById('playbackPlay');
+
+  function stopPlayback() {
+    if (playbackTimer) {
+      clearInterval(playbackTimer);
+      playbackTimer = null;
+      playbackPlay.textContent = 'Play';
+    }
+  }
+
+  async function renderCurrentBoardStep() {
+    if (!currentReplayEvents) return;
+    // buildSnapshot now looks up card types (via cardByNumber) to resolve Burst-into-Base fates
+    // correctly, so the card DB must be loaded before it runs, not just before renderBoard draws.
+    await ensureCardsLoaded();
+    const idx = currentReplayIndex;
+    const animate = replayLastRenderedIndex !== null && idx === replayLastRenderedIndex + 1;
+    if (!animate) resetBoard();
+    const snapshot = buildSnapshot(currentReplayEvents, idx);
+    const prevSnapshot = animate ? buildSnapshot(currentReplayEvents, idx - 1) : null;
+    await renderBoard(prevSnapshot, snapshot, animate);
+    replayLastRenderedIndex = idx;
+    eventCaptionEl.textContent = `Event ${idx + 1} / ${currentReplayEvents.length} — ${eventCaptionText(snapshot.event)}`;
+    playbackScrub.value = String(idx);
+  }
+
+  function setReplayView(mode) {
+    replayViewMode = mode;
+    logViewBtn.classList.toggle('active', mode === 'log');
+    boardViewBtn.classList.toggle('active', mode === 'board');
+    replayTimeline.style.display = mode === 'log' ? 'block' : 'none';
+    replayBoardEl.style.display = mode === 'board' ? 'block' : 'none';
+    if (mode === 'board') renderCurrentBoardStep();
+    else stopPlayback();
+  }
+  logViewBtn.addEventListener('click', () => setReplayView('log'));
+  boardViewBtn.addEventListener('click', () => setReplayView('board'));
+
+  playbackPrev.addEventListener('click', () => {
+    stopPlayback();
+    currentReplayIndex = Math.max(0, currentReplayIndex - 1);
+    renderCurrentBoardStep();
+  });
+  playbackNext.addEventListener('click', () => {
+    stopPlayback();
+    currentReplayIndex = Math.min(currentReplayEvents.length - 1, currentReplayIndex + 1);
+    renderCurrentBoardStep();
+  });
+  playbackScrub.addEventListener('input', () => {
+    stopPlayback();
+    currentReplayIndex = Number(playbackScrub.value);
+    renderCurrentBoardStep();
+  });
+  playbackPlay.addEventListener('click', () => {
+    if (playbackTimer) { stopPlayback(); return; }
+    playbackPlay.textContent = 'Pause';
+    // 900ms/step (was 700ms before motion existed) -- gives the longest animation chain (a Burst's
+    // flip-then-fly-to-trash, ~540ms) room to finish before the next step's mutations start.
+    playbackTimer = setInterval(() => {
+      if (currentReplayIndex >= currentReplayEvents.length - 1) { stopPlayback(); return; }
+      currentReplayIndex++;
+      renderCurrentBoardStep();
+    }, 900);
+  });
+
   document.getElementById('replayBtn').addEventListener('click', async () => {
     if (!lastStats || !lastStats.perGame) return;
     const game = lastStats.perGame[Number(replayGameNum.value) - 1];
@@ -721,10 +1343,22 @@
       replayTimeline.innerHTML = '<p style="color:var(--red-glow)">No such game number.</p>';
       return;
     }
+    stopPlayback();
+    currentReplayEvents = null;
     replayTimeline.innerHTML = 'Loading replay...';
     try {
       const events = await window.sim.replayGame(game.seed);
       renderTimeline(events);
+      currentReplayEvents = events;
+      currentReplayIndex = 0;
+      // A fresh replay's instance ids start over from a fresh worker (see traceGame.js's own header
+      // comment) -- they are NOT unique across two different replayGame() calls, so any stale
+      // 'unit-<id>' entries from a previously-loaded game must not survive into this one.
+      replayLastRenderedIndex = null;
+      resetBoard();
+      playbackScrub.max = String(Math.max(0, events.length - 1));
+      playbackScrub.value = '0';
+      if (replayViewMode === 'board') renderCurrentBoardStep();
     } catch (err) {
       replayTimeline.innerHTML = '<p style="color:var(--red-glow)">' + err.message + '</p>';
     }

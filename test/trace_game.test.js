@@ -46,7 +46,11 @@ test('traceGame returns a structured event log, mulligan decisions first, gameSt
   assert.equal(mulliganEvents.length, 2, 'exactly one mulligan decision per player');
   assert.deepEqual(events.slice(0, 2).map((e) => e.type), ['mulligan', 'mulligan']);
 
-  const gameStart = events[2];
+  // openingHand follows the 2 mulligan decisions, one per player, before gameStart.
+  const openingHandEvents = events.slice(2, 4);
+  assert.deepEqual(openingHandEvents.map((e) => e.type), ['openingHand', 'openingHand']);
+
+  const gameStart = events[4];
   assert.equal(gameStart.type, 'gameStart');
   assert.ok(gameStart.firstPlayer === 0 || gameStart.firstPlayer === 1);
 
@@ -59,6 +63,10 @@ test('traceGame returns a structured event log, mulligan decisions first, gameSt
   assert.ok(events.some((e) => e.type === 'resource'));
   assert.ok(events.some((e) => e.type === 'deploy'));
   assert.ok(events.some((e) => e.type === 'attack'));
+  // A full game between two 50-card decks reliably produces at least one destroy and one damage
+  // event -- combat happens, and units die.
+  assert.ok(events.some((e) => e.type === 'destroy'));
+  assert.ok(events.some((e) => e.type === 'damage'));
 });
 
 // `instance.id` comes from a process-lifetime global counter (state.js's nextInstanceId), not from
@@ -107,6 +115,132 @@ test('a real Burst reveal (Jaburo, seed 1) logs the shield card and whether it a
   assert.equal(burst.card.number, 'GD04-122');
   assert.equal(burst.activated, true);
   assert.ok(burst.player === 0 || burst.player === 1);
+  // Jaburo's Burst converts the Shield straight into a Base (jaburoBurst -> becomeBase), never hand.
+  assert.equal(burst.endedUpInHand, false);
+  // becomeBase is patched separately from deployBase (see traceGame.js) -- confirms the Shield's
+  // conversion into a real Base actually shows up in the log, not just that it avoided the hand.
+  const becomeBaseEvent = events.find((e) => e.type === 'deployBase' && e.card.number === 'GD04-122');
+  assert.ok(becomeBaseEvent, 'expected a deployBase event for Jaburo becoming a Base');
+  assert.equal(typeof becomeBaseEvent.unit.id, 'number');
+});
+
+test('burst.endedUpInHand is true for a "add this Shield to your hand" effect (Amuro Ray ST01-010, seed 1)', () => {
+  const deck = buildJakesDeck();
+  const events = traceGame(deck, deck, 1);
+  const burst = events.find((e) => e.type === 'burst' && e.card.number === 'ST01-010');
+  assert.ok(burst, 'expected an Amuro Ray Burst reveal in this seeded game');
+  assert.equal(burst.activated, true);
+  assert.equal(burst.endedUpInHand, true);
+});
+
+test('openingHand events list each player\'s real post-mulligan 5-card hand', () => {
+  const deck = buildJakesDeck();
+  const events = traceGame(deck, deck, 999);
+  const openingHands = events.filter((e) => e.type === 'openingHand');
+  assert.equal(openingHands.length, 2);
+  const players = openingHands.map((e) => e.player).sort();
+  assert.deepEqual(players, [0, 1]);
+  for (const e of openingHands) {
+    assert.equal(e.hand.length, 5);
+    for (const card of e.hand) assert.equal(typeof card.number, 'string');
+  }
+});
+
+test('deploy and deployBase events carry the created instance\'s id', () => {
+  const deck = buildJakesDeck();
+  const events = traceGame(deck, deck, 999);
+  const deployEvents = events.filter((e) => e.type === 'deploy' || e.type === 'deployBase');
+  assert.ok(deployEvents.length > 0);
+  for (const e of deployEvents) {
+    assert.equal(typeof e.unit.number, 'string');
+    assert.equal(typeof e.unit.id, 'number');
+    assert.equal(e.unit.number, e.card.number);
+  }
+});
+
+test('destroy events name the destroyed unit and its owner', () => {
+  const deck = buildJakesDeck();
+  const events = traceGame(deck, deck, 999);
+  const destroyEvents = events.filter((e) => e.type === 'destroy');
+  assert.ok(destroyEvents.length > 0);
+  for (const e of destroyEvents) {
+    assert.ok(e.player === 0 || e.player === 1);
+    assert.equal(typeof e.unit.number, 'string');
+    assert.equal(typeof e.unit.id, 'number');
+  }
+});
+
+test('damage events carry a positive amount and the damaged instance', () => {
+  const deck = buildJakesDeck();
+  const events = traceGame(deck, deck, 999);
+  const damageEvents = events.filter((e) => e.type === 'damage');
+  assert.ok(damageEvents.length > 0);
+  for (const e of damageEvents) {
+    assert.ok(e.player === 0 || e.player === 1);
+    assert.ok(e.amount > 0);
+    assert.equal(typeof e.instance.number, 'string');
+    assert.equal(typeof e.instance.id, 'number');
+  }
+});
+
+test('draw events carry the identity of the card actually drawn', () => {
+  const deck = buildJakesDeck();
+  const events = traceGame(deck, deck, 999);
+  const drawEvents = events.filter((e) => e.type === 'draw');
+  assert.ok(drawEvents.length > 0);
+  for (const e of drawEvents) assert.equal(typeof e.card.number, 'string');
+  // At least one should be the once-per-turn phase draw, not just effect-triggered draws.
+  assert.ok(drawEvents.some((e) => e.isPhaseDraw === true));
+});
+
+// Jake's own real, curve-out deck reliably empties its hand well under the 10-card limit every
+// turn (confirmed: zero discards across 30 real tournament decklists x 5 seeds each, and 400 seeds
+// of Jake's own deck) -- the heuristic/MCTS AI is simply too good at dumping its hand for this to
+// come up organically. A synthetic deck of one deliberately unplayable card (level/cost 99, forever
+// out of reach of the resource area's 15-card cap) forces a real, deterministic hand-limit discard
+// instead, same "unitDef helper with synthetic overrides" pattern already used in rules.test.js.
+function unplayableUnitDef() {
+  return { number: 'X-UNIT', name: 'Unplayable Test Unit', type: 'unit', color: 'blue', level: 99, cost: 99, ap: 1, hp: 1, keywords: {} };
+}
+function testResourceDef() {
+  return { number: 'X-RES', name: 'Test Resource', type: 'resource', color: 'blue', cost: 0, level: 0 };
+}
+
+test('discard events fire for a real end-phase hand-limit discard, naming the discarded card', () => {
+  const deck = {
+    main: Array.from({ length: 50 }, unplayableUnitDef),
+    resource: Array.from({ length: 10 }, testResourceDef)
+  };
+  const events = traceGame(deck, deck, 1);
+  const discardEvents = events.filter((e) => e.type === 'discard');
+  assert.ok(discardEvents.length > 0, 'an unplayable deck should overflow the hand and force discards');
+  for (const e of discardEvents) {
+    assert.ok(e.player === 0 || e.player === 1);
+    assert.equal(e.card.number, 'X-UNIT');
+  }
+});
+
+// Jake's own real deck produced zero organic Blocker interceptions across 60 seeds -- it simply has
+// no Blocker-keyword units. Same synthetic-deck technique as the discard test above: a deck of one
+// real Blocker card (EB01-011 Beginning Gundam, a genuine keyword-bearing card, not a made-up def)
+// mirrored against itself forces real, frequent block decisions instead.
+function blockerDeck() {
+  const blockerDef = lookupCard('EB01-011');
+  const resourceDef = { number: 'X-RES', name: 'Test Resource', type: 'resource', color: 'blue', cost: 0, level: 0 };
+  return { main: Array.from({ length: 50 }, () => blockerDef), resource: Array.from({ length: 10 }, () => resourceDef) };
+}
+
+test('block events name the intercepting Blocker and the attacker it stopped', () => {
+  const deck = blockerDeck();
+  const events = traceGame(deck, deck, 1);
+  const blockEvents = events.filter((e) => e.type === 'block');
+  assert.ok(blockEvents.length > 0, 'an all-Blocker mirror match should produce real block decisions');
+  for (const e of blockEvents) {
+    assert.ok(e.player === 0 || e.player === 1);
+    assert.equal(typeof e.blocker.id, 'number');
+    assert.equal(typeof e.attacker.id, 'number');
+    assert.notEqual(e.blocker.id, e.attacker.id);
+  }
 });
 
 test('traceGame only logs real decisions, not the AI search\'s cloned-state scratch trials', () => {

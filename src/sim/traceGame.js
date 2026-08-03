@@ -7,21 +7,22 @@
 // show up.
 //
 // IMPORTANT: this file must be the first thing required in its process/worker, before anything else
-// (heuristic.js, mcts.js, phases.js, ...) touches rules/actions.js or rules/combat.js. Those modules
-// destructure their functions off actions/combat at their own top level the first time they're
-// required, which caches the *unpatched* function references in a local const -- patching afterward
-// wouldn't reach them (Node's module cache means the actions/combat exports objects are shared, but
-// reassigning a property on that object doesn't rewrite an already-captured destructured binding
-// elsewhere). electron/worker/replayWorker.js is the real entry point that guarantees this by being a
-// fresh worker_thread (its own isolated module registry) spun up fresh per replay request.
-// phases.js must be required (and its drawCard patched) BEFORE combat.js -- combat.js destructures
-// `const { drawCard } = require('./phases')` at its own top-level require time, which captures
-// whatever phases.exports.drawCard currently points to. If combat.js were required first (like every
-// other patched module here), its already-bound `drawCard` reference would be the original,
-// unpatched function forever, and reassigning phases.exports.drawCard afterward would never reach it
-// (same hazard this file's header comment already describes for actions.js/combat.js's own
-// consumers). registry.js does the exact same destructuring, but it's only ever reached transitively,
-// well after this ordering is already locked in, so it automatically picks up the patched version.
+// (heuristic.js, mcts.js, phases.js, ...) touches rules/management.js, rules/actions.js, or
+// rules/combat.js. Those modules destructure their functions off these exports objects at their own
+// top level the first time they're required, which caches the *unpatched* function references in a
+// local const -- patching afterward wouldn't reach them (Node's module cache means the exports objects
+// are shared, but reassigning a property on that object doesn't rewrite an already-captured
+// destructured binding elsewhere). electron/worker/replayWorker.js is the real entry point that
+// guarantees this by being a fresh worker_thread (its own isolated module registry) spun up fresh per
+// replay request.
+// management.js must be required (and patched) BEFORE phases.js/actions.js/combat.js -- all three
+// destructure functions off management.js at their own top-level require time, which captures
+// whatever management.exports currently points to. If any of them were required first, their
+// already-bound references would be the originals forever, and reassigning management.exports
+// afterward would never reach them (same hazard this file's header comment already describes for
+// actions.js/combat.js's own consumers). registry.js does the exact same destructuring, but it's only
+// ever reached transitively, well after this ordering is already locked in, so it automatically picks
+// up the patched versions.
 //
 // This patch only ever catches *effect*-triggered draws reached via registry.js's destructured
 // reference (e.g. a Command's "draw 1, discard 1") -- it can NEVER catch the once-per-turn phase
@@ -32,7 +33,31 @@
 // before/after hand-size diff around its own `runDrawPhase(state)` call -- the same trick already
 // used there for resource placement. Because these two mechanisms observe genuinely disjoint call
 // sites, there's no risk of the same draw ever being logged twice.
-const phases = require('../rules/phases');
+//
+// destroyCard/destroyIfDead (management.js) are BOTH patched separately, even though destroyIfDead's
+// own body calls destroyCard internally -- that internal call is itself a bare same-module reference
+// (bypasses whatever we reassign management.exports.destroyCard to), so a destroyIfDead-driven
+// destruction (battle damage reducing HP to 0) would never reach a patch placed only on destroyCard.
+// Patching destroyIfDead directly, from the outside, catches that path independently; the two patches
+// observe disjoint call sites (direct destroyCard calls from actions.js/registry.js/combat.js's
+// destroyOutrightAndFireEffect vs. destroyIfDead-driven ones from combat.js's destroyAndFireEffect),
+// so there's no double-counting risk, same shape as the drawCard split above.
+//
+// dealDamage/enforceHandLimit (management.js) take no `state` argument at all, so the usual
+// `state === realState` guard doesn't directly apply. Both instead check reachability from realState
+// directly (does realState contain this instance/player right now?) -- reliable even without a state
+// argument, since cloneState always produces new, non-reference-equal objects for every AI search
+// trial.
+//
+// `block` events (a Blocker unit intercepting an attack) are captured the same way as `burst` --
+// wrapping chooseBlocker on the one shared hooks object built in traceGame() below, not patching
+// combat.js's resolveAttack/resolveFromBlockDecision (which call hooks.chooseBlocker directly, so
+// there's nothing to bare-call-bypass here). Every simulated AI trial builds its own fresh
+// defaultHooks()/lookaheadHooks() internally rather than reusing the hooks object passed in from
+// outside, so only the real, finally-applied attack ever reaches this wrapper -- same structural
+// guarantee chooseBurst already relies on, which is why this is safe even though chooseBlocker (unlike
+// chooseBurst) never receives a `state` argument to compare against realState.
+const management = require('../rules/management');
 
 let realState = null;
 let events = null;
@@ -44,12 +69,76 @@ function instanceRef(instance) {
   return instance ? { name: instance.def.name, number: instance.def.number, id: instance.id } : null;
 }
 
+const origDestroyCard = management.destroyCard;
+management.destroyCard = function (state, player, instance) {
+  const isReal = state === realState;
+  const unitRef = isReal ? instanceRef(instance) : null;
+  const playerIdx = isReal ? state.players.indexOf(player) : null;
+  const result = origDestroyCard.call(this, state, player, instance);
+  if (isReal) events.push({ type: 'destroy', turn: state.turnNumber, player: playerIdx, unit: unitRef });
+  return result;
+};
+
+const origDestroyIfDead = management.destroyIfDead;
+management.destroyIfDead = function (state, player, instance) {
+  const isReal = state === realState;
+  const unitRef = isReal ? instanceRef(instance) : null;
+  const playerIdx = isReal ? state.players.indexOf(player) : null;
+  const result = origDestroyIfDead.call(this, state, player, instance);
+  if (isReal && result) events.push({ type: 'destroy', turn: state.turnNumber, player: playerIdx, unit: unitRef });
+  return result;
+};
+
+function ownerIdxOf(instance) {
+  return realState
+    ? realState.players.findIndex((p) => p.battleArea.includes(instance) || p.base === instance || p.shields.includes(instance))
+    : -1;
+}
+
+const origDealDamage = management.dealDamage;
+management.dealDamage = function (instance, amount, opts = {}) {
+  const playerIdx = ownerIdxOf(instance);
+  const before = instance.damage;
+  const result = origDealDamage.call(this, instance, amount, opts);
+  if (playerIdx !== -1) {
+    const dealt = instance.damage - before;
+    if (dealt > 0) {
+      events.push({ type: 'damage', turn: realState.turnNumber, player: playerIdx, instance: instanceRef(instance), amount: dealt });
+    }
+  }
+  return result;
+};
+
+const origEnforceHandLimit = management.enforceHandLimit;
+management.enforceHandLimit = function (player, chooseDiscards) {
+  const isReal = !!realState && realState.players.includes(player);
+  const handBefore = isReal ? [...player.hand] : null;
+  const result = origEnforceHandLimit.call(this, player, chooseDiscards);
+  if (isReal) {
+    const playerIdx = realState.players.indexOf(player);
+    for (const card of handBefore) {
+      if (!player.hand.includes(card)) {
+        events.push({ type: 'discard', turn: realState.turnNumber, player: playerIdx, card: cardRef(card.def) });
+      }
+    }
+  }
+  return result;
+};
+
+const phases = require('../rules/phases');
+
 const origDrawCard = phases.drawCard;
 phases.drawCard = function (state, player, opts = {}) {
   const before = player.deck.length;
   const result = origDrawCard.call(this, state, player, opts);
   if (state === realState && player.deck.length < before) {
-    events.push({ type: 'draw', turn: state.turnNumber, player: state.players.indexOf(player), isPhaseDraw: false });
+    events.push({
+      type: 'draw',
+      turn: state.turnNumber,
+      player: state.players.indexOf(player),
+      card: cardRef(player.hand[player.hand.length - 1].def),
+      isPhaseDraw: false
+    });
   }
   return result;
 };
@@ -61,7 +150,10 @@ const origDeployUnit = actions.deployUnit;
 actions.deployUnit = function (state, player, def, chooseToTrash, context) {
   const result = origDeployUnit.call(this, state, player, def, chooseToTrash, context);
   if (state === realState) {
-    events.push({ type: 'deploy', turn: state.turnNumber, player: state.players.indexOf(player), card: cardRef(def) });
+    // `result` is the newly created instance -- carrying its id (not just the card number) is what
+    // lets the board replay's reducer track this exact battle-area slot across later damage/destroy
+    // events, even when two copies of the same card number are in play at once.
+    events.push({ type: 'deploy', turn: state.turnNumber, player: state.players.indexOf(player), card: cardRef(def), unit: instanceRef(result) });
   }
   return result;
 };
@@ -70,7 +162,24 @@ const origDeployBase = actions.deployBase;
 actions.deployBase = function (state, player, def) {
   const result = origDeployBase.call(this, state, player, def);
   if (state === realState) {
-    events.push({ type: 'deployBase', turn: state.turnNumber, player: state.players.indexOf(player), card: cardRef(def) });
+    events.push({ type: 'deployBase', turn: state.turnNumber, player: state.players.indexOf(player), card: cardRef(def), unit: instanceRef(result) });
+  }
+  return result;
+};
+
+// becomeBase (a Shield converting straight into a Base -- e.g. Jaburo, White Base, Archangel) is
+// how EVERY Base card in the entire DB implements its Burst text (grep-confirmed: 68/68 Base cards
+// resolve to becomeBase, the vast majority via the shared simpleBurstBase). It's a distinct exported
+// function from deployBase (not called as a bare same-module reference anywhere -- registry.js is
+// its only caller, via the same destructured-import pattern as every other actions.js patch here),
+// so it needs its own patch rather than assuming a Burst that doesn't end up in hand went to trash.
+// Reuses the 'deployBase' event shape since, from a replay's perspective, "this instance is now the
+// player's Base" is exactly what that event already represents.
+const origBecomeBase = actions.becomeBase;
+actions.becomeBase = function (state, player, instance) {
+  const result = origBecomeBase.call(this, state, player, instance);
+  if (state === realState) {
+    events.push({ type: 'deployBase', turn: state.turnNumber, player: state.players.indexOf(player), card: cardRef(instance.def), unit: instanceRef(result) });
   }
   return result;
 };
@@ -137,6 +246,39 @@ combat.resolveAttack = function (state, attackerPlayerIdx, attacker, declaredTar
   return result;
 };
 
+// Burst effects (e.g. "add this Shield to your hand") are looked up and invoked entirely within
+// combat.js's resolveBurst -- `const burstEffect = shieldInstance.def.effects.burst` is captured
+// BEFORE hooks.chooseBurst is even called, so patching def.effects.burst from inside the chooseBurst
+// hook below would be one call too late (resolveBurst still fires the reference it grabbed earlier).
+// Instead, every burst effect on every card def is wrapped exactly once here, permanently, at module
+// load -- resolveBurst re-reads `def.effects.burst` fresh on every single call, so whichever function
+// currently sits there (ours) is always what gets invoked, regardless of which of the 3 call sites
+// triggered it (combat.js's 2 internal bare calls, or registry.js's external one for cards like
+// Interwoven Blessings GD05-107). `state` is still one of burstEffect's real arguments, so the usual
+// state === realState guard works unmodified. `pendingBurstEvents` (populated by the chooseBurst hook
+// in traceGame() below, keyed by the specific shieldInstance object) lets this patch fill in
+// `endedUpInHand` on the exact event that was already pushed for this reveal, checked right after the
+// effect finishes -- resolveBurst's own trailing "push to trash if untracked" fallback hasn't run yet
+// at that point, but nothing between here and there can move the card anywhere else, so hand
+// membership measured now already matches the card's final resting place.
+const { listAllCards } = require('../cards/index');
+const pendingBurstEvents = new Map();
+for (const def of listAllCards()) {
+  const origBurst = def.effects && def.effects.burst;
+  if (!origBurst) continue;
+  def.effects.burst = function (state, defendingPlayer, shieldInstance, context) {
+    const result = origBurst.call(this, state, defendingPlayer, shieldInstance, context);
+    if (state === realState) {
+      const ev = pendingBurstEvents.get(shieldInstance);
+      if (ev) {
+        ev.endedUpInHand = defendingPlayer.hand.includes(shieldInstance);
+        pendingBurstEvents.delete(shieldInstance);
+      }
+    }
+    return result;
+  };
+}
+
 // require AFTER patching, per the module-level comment above.
 const { initializeGame } = require('../rules/setup');
 const { runStartPhase, runDrawPhase, runResourcePhase, runEndPhase, passTurn } = require('../rules/phases');
@@ -168,6 +310,13 @@ function traceGame(deckA, deckB, seed, options = {}) {
   const state = initializeGame(deckA, deckB, { decideMulligan: tracedDecideMulligan, rng });
   realState = state;
 
+  // Captured directly here rather than patched -- initializeGame's opening hand isn't behind any
+  // function this file can hook, but the final post-mulligan hand is sitting right there once it
+  // returns, once per player, in seat order.
+  for (let i = 0; i < state.players.length; i++) {
+    events.push({ type: 'openingHand', player: i, hand: state.players[i].hand.map((c) => cardRef(c.def)) });
+  }
+
   if (options.mctsConfigA) state.players[0].mctsConfig = options.mctsConfigA;
   if (options.mctsConfigB) state.players[1].mctsConfig = options.mctsConfigB;
   const engines = [options.engineA || 'mcts', options.engineB || 'mcts'];
@@ -186,16 +335,39 @@ function traceGame(deckA, deckB, seed, options = {}) {
   const baseHooks = lookaheadHooks(state);
   const hooks = {
     ...baseHooks,
+    // chooseBlocker doesn't take a `state` argument at all (unlike chooseBurst), but the same
+    // structural guarantee applies: only the real, finally-applied attack ever threads *this* hooks
+    // object through -- every simulated trial builds its own fresh hooks internally -- so there's no
+    // real/clone ambiguity to guard against here despite the missing param.
+    chooseBlocker(defendingPlayer, attacker, target, attackingPlayer) {
+      const blocker = baseHooks.chooseBlocker(defendingPlayer, attacker, target, attackingPlayer);
+      if (blocker) {
+        events.push({
+          type: 'block',
+          turn: state.turnNumber,
+          player: state.players.indexOf(defendingPlayer),
+          blocker: instanceRef(blocker),
+          attacker: instanceRef(attacker)
+        });
+      }
+      return blocker;
+    },
     chooseBurst(shieldInstance, hookState) {
       const activate = baseHooks.chooseBurst(shieldInstance, hookState);
       if (hookState === realState) {
-        events.push({
+        const ev = {
           type: 'burst',
           turn: state.turnNumber,
           player: shieldInstance.owner,
           card: cardRef(shieldInstance.def),
-          activated: activate
-        });
+          activated: activate,
+          endedUpInHand: false
+        };
+        events.push(ev);
+        // Filled in by the global burst-effect patch above, right after the effect itself runs --
+        // only relevant when activate is true (the effect never runs otherwise, so it's definitely
+        // not in hand).
+        if (activate) pendingBurstEvents.set(shieldInstance, ev);
       }
       return activate;
     }
@@ -205,8 +377,15 @@ function traceGame(deckA, deckB, seed, options = {}) {
     runStartPhase(state);
     const handBeforeDraw = state.players[state.activePlayerIdx].hand.length;
     runDrawPhase(state);
-    if (state.players[state.activePlayerIdx].hand.length > handBeforeDraw) {
-      events.push({ type: 'draw', turn: state.turnNumber, player: state.activePlayerIdx, isPhaseDraw: true });
+    const activeHand = state.players[state.activePlayerIdx].hand;
+    if (activeHand.length > handBeforeDraw) {
+      events.push({
+        type: 'draw',
+        turn: state.turnNumber,
+        player: state.activePlayerIdx,
+        card: cardRef(activeHand[activeHand.length - 1].def),
+        isPhaseDraw: true
+      });
     }
     checkDefeat(state);
     if (state.winner !== null || state.draw) break;
