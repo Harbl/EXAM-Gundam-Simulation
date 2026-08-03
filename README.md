@@ -1,7 +1,7 @@
 # EXAM — Gundam TCG Sim
 
 [![Latest release](https://img.shields.io/github/v/release/Harbl/EXAM-Gundam-Simulation?label=latest%20release&color=9B1B1E)](https://github.com/Harbl/EXAM-Gundam-Simulation/releases/latest)
-[![Downloads](https://img.shields.io/github/downloads/Harbl/EXAM-Gundam-Simulation/total?color=C9A951)](https://github.com/Harbl/EXAM-Gundam-Simulation/releases/latest)
+[![Downloads](https://img.shields.io/github/downloads/Harbl/EXAM-Gundam-Simulation/total?color=C9A951&style=flat)](https://github.com/Harbl/EXAM-Gundam-Simulation/releases/latest)
 
 A Windows desktop app that plays out full games of the Gundam Card Game between
 two pasted decklists — hundreds or thousands of them, unattended — and reports
