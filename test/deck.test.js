@@ -58,6 +58,18 @@ test('a card name shaped like a card number (Re-GZ) is never mistaken for the nu
   assert.deepEqual(parseDecklistText('4 Re-GZ (GD05-019)').main, [{ quantity: 4, name: 'Re-GZ', number: 'GD05-019' }]);
 });
 
+test('"quantity, number, name" with a trailing name that is *also* number-shaped does not merge two distinct cards', () => {
+  // Both GD05-029 (Kayra's Re-GZ) and GD05-019 (Re-GZ) put their real number first and end in a word
+  // that itself matches the card-number shape -- without requiring a digit somewhere in the token,
+  // end-of-line preference would grab "Re-GZ" as the number for both lines, silently merging two
+  // different cards into 8 copies of one.
+  const { main } = parseDecklistText("4 GD05-029 Kayra's Re-GZ\n4 GD05-019 Re-GZ");
+  assert.deepEqual(main, [
+    { quantity: 4, name: "Kayra's Re-GZ", number: 'GD05-029' },
+    { quantity: 4, name: 'Re-GZ', number: 'GD05-019' }
+  ]);
+});
+
 test('"quantity, number, name" also handles a name with its own parenthetical', () => {
   const { main } = parseDecklistText('4 GD05-005 Strike Rouge (Ootori)');
   assert.deepEqual(main, [{ quantity: 4, name: 'Strike Rouge (Ootori)', number: 'GD05-005' }]);

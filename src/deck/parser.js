@@ -1,4 +1,11 @@
-const NUMBER = '[A-Z]{1,4}\\d{0,2}-[A-Z0-9]{2,4}';
+// The (?=.*\d) lookahead requires at least one digit somewhere in the token -- every real card
+// number has one (confirmed against the full 892-card DB), but a hyphenated all-letter card *name*
+// (Re-GZ, G-Self, Hi-Nu, ...) can otherwise match this same letters-hyphen-alnum shape with zero
+// digits, which caused a real misparse: "4 GD05-029 Kayra's Re-GZ" and "4 GD05-019 Re-GZ" both have
+// their real number at the front and a trailing word that's *also* number-shaped, so without this,
+// end-of-line preference (below) picked "Re-GZ" as the number for both lines instead of the real
+// GD05-029/GD05-019, silently merging two different cards into one.
+const NUMBER = '(?=.*\\d)[A-Z]{1,4}\\d{0,2}-[A-Z0-9]{2,4}';
 const NUMBER_TOKEN_RE = new RegExp(`^\\(?(${NUMBER})\\)?$`, 'i');
 
 function stripParens(token) {
