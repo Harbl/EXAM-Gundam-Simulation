@@ -5,8 +5,10 @@ const { collectActivateCandidates } = require('./activations');
  * Weights tuned via large-sample (n=5000/variant) self-play coordinate descent -- see
  * scratchpad/weight_tune.js. resources:2 beat the original resources:1 (z=2.72); a further probe
  * around this champion (resources 1.5/3, shields 11/12, boardStats 1.5, baseHP 1.5/5) found nothing
- * that beats it, confirming a local optimum. See scoreState for how to A/B alternatives via
- * player.aiWeights.
+ * that beats it, confirming a local optimum. A 2026-08-03 automated coordinate-descent pass over all
+ * 8 weights at once (scratchpad/weight_coordinate_descent.js, +/-30% nudges, n=600/nudge) confirmed
+ * the same: every weight, including the two below that had never been empirically checked, is already
+ * a local optimum at that step size. See scoreState for how to A/B alternatives via player.aiWeights.
  *
  * activationPotential added 2026-08-03 (Phase 5 MSA benchmark investigation): without it, boardValue
  * was a pure stat tally (shields/baseHP/boardStats/hand/resources) with zero awareness that a card's
@@ -18,8 +20,9 @@ const { collectActivateCandidates } = require('./activations');
  * explains a lot of why self-play win rates diverged so far from real ranked data in the MSA benchmark
  * (scratchpad/benchmark_vs_msa.js): any archetype whose real strength comes from ability synergy gets
  * flattened by the AI into "just a pile of stats that races," while pure stat-line aggro is overvalued.
- * A reasoned starting weight, not yet empirically tuned -- see scratchpad/weight_tune.js for the
- * precedent this should get the same coordinate-descent treatment once there's self-play data.
+ * A reasoned starting weight -- coordinate-descent tuning (scratchpad/weight_coordinate_descent.js,
+ * 2026-08-03, +/-30% nudges, n=600/nudge) found no significant improvement in either direction,
+ * confirming this value as a local optimum at that resolution.
  *
  * trashSynergy added 2026-08-03 (Barbatos Rush vs. Nu Gundam MSA gap investigation, continued):
  * boardValue had zero awareness of trash-pile contents at all, so any card whose real payoff is
@@ -33,8 +36,8 @@ const { collectActivateCandidates } = require('./activations');
  * consistent with (not proven to fully explain) search having no gradient toward Barbatos's actual
  * win condition. Declared via a trashSynergy def flag (see trashSynergyValue below) rather than
  * hardcoding card numbers, so any future card sharing this shape picks it up automatically. A
- * reasoned starting weight (same order of magnitude as one legal activation), not yet empirically
- * tuned -- same precedent as activationPotential above.
+ * reasoned starting weight (same order of magnitude as one legal activation) -- same coordinate-descent
+ * check as activationPotential above found no significant improvement either, confirming this value too.
  *
  * exResourceHeld added 2026-08-03 (after fixing payCost to prefer normal Resources over the EX
  * Resource token, see src/rules/cost.js): the generic `resources` weight already counts a still-in-
