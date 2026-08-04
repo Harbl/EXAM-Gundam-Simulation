@@ -1,6 +1,6 @@
 {
   "name": "gundam-tcg-sim",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "private": true,
   "description": "Windows desktop app that simulates batches of Gundam Card Game matches between two pasted decklists.",
   "main": "electron/main.js",
