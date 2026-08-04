@@ -3,34 +3,57 @@
     {
       "round": 1,
       "gamesPlayed": 2500,
-      "samples": 33727,
+      "samples": 33041,
       "draws": 0,
       "timeouts": 0,
       "finalEpoch": {
-        "epoch": 30,
-        "trainLoss": 917.5878637292692,
-        "valLoss": 900.607814958857
+        "epoch": 25,
+        "trainLoss": 912.2488224493173,
+        "valLoss": 939.722802777176
       },
       "verify": {
-        "winsCandidate": 299,
-        "winsChampion": 301,
+        "winsCandidate": 349,
+        "winsChampion": 251,
         "draws": 0,
         "timeouts": 0,
         "total": 600,
-        "winRate": 0.49833333333333335,
-        "z": -0.08164965809277176
+        "winRate": 0.5816666666666667,
+        "z": 4.000833246545858
+      },
+      "adopted": true,
+      "elapsedMs": 469893
+    },
+    {
+      "round": 2,
+      "gamesPlayed": 2500,
+      "samples": 33898,
+      "draws": 0,
+      "timeouts": 0,
+      "finalEpoch": {
+        "epoch": 29,
+        "trainLoss": 938.614978172196,
+        "valLoss": 955.6169969894383
+      },
+      "verify": {
+        "winsCandidate": 288,
+        "winsChampion": 312,
+        "draws": 0,
+        "timeouts": 0,
+        "total": 600,
+        "winRate": 0.48,
+        "z": -0.9797958971132721
       },
       "adopted": false,
-      "elapsedMs": 600585
+      "elapsedMs": 605564
     }
   ],
   "confirmation": {
-    "winsCandidate": 2160,
-    "winsChampion": 1840,
+    "winsCandidate": 2157,
+    "winsChampion": 1843,
     "draws": 0,
     "timeouts": 0,
     "total": 4000,
-    "winRate": 0.54,
-    "z": 5.0596442562694115
+    "winRate": 0.53925,
+    "z": 4.964775926464357
   }
 }

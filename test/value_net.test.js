@@ -25,16 +25,6 @@ test('different seeds produce different networks', () => {
   assert.notEqual(forward(netA, features), forward(netB, features));
 });
 
-test('createNet accepts a custom hiddenSize (Phase 7b sizing diagnostic)', () => {
-  const net = createNet(7, 56);
-  assert.equal(net.hiddenSize, 56);
-  assert.equal(net.W1.length, 56);
-  assert.equal(net.W2.length, 56);
-  assert.equal(net.b1.length, 56);
-  const features = randomFeatures();
-  assert.ok(Number.isFinite(forward(net, features)));
-});
-
 test('forward output is always finite and within +/-OUTPUT_SCALE, even for extreme inputs', () => {
   const net = createNet(3);
   const extremeInputs = [

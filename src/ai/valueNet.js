@@ -2,13 +2,7 @@ const fs = require('node:fs');
 const { mulberry32 } = require('../rules/rng');
 const { FEATURE_COUNT } = require('./valueFeatures');
 
-// Phase 7b (2026-08-04): bumped from 24 to 40 after a sizing diagnostic against the grown 33-feature
-// extractFeatures -- comparing best-val-loss on a fixed diagnostic dataset across hidden=24/40/56/80/112
-// (all trained with the same fixed-LR/epoch regime the LR-bug diagnostic settled on), every size from
-// 40 up through 112 clustered in a clearly-better-than-24 band with no clean further gain from going
-// past ~40-56 -- 40 is the reasoned, moderate choice in that band rather than chasing what may just be
-// noise in a single small (~8k-sample) diagnostic run at one specific size.
-const DEFAULT_HIDDEN_SIZE = 40;
+const HIDDEN_SIZE = 24;
 // Matches mcts.js's REWARD_SCALE exactly -- the whole point is that a trained net's output lands on
 // the same calibrated scale the current linear scoreState already produces (measured in Phase 5's
 // score_range_spike.js), so mcts.js's clampedScore/EXPLORATION_C machinery needs zero changes to work
@@ -27,31 +21,27 @@ function zeroMatrix(rows, cols) {
 }
 
 /**
- * A tiny hand-rolled MLP (FEATURE_COUNT -> hiddenSize -> 1, tanh activations throughout) -- this
+ * A tiny hand-rolled MLP (FEATURE_COUNT -> HIDDEN_SIZE -> 1, tanh activations throughout) -- this
  * project has zero ML dependencies (package.json only lists electron/electron-builder) and no GPU, so
  * the network has to be small enough to hand-roll and cheap enough to call inside MCTS's rollout loop,
  * which evaluates scoreState many thousands of times per game. Weights are seeded via mulberry32 (same
- * PRNG already used for reproducible game replay) so two createNet(seed, hiddenSize) calls with the
- * same arguments are byte-identical, useful for tests and for comparing training runs. hiddenSize
- * defaults to DEFAULT_HIDDEN_SIZE but is overridable (Phase 7b) so a sizing diagnostic can compare
- * candidate widths without duplicating this file -- every other function (forwardWithCache, trainStep)
- * already reads net.hiddenSize dynamically rather than a module constant, so this is the only change
- * needed to make width configurable.
+ * PRNG already used for reproducible game replay) so two createNet(seed) calls with the same seed are
+ * byte-identical, useful for tests and for comparing training runs.
  */
-function createNet(seed = 1, hiddenSize = DEFAULT_HIDDEN_SIZE) {
+function createNet(seed = 1) {
   const rng = mulberry32(seed);
   // He-ish initialization: small random values scaled down by fan-in, keeps early forward passes from
   // saturating tanh immediately (a net that starts fully saturated barely learns at first).
   const scale1 = Math.sqrt(2 / FEATURE_COUNT);
-  const scale2 = Math.sqrt(2 / hiddenSize);
+  const scale2 = Math.sqrt(2 / HIDDEN_SIZE);
   const randSmall = (scale) => (rng() * 2 - 1) * scale;
 
   return {
     inputSize: FEATURE_COUNT,
-    hiddenSize,
-    W1: Array.from({ length: hiddenSize }, () => Array.from({ length: FEATURE_COUNT }, () => randSmall(scale1))),
-    b1: zeros(hiddenSize),
-    W2: Array.from({ length: hiddenSize }, () => randSmall(scale2)),
+    hiddenSize: HIDDEN_SIZE,
+    W1: Array.from({ length: HIDDEN_SIZE }, () => Array.from({ length: FEATURE_COUNT }, () => randSmall(scale1))),
+    b1: zeros(HIDDEN_SIZE),
+    W2: Array.from({ length: HIDDEN_SIZE }, () => randSmall(scale2)),
     b2: 0
   };
 }
@@ -178,4 +168,4 @@ function loadNet(filePath) {
   return { inputSize: data.inputSize, hiddenSize: data.hiddenSize, W1: data.W1, b1: data.b1, W2: data.W2, b2: data.b2 };
 }
 
-module.exports = { createNet, forward, trainStep, saveNet, loadNet, DEFAULT_HIDDEN_SIZE, OUTPUT_SCALE };
+module.exports = { createNet, forward, trainStep, saveNet, loadNet, HIDDEN_SIZE, OUTPUT_SCALE };
