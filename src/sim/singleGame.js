@@ -30,6 +30,12 @@ function playGame(deckA, deckB, options = {}) {
   // every lookahead function -- see src/ai/score.js.
   if (options.weightsA) state.players[0].aiWeights = options.weightsA;
   if (options.weightsB) state.players[1].aiWeights = options.weightsB;
+  // Same pattern, for a trained valueNet.js model (Phase 7) -- see scoreState's valueModel dispatch
+  // in src/ai/score.js. Mutually exclusive with weightsA/weightsB in practice (a valueModel bypasses
+  // aiWeights entirely once set), but nothing stops both being passed; scoreState's own check just
+  // means valueModel silently wins for that side, same as it would for any other override shape here.
+  if (options.valueModelA) state.players[0].valueModel = options.valueModelA;
+  if (options.valueModelB) state.players[1].valueModel = options.valueModelB;
   // Same pattern, for MCTS's own tunable knob (playoutBudget/rolloutTurns/rolloutPolicy) -- see
   // DEFAULT_MCTS_CONFIG/STRONG_MCTS_CONFIG in ai/mcts.js. Falls back to DEFAULT_MCTS_CONFIG per side
   // when not set, same as aiWeights falls back to score.js's DEFAULT_WEIGHTS.

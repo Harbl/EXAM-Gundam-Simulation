@@ -314,6 +314,33 @@ function enforceBaseLimit(player) {
   }
 }
 
+/**
+ * Sum of "how close to usable" every distinct trashSynergy-flagged card the player controls (in
+ * play or in hand) is, as a 0..1 fraction of its own threshold. Deduped by synergy signature (not
+ * per-copy) so holding 2+ copies of the same payoff card doesn't inflate its value -- the trash
+ * count that matters is the same single pile regardless of how many copies want it. Lives here
+ * (rather than ai/score.js, which re-exports it for backward compatibility) so ai/valueFeatures.js
+ * can use it too without creating a score.js <-> valueFeatures.js circular require.
+ */
+function trashSynergyValue(player) {
+  const seen = new Set();
+  let value = 0;
+  for (const card of [...player.battleArea, ...player.hand]) {
+    const synergy = card.def.trashSynergy;
+    if (!synergy) continue;
+    const key = JSON.stringify(synergy);
+    if (seen.has(key)) continue;
+    seen.add(key);
+    const count = player.trash.filter(
+      (t) =>
+        (synergy.traits && (t.def.traits || []).some((trait) => synergy.traits.includes(trait))) ||
+        (synergy.color && t.def.color === synergy.color)
+    ).length;
+    value += Math.min(count, synergy.threshold) / synergy.threshold;
+  }
+  return value;
+}
+
 /** Discards a specific card from hand (effect-driven "draw N, discard 1"-style text), as opposed to
  * enforceHandLimit's end-of-turn discard-to-limit. Pulled out so the replay trace can observe every
  * effect discard the same way it already observes destroys/damage, rather than each registry.js
@@ -373,5 +400,6 @@ module.exports = {
   enforceBaseLimit,
   enforceHandLimit,
   discardFromHand,
+  trashSynergyValue,
   checkDefeat
 };

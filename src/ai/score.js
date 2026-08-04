@@ -1,5 +1,7 @@
-const { getAP, getRemainingHP } = require('../rules/management');
+const { getAP, getRemainingHP, trashSynergyValue } = require('../rules/management');
 const { collectActivateCandidates } = require('./activations');
+const { extractFeatures } = require('./valueFeatures');
+const { forward } = require('./valueNet');
 
 /**
  * Weights tuned via large-sample (n=5000/variant) self-play coordinate descent -- see
@@ -71,6 +73,14 @@ const DEFAULT_WEIGHTS = {
  * their opponent. Reads its weights from `state.players[playerIdx].aiWeights` if set (falling back to
  * DEFAULT_WEIGHTS), so a scratch A/B harness can give each side of a self-play match a different
  * weight set without threading a weights param through every lookahead function.
+ *
+ * Phase 7 (2026-08-03): `state.players[playerIdx].valueModel`, if set, bypasses the linear formula
+ * below entirely in favor of a trained valueNet.js forward pass over valueFeatures.js's feature
+ * vector -- same per-side opt-in override shape as aiWeights, so nothing existing changes behavior
+ * unless a valueModel is explicitly attached (see bin/train_value_net.js). Every AI path (the old
+ * lookahead heuristic in ai/heuristic.js, MCTS's search/rollout scoring in ai/mcts.js) already calls
+ * through this one shared scoreState and nowhere else, so this is the only place that dispatch needs
+ * to live.
  */
 function scoreState(state, playerIdx) {
   if (state.winner === playerIdx) return Infinity;
@@ -78,6 +88,8 @@ function scoreState(state, playerIdx) {
   if (state.draw) return 0;
 
   const self = state.players[playerIdx];
+  if (self.valueModel) return forward(self.valueModel, extractFeatures(state, playerIdx));
+
   const enemy = state.players[1 - playerIdx];
   const weights = self.aiWeights || DEFAULT_WEIGHTS;
 
@@ -106,31 +118,6 @@ function boardValue(player, weights) {
     trashSynergyValue(player) * weights.trashSynergy +
     exResourcesHeld * weights.exResourceHeld
   );
-}
-
-/**
- * Sum of "how close to usable" every distinct trashSynergy-flagged card the player controls (in
- * play or in hand) is, as a 0..1 fraction of its own threshold. Deduped by synergy signature (not
- * per-copy) so holding 2+ copies of the same payoff card doesn't inflate its value -- the trash
- * count that matters is the same single pile regardless of how many copies want it.
- */
-function trashSynergyValue(player) {
-  const seen = new Set();
-  let value = 0;
-  for (const card of [...player.battleArea, ...player.hand]) {
-    const synergy = card.def.trashSynergy;
-    if (!synergy) continue;
-    const key = JSON.stringify(synergy);
-    if (seen.has(key)) continue;
-    seen.add(key);
-    const count = player.trash.filter(
-      (t) =>
-        (synergy.traits && (t.def.traits || []).some((trait) => synergy.traits.includes(trait))) ||
-        (synergy.color && t.def.color === synergy.color)
-    ).length;
-    value += Math.min(count, synergy.threshold) / synergy.threshold;
-  }
-  return value;
 }
 
 module.exports = { scoreState, DEFAULT_WEIGHTS, trashSynergyValue };
