@@ -40,6 +40,24 @@ test('a name starting with "X" is never mistaken for an x-multiplier (Xi Gundam,
   assert.deepEqual(main, [{ quantity: 4, name: 'Xi Gundam', number: 'ST08-001' }]);
 });
 
+test('parses "quantity, name, (number)" -- number parenthesized at the end', () => {
+  const { main } = parseDecklistText('4 Zaku II (ST03-008)');
+  assert.deepEqual(main, [{ quantity: 4, name: 'Zaku II', number: 'ST03-008' }]);
+});
+
+test('a name containing its own parenthetical still resolves the trailing (number) correctly', () => {
+  const { main } = parseDecklistText('1 Penelope (Flight Form) (GD04-002)');
+  assert.deepEqual(main, [{ quantity: 1, name: 'Penelope (Flight Form)', number: 'GD04-002' }]);
+});
+
+test('a card name shaped like a card number (Re-GZ) is never mistaken for the number itself', () => {
+  // Re-GZ (letters-hyphen-alnum) matches the same shape real card numbers do, so this only stays
+  // correct because "name then number" is tried before "number then name" in LINE_FORMATS -- the
+  // reverse order previously misparsed this as number="RE-GZ", name="GD05-019".
+  assert.deepEqual(parseDecklistText('4 Re-GZ GD05-019').main, [{ quantity: 4, name: 'Re-GZ', number: 'GD05-019' }]);
+  assert.deepEqual(parseDecklistText('4 Re-GZ (GD05-019)').main, [{ quantity: 4, name: 'Re-GZ', number: 'GD05-019' }]);
+});
+
 test('mixed formats in the same decklist paste all parse correctly', () => {
   const text = `
 2 GD01-039 Dopp

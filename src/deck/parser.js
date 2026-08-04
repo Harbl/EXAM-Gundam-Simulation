@@ -11,10 +11,23 @@ const LINE_FORMATS = [
   { re: new RegExp(`^(\\d+)\\s*[xX]\\s*(${NUMBER})$`, 'i'), groups: ['quantity', 'number'] },
   // "4 ST03-008" -- quantity and number only, no name.
   { re: new RegExp(`^(\\d+)\\s+(${NUMBER})$`, 'i'), groups: ['quantity', 'number'] },
-  // "2 GD01-039 Dopp" -- quantity, then number, then name.
-  { re: new RegExp(`^(\\d+)\\s+(${NUMBER})\\s+(.+)$`, 'i'), groups: ['quantity', 'number', 'name'] },
   // "4 Zaku II ST03-008" -- quantity, then name, then number (the original/most common format).
-  { re: new RegExp(`^(\\d+)\\s+(.+?)\\s+(${NUMBER})$`, 'i'), groups: ['quantity', 'name', 'number'] }
+  // Tried before the "number then name" pattern below on purpose: several real card names (Re-GZ,
+  // G-Self, Hi-Nu, ...) are themselves shaped like a card number (letters-hyphen-alnum), so if the
+  // leading-number pattern got first crack at "4 Re-GZ GD05-019" it would wrongly grab "Re-GZ" as
+  // the number and "GD05-019" as the name. Anchoring the number to the true end of the line (via the
+  // lazy `.+?` name capture) doesn't have that ambiguity, so it's safe to try first.
+  { re: new RegExp(`^(\\d+)\\s+(.+?)\\s+(${NUMBER})$`, 'i'), groups: ['quantity', 'name', 'number'] },
+  // "4 Zaku II (ST03-008)" -- quantity, name, number parenthesized at the end. Greedy `.+` (not `.+?`)
+  // so a name that itself contains parens (e.g. "Penelope (Flight Form) (GD04-002)") still resolves
+  // correctly -- "(Flight Form)" can't itself match \(NUMBER\), so backtracking lands on the real,
+  // last parenthesized group as the number token.
+  { re: new RegExp(`^(\\d+)\\s+(.+)\\s+\\((${NUMBER})\\)$`, 'i'), groups: ['quantity', 'name', 'number'] },
+  // "2 GD01-039 Dopp" -- quantity, then number, then name. Tried last: unlike the two patterns above,
+  // this one only checks that the *first* token after quantity looks number-shaped, so it's the one
+  // vulnerable to the Re-GZ/G-Self ambiguity above -- only reached once the safer trailing-number
+  // patterns have both already failed to match.
+  { re: new RegExp(`^(\\d+)\\s+(${NUMBER})\\s+(.+)$`, 'i'), groups: ['quantity', 'number', 'name'] }
 ];
 
 /**
