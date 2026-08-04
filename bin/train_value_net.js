@@ -11,7 +11,12 @@
 // shape); (4) adopt on a significant win and repeat, or stop -- same "keep going until no more
 // improvement" rule already used for scratchpad/weight_coordinate_descent.js, one tier up.
 //
-// Usage: node bin/train_value_net.js [gamesPerRound] [maxRounds] [verifyGamesPerDeck] [confirmGamesPerDeck]
+// Usage: node bin/train_value_net.js [gamesPerRound] [maxRounds] [verifyGamesPerDeck] [confirmGamesPerDeck] [--resume]
+//   --resume starts from the currently saved data/valueNet.json as the champion (continuing training
+//   from the best model found so far) instead of round 0's default starting point (today's linear
+//   scoreState). Verification/confirmation are always against the true baseline this run started from,
+//   so a --resume run's "SIGNIFICANT OVERALL WIN" still means "beats the linear formula," not just
+//   "beats where we left off."
 const fs = require('node:fs');
 const path = require('node:path');
 const { parseDecklistText } = require('../src/deck/parser');
@@ -24,7 +29,7 @@ const { checkDefeat } = require('../src/rules/management');
 const { decideMulligan } = require('../src/ai/heuristic');
 const { runMainPhaseMCTS, DEFAULT_MCTS_CONFIG } = require('../src/ai/mcts');
 const { extractFeatures } = require('../src/ai/valueFeatures');
-const { createNet, forward, trainStep, saveNet, OUTPUT_SCALE } = require('../src/ai/valueNet');
+const { createNet, forward, trainStep, saveNet, loadNet, OUTPUT_SCALE } = require('../src/ai/valueNet');
 const { playGame } = require('../src/sim/singleGame');
 const banlist = require('../data/banlist.json');
 
@@ -200,18 +205,27 @@ function verify(candidateModel, championModel, gamesPerDeck) {
   return { winsCandidate, winsChampion, draws, timeouts, total, winRate, z: zScore(winRate, total) };
 }
 
-const GAMES_PER_ROUND = Number(process.argv[2] || 2500);
-const MAX_ROUNDS = Number(process.argv[3] || 5);
-const VERIFY_GAMES_PER_DECK = Number(process.argv[4] || 60);
-const CONFIRM_GAMES_PER_DECK = Number(process.argv[5] || 400);
+const rawArgs = process.argv.slice(2);
+const RESUME = rawArgs.includes('--resume');
+const positional = rawArgs.filter((a) => a !== '--resume');
+const GAMES_PER_ROUND = Number(positional[0] || 2500);
+const MAX_ROUNDS = Number(positional[1] || 5);
+const VERIFY_GAMES_PER_DECK = Number(positional[2] || 60);
+const CONFIRM_GAMES_PER_DECK = Number(positional[3] || 400);
 const SIGNIFICANCE_Z = 2.5;
+
+const VALUE_NET_PATH = path.join(__dirname, '..', 'data', 'valueNet.json');
+let champion = null; // null = today's linear scoreState (DEFAULT_WEIGHTS)
+if (RESUME) {
+  champion = loadNet(VALUE_NET_PATH);
+  console.log(`Resuming from ${VALUE_NET_PATH} as the starting champion.`);
+}
 
 console.log(
   `${decks.length} decks; ${GAMES_PER_ROUND} games/round for data collection, up to ${MAX_ROUNDS} rounds, ` +
     `verify @ ${VERIFY_GAMES_PER_DECK} games/deck, final confirm @ ${CONFIRM_GAMES_PER_DECK} games/deck\n`
 );
 
-let champion = null; // null = today's linear scoreState (DEFAULT_WEIGHTS)
 const roundLog = [];
 const startedAt = Date.now();
 
