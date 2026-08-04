@@ -116,8 +116,27 @@ function shuffle(arr, rng = Math.random) {
   return a;
 }
 
-/** Trains a fresh net on `dataset` (90/10 train/val split) with simple early stopping. */
-function trainNet(dataset, seed, { epochs = 20, learningRate = 0.01, patience = 2 } = {}) {
+/** Deep-copies just the weight fields (not Adam optimizer state) -- used to checkpoint the
+ * best-so-far net during training, since trainStep mutates `net` in place. */
+function snapshotWeights(net) {
+  return JSON.parse(JSON.stringify({ inputSize: net.inputSize, hiddenSize: net.hiddenSize, W1: net.W1, b1: net.b1, W2: net.W2, b2: net.b2 }));
+}
+
+/**
+ * Trains a fresh net on `dataset` (90/10 train/val split) with early stopping.
+ *
+ * Two bugs found (2026-08-03) via scratchpad diagnostics after round 1 of a real training run lost
+ * badly (29% win rate, z=-10.29) with a training loss that never meaningfully moved: (1) the original
+ * learningRate=0.01 default was too high for this per-example online Adam setup -- at lr=0.1 the val
+ * loss froze at the exact same value every single epoch, a signature of the output tanh saturating to
+ * a constant +-1 and killing gradient flow entirely (d(tanh)/dx -> 0 near +-1); lr=0.003 converges
+ * smoothly and was still improving at epoch 80 in the diagnostic. (2) patience=2 was returning
+ * whichever epoch training happened to stop ON, not the best epoch seen -- with a val set this noisy
+ * epoch-to-epoch, that's very likely to be an above-baseline (undertrained/degraded) checkpoint rather
+ * than the actual best one. Fixed by snapshotting the weights every time val loss improves and
+ * returning that snapshot rather than whatever `net` looks like when the loop ends.
+ */
+function trainNet(dataset, seed, { epochs = 60, learningRate = 0.003, patience = 10 } = {}) {
   const shuffled = shuffle(dataset);
   const splitAt = Math.floor(shuffled.length * 0.9);
   const trainSet = shuffled.slice(0, splitAt);
@@ -125,6 +144,7 @@ function trainNet(dataset, seed, { epochs = 20, learningRate = 0.01, patience = 
 
   const net = createNet(seed);
   let bestValLoss = Infinity;
+  let bestWeights = snapshotWeights(net);
   let roundsSinceImprovement = 0;
   const history = [];
 
@@ -145,17 +165,18 @@ function trainNet(dataset, seed, { epochs = 20, learningRate = 0.01, patience = 
 
     if (valLoss < bestValLoss - 1e-6) {
       bestValLoss = valLoss;
+      bestWeights = snapshotWeights(net);
       roundsSinceImprovement = 0;
     } else {
       roundsSinceImprovement++;
       if (roundsSinceImprovement >= patience) {
-        console.log(`    early stopping after epoch ${epoch} (val loss plateaued)`);
+        console.log(`    early stopping after epoch ${epoch} (best was val=${bestValLoss.toFixed(2)}, restoring that checkpoint)`);
         break;
       }
     }
   }
 
-  return { net, history };
+  return { net: bestWeights, history };
 }
 
 /** z-score-gated self-play: candidateModel vs. championModel (either may be null = linear scoreState). */
