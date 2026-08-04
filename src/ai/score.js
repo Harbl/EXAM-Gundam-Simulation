@@ -81,6 +81,14 @@ const DEFAULT_WEIGHTS = {
  * lookahead heuristic in ai/heuristic.js, MCTS's search/rollout scoring in ai/mcts.js) already calls
  * through this one shared scoreState and nowhere else, so this is the only place that dispatch needs
  * to live.
+ *
+ * data/valueNet.json (2026-08-03, bin/train_value_net.js) is a trained champion that beat this linear
+ * formula 53.9% in a large-sample self-play confirmation (8,000 games, z=4.96) after 2 rounds of
+ * iterative training -- verified crash/timeout-clean across 300 real-decklist-pool games
+ * (scratchpad/value_net_crash_sweep.js). It's loaded and usable (`loadNet` + set as
+ * `player.valueModel`) but is NOT wired in as any default here -- promoting it to the actual default
+ * is a separate decision, same "measure, then decide to adopt" precedent as every prior AI-default
+ * change in this project (MCTS-vs-lookahead, the skill presets).
  */
 function scoreState(state, playerIdx) {
   if (state.winner === playerIdx) return Infinity;
