@@ -38,7 +38,14 @@ test('runBatch aggregates results, reports progress every game, and yields well-
   const stats = await runBatch(deck, deck, 5, (p) => progressEvents.push(p));
 
   assert.equal(progressEvents.length, 5);
-  assert.deepEqual(progressEvents[4], { completed: 5, games: 5 });
+  assert.equal(progressEvents[4].completed, 5);
+  assert.equal(progressEvents[4].games, 5);
+  // `live` is a cheap running snapshot shaped like the final stats' deckA/deckB, so the UI can redraw
+  // its bar chart mid-run without waiting for the batch to finish.
+  assert.ok(progressEvents[4].live.deckA);
+  assert.ok(progressEvents[4].live.deckB);
+  assert.equal(progressEvents[4].live.deckA.winRate, stats.deckA.winRate);
+  assert.equal(progressEvents[4].live.deckB.winRate, stats.deckB.winRate);
 
   assert.equal(stats.games, 5);
   assert.equal(stats.deckA.wins + stats.deckB.wins + stats.timeouts, 5);

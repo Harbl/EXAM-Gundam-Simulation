@@ -33,8 +33,8 @@ async function main() {
     deckA,
     deckB,
     games,
-    ({ completed, games: total }) => {
-      parentPort.postMessage({ type: 'progress', completed, games: total, elapsedMs: Date.now() - startedAt });
+    ({ completed, games: total, live }) => {
+      parentPort.postMessage({ type: 'progress', completed, games: total, elapsedMs: Date.now() - startedAt, live });
     },
     { engineA: presetA.engine, engineB: presetB.engine, mctsConfigA: presetA.mctsConfig, mctsConfigB: presetB.mctsConfig }
   );

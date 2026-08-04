@@ -209,7 +209,22 @@
     width: 0%;
     transition: width 0.2s;
   }
-  #progressText { font-family: 'Consolas', monospace; font-size: 11px; color: #999; margin-top: 6px; letter-spacing: 0.5px; }
+  #progressText { font-family: 'Consolas', monospace; font-size: 11px; color: #999; margin-top: 6px; letter-spacing: 0.5px; text-align: center; }
+
+  #runProgress { padding: 30px 0 6px; text-align: center; transition: opacity 0.5s ease; opacity: 1; }
+  #results { transition: opacity 0.4s ease; opacity: 1; }
+  .pulsingEmblem {
+    width: 54px;
+    height: 54px;
+    margin: 0 auto;
+    background: var(--gold);
+    clip-path: polygon(50% 0, 100% 50%, 50% 100%, 0 50%, 50% 20%, 30% 50%, 50% 80%, 70% 50%);
+    animation: emblemPulse 1.4s ease-in-out infinite;
+  }
+  @keyframes emblemPulse {
+    0%, 100% { opacity: 0.5; transform: scale(0.9); }
+    50% { opacity: 1; transform: scale(1.05); }
+  }
 
   #results { font-size: 14.5px; }
   #results table { width: 100%; border-collapse: collapse; margin-top: 8px; }
@@ -417,12 +432,15 @@
       <button id="runBtn">Launch Simulation</button>
       <button id="cancelBtn" disabled>Cancel</button>
     </div>
-    <div class="progressTrack"><div class="progressFill" id="progressFill"></div></div>
-    <div id="progressText"></div>
   </div>
 
   <div class="panel">
     <h2>Results</h2>
+    <div id="runProgress" style="display:none">
+      <div class="pulsingEmblem"></div>
+      <div class="progressTrack"><div class="progressFill" id="progressFill"></div></div>
+      <div id="progressText"></div>
+    </div>
     <div id="results">No batch run yet.</div>
     <div id="chartLegend" class="chartLegend" style="display:none">
       <span><span class="swatch swatchA"></span>Deck A</span>
@@ -500,6 +518,7 @@
 <script>
   const runBtn = document.getElementById('runBtn');
   const cancelBtn = document.getElementById('cancelBtn');
+  const runProgress = document.getElementById('runProgress');
   const progressFill = document.getElementById('progressFill');
   const progressText = document.getElementById('progressText');
   const resultsEl = document.getElementById('results');
@@ -526,6 +545,7 @@
   const replayGameNum = document.getElementById('replayGameNum');
   const replayTimeline = document.getElementById('replayTimeline');
   let lastStats = null;
+  let fadeTimeout = null;
 
   runBtn.addEventListener('click', () => {
     const deckAText = document.getElementById('deckA').value;
@@ -533,9 +553,24 @@
     const games = Number(document.getElementById('games').value) || 100;
 
     errorEl.textContent = '';
-    resultsEl.textContent = 'Running...';
+    resultsEl.innerHTML = '';
+    resultsEl.style.opacity = '0';
+    exportStatsBtn.style.display = 'none';
+    exportStatusEl.textContent = '';
+    replaySection.style.display = 'none';
+    replayTimeline.innerHTML = '';
+    lastStats = null;
+    clearTimeout(fadeTimeout);
     progressFill.style.width = '0%';
     progressText.textContent = '';
+    runProgress.style.opacity = '1';
+    runProgress.style.display = 'block';
+    // Chart/legend show immediately (empty until the first progress tick) so the live bar-graph
+    // preview reads as part of the same panel the progress bar is in, not a separate reveal later.
+    chartLegend.style.display = 'flex';
+    statsChart.style.display = 'block';
+    const ctx = statsChart.getContext('2d');
+    ctx.clearRect(0, 0, statsChart.width, statsChart.height);
     runBtn.disabled = true;
     cancelBtn.disabled = false;
     setStatus('busy', 'RUNNING');
@@ -548,14 +583,20 @@
     setStatus('alert', 'CANCELLED');
     runBtn.disabled = false;
     cancelBtn.disabled = true;
+    runProgress.style.display = 'none';
+    chartLegend.style.display = 'none';
+    statsChart.style.display = 'none';
+    resultsEl.style.opacity = '1';
+    resultsEl.textContent = 'No batch run yet.';
   });
 
-  window.sim.onProgress(({ completed, games, elapsedMs }) => {
+  window.sim.onProgress(({ completed, games, elapsedMs, live }) => {
     const fraction = completed / games;
     progressFill.style.width = (fraction * 100).toFixed(1) + '%';
     const etaMs = completed > 0 ? (elapsedMs / completed) * (games - completed) : 0;
     progressText.textContent =
       `${completed} / ${games} games — elapsed ${(elapsedMs / 1000).toFixed(1)}s — ETA ${(etaMs / 1000).toFixed(1)}s`;
+    if (live) drawBarChart(statsChart, CHART_GROUPS(live), 13);
   });
 
   // Grouped horizontal bar chart, hand-rolled on <canvas> -- no charting dependency, matching this
@@ -634,7 +675,14 @@
     lastStats = stats;
     exportStatusEl.textContent = '';
 
+    // Fade the pulsing emblem/progress bar out rather than snapping it away, so the finished stat
+    // block reads as revealed underneath it, not as a jarring swap -- matches #runProgress's own
+    // CSS transition. resultsEl.style.opacity was left at 0 by the run-start reset, so it fades in
+    // as it's populated.
+    runProgress.style.opacity = '0';
+    fadeTimeout = setTimeout(() => { runProgress.style.display = 'none'; }, 500);
     resultsEl.innerHTML = renderResultsHtml(stats);
+    resultsEl.style.opacity = '1';
 
     chartLegend.style.display = 'flex';
     statsChart.style.display = 'block';
@@ -653,7 +701,9 @@
   window.sim.onError((message) => {
     runBtn.disabled = false;
     cancelBtn.disabled = true;
+    runProgress.style.display = 'none';
     setStatus('alert', 'ERROR');
+    resultsEl.style.opacity = '1';
     resultsEl.textContent = 'No batch run yet.';
     chartLegend.style.display = 'none';
     statsChart.style.display = 'none';
@@ -1615,6 +1665,8 @@
     deckQty.clear();
     renderDeckList();
     renderCardGrid();
+    builderDeckNameInput.value = '';
+    document.getElementById('importText').value = '';
     builderErrorsEl.textContent = '';
     builderStatusEl.textContent = '';
   });

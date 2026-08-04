@@ -74,7 +74,7 @@ async function runBatch(deckA, deckB, games, onProgress, options = {}) {
       }
     }
 
-    if (onProgress) onProgress({ completed: i + 1, games });
+    if (onProgress) onProgress({ completed: i + 1, games, live: liveSummary(totals, i + 1) });
     await new Promise((resolve) => setImmediate(resolve));
   }
 
@@ -91,21 +91,40 @@ function rate(count, games) {
   return games === 0 ? 0 : count / games;
 }
 
+// Shared by the final summarize() and the live in-progress preview below -- `gamesCount` is the
+// games actually completed so far, not the batch's eventual target, so live rates read correctly
+// mid-run (3/5 completed, not 3/100 requested).
+function perSide(wins, mulligans, curve, marginSum, marginCount, gamesCount, decisive) {
+  return {
+    wins,
+    winRate: rate(wins, gamesCount),
+    decisiveWinRate: rate(wins, decisive),
+    mulliganRate: rate(mulligans, gamesCount),
+    turn1PlayRate: rate(curve.turn1, gamesCount),
+    turn2PlayRate: rate(curve.turn2, gamesCount),
+    turn3PlayRate: rate(curve.turn3, gamesCount),
+    marginOfVictory: marginCount === 0 ? 0 : marginSum / marginCount
+  };
+}
+
+// Cheap (O(1), no sorting) running snapshot of the same shape the renderer's stats chart already
+// reads (`stats.deckA`/`stats.deckB`) -- lets the in-progress bar chart reuse the exact same
+// CHART_GROUPS/drawBarChart code the finished results use, just fed partial totals.
+function liveSummary(t, completed) {
+  const decisive = t.winsA + t.winsB;
+  const deckA = perSide(t.winsA, t.mulligansA, t.curveA, t.marginSumA, t.marginCountA, completed, decisive);
+  const deckB = perSide(t.winsB, t.mulligansB, t.curveB, t.marginSumB, t.marginCountB, completed, decisive);
+  deckA.winRateWhenFirst = rate(t.byFirst[0].winsA, t.byFirst[0].games);
+  deckA.winRateWhenSecond = rate(t.byFirst[1].winsA, t.byFirst[1].games);
+  deckB.winRateWhenFirst = rate(t.byFirst[1].winsB, t.byFirst[1].games);
+  deckB.winRateWhenSecond = rate(t.byFirst[0].winsB, t.byFirst[0].games);
+  return { deckA, deckB };
+}
+
 function summarize(t) {
   const decisive = t.winsA + t.winsB;
-  const perSide = (wins, mulligans, curve, marginSum, marginCount) => ({
-    wins,
-    winRate: rate(wins, t.games),
-    decisiveWinRate: rate(wins, decisive),
-    mulliganRate: rate(mulligans, t.games),
-    turn1PlayRate: rate(curve.turn1, t.games),
-    turn2PlayRate: rate(curve.turn2, t.games),
-    turn3PlayRate: rate(curve.turn3, t.games),
-    marginOfVictory: marginCount === 0 ? 0 : marginSum / marginCount
-  });
-
-  const deckA = perSide(t.winsA, t.mulligansA, t.curveA, t.marginSumA, t.marginCountA);
-  const deckB = perSide(t.winsB, t.mulligansB, t.curveB, t.marginSumB, t.marginCountB);
+  const deckA = perSide(t.winsA, t.mulligansA, t.curveA, t.marginSumA, t.marginCountA, t.games, decisive);
+  const deckB = perSide(t.winsB, t.mulligansB, t.curveB, t.marginSumB, t.marginCountB, t.games, decisive);
   // Deck A/B's win rate specifically when *that side* went first vs. went second (0 = A went first,
   // 1 = B went first) -- computed separately since it needs both byFirst buckets, not just one side's.
   deckA.winRateWhenFirst = rate(t.byFirst[0].winsA, t.byFirst[0].games);
