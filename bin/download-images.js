@@ -1,5 +1,6 @@
 #!/usr/bin/env node
-// Downloads card art (for local reference only) from gundamtcg.one into E:\Gundam TCG DB.
+// Downloads card art from gundamtcg.one into electron/renderer/assets/cards, where the app bundles
+// and ships it from -- this is not a local-reference-only cache, it's the actual shipped asset dir.
 // Usage: node bin/download-images.js GD03-021 ST01-001 ...
 //        node bin/download-images.js --file path/to/numbers.txt   (one card number per line)
 //        node bin/download-images.js --all   (every known set, auto-stops each set after a run of misses)
@@ -8,7 +9,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 const https = require('node:https');
 
-const OUT_DIR = 'E:\\Gundam TCG DB';
+const OUT_DIR = path.join(__dirname, '..', 'electron', 'renderer', 'assets', 'cards');
 const URL_TEMPLATE = (number) => `https://www.gundamtcg.one/cards/${number}-640w.webp`;
 const DELAY_MS = 300;
 

@@ -1447,11 +1447,10 @@
     builderStatusEl.textContent = `Loaded "${deck.name}".`;
   });
 
-  // Card art lives locally at E:\Gundam TCG DB\{number}.webp (Jake's own machine, populated by
-  // bin/download-images.js) -- not bundled into the app, so a missing file just hides the <img>
-  // instead of showing a broken-image icon.
+  // Card art ships inside the app at electron/renderer/assets/cards/{number}.webp (populated by
+  // bin/download-images.js). A missing file just hides the <img> instead of showing a broken-image icon.
   function imgSrcFor(number) {
-    return 'file:///E:/Gundam%20TCG%20DB/' + encodeURIComponent(number) + '.webp';
+    return 'assets/cards/' + encodeURIComponent(number) + '.webp';
   }
 
   // Shared hover-zoom: both the Browse Cards grid and Your Deck grid wire their thumbnails to this
