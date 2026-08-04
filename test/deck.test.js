@@ -52,10 +52,31 @@ test('a name containing its own parenthetical still resolves the trailing (numbe
 
 test('a card name shaped like a card number (Re-GZ) is never mistaken for the number itself', () => {
   // Re-GZ (letters-hyphen-alnum) matches the same shape real card numbers do, so this only stays
-  // correct because "name then number" is tried before "number then name" in LINE_FORMATS -- the
-  // reverse order previously misparsed this as number="RE-GZ", name="GD05-019".
+  // correct because parseLine checks the end-of-line position before the start-of-line position --
+  // checking start first previously misparsed this as number="RE-GZ", name="GD05-019".
   assert.deepEqual(parseDecklistText('4 Re-GZ GD05-019').main, [{ quantity: 4, name: 'Re-GZ', number: 'GD05-019' }]);
   assert.deepEqual(parseDecklistText('4 Re-GZ (GD05-019)').main, [{ quantity: 4, name: 'Re-GZ', number: 'GD05-019' }]);
+});
+
+test('"quantity, number, name" also handles a name with its own parenthetical', () => {
+  const { main } = parseDecklistText('4 GD05-005 Strike Rouge (Ootori)');
+  assert.deepEqual(main, [{ quantity: 4, name: 'Strike Rouge (Ootori)', number: 'GD05-005' }]);
+});
+
+test('mixed formats, including "quantity, number, name", all parse in the same paste', () => {
+  const text = `
+4 GD02-054 Gundam Barbatos 1st Form
+4 GD05-005 Strike Rouge (Ootori)
+4 Zaku II (ST03-008)
+4xST05-004
+`;
+  const { main } = parseDecklistText(text);
+  assert.deepEqual(main, [
+    { quantity: 4, name: 'Gundam Barbatos 1st Form', number: 'GD02-054' },
+    { quantity: 4, name: 'Strike Rouge (Ootori)', number: 'GD05-005' },
+    { quantity: 4, name: 'Zaku II', number: 'ST03-008' },
+    { quantity: 4, name: '', number: 'ST05-004' }
+  ]);
 });
 
 test('mixed formats in the same decklist paste all parse correctly', () => {
