@@ -3,6 +3,7 @@ const { Worker } = require('node:worker_threads');
 const path = require('node:path');
 const fs = require('node:fs');
 const { listDecks, saveDeck, loadDeck, deleteDeck } = require('../src/deck/store');
+const { listBatches, saveBatch, deleteBatch } = require('../src/sim/resultsStore');
 const { listAllCards } = require('../src/cards/index');
 const { parseDecklistText } = require('../src/deck/parser');
 const { validateDeck } = require('../src/deck/validator');
@@ -10,11 +11,8 @@ const banlist = require('../data/banlist.json');
 
 let mainWindow;
 let activeWorker = null;
-// The AI settings (+ deck texts) that produced the most recent batch's results -- the replay
-// viewer needs these to re-run one specific game's seed with the exact same engine/mctsConfig,
-// not just re-parse the same deck text with today's default settings.
-let lastBatchContext = null;
 const DECKS_DIR = () => path.join(app.getPath('userData'), 'decks');
+const BATCHES_DIR = () => path.join(app.getPath('userData'), 'batches');
 
 function createWindow() {
   mainWindow = new BrowserWindow({
@@ -64,8 +62,10 @@ ipcMain.handle('run-batch', (event, { deckAText, deckBText, games, skillA, skill
   activeWorker.on('message', (msg) => {
     if (msg.type === 'progress') mainWindow.webContents.send('batch-progress', msg);
     if (msg.type === 'done') {
-      lastBatchContext = msg.context;
-      mainWindow.webContents.send('batch-result', msg.stats);
+      // context (deck texts + engine/mctsConfig) is sent alongside stats, not just cached here, so
+      // the renderer can hand it straight to save-batch -- a saved batch needs to carry its own
+      // context to replay from later, not rely on "whatever the last live run happened to be".
+      mainWindow.webContents.send('batch-result', { stats: msg.stats, context: msg.context });
       activeWorker = null;
     }
     if (msg.type === 'error') {
@@ -133,16 +133,20 @@ ipcMain.handle('save-deck', (event, { name, decklistText }) => saveDeck(DECKS_DI
 ipcMain.handle('load-deck', (event, name) => loadDeck(DECKS_DIR(), name));
 ipcMain.handle('delete-deck', (event, name) => deleteDeck(DECKS_DIR(), name));
 
-/** Re-simulates one past game (by seed) from the most recent batch's decks/AI settings, returning a
- * structured turn-by-turn event log for the replay viewer. Runs in its own fresh worker_thread every
- * time (never reused) -- src/sim/traceGame.js's function-patching approach needs a clean module
- * registry, see its header comment. */
-ipcMain.handle('replay-game', (event, { seed }) => {
-  if (!lastBatchContext) return Promise.reject(new Error('No batch has been run yet this session.'));
+ipcMain.handle('list-batches', () => listBatches(BATCHES_DIR()));
+ipcMain.handle('save-batch', (event, { name, stats, context }) => saveBatch(BATCHES_DIR(), name, stats, context));
+ipcMain.handle('delete-batch', (event, name) => deleteBatch(BATCHES_DIR(), name));
 
+/** Re-simulates one past game (by seed), given the deck/AI context it was originally run with --
+ * either the batch just run this session or a saved batch loaded from disk, both are shaped the
+ * same (deckAText, deckBText, engineA/B, mctsConfigA/B) -- returning a structured turn-by-turn event
+ * log for the replay viewer. Runs in its own fresh worker_thread every time (never reused) --
+ * src/sim/traceGame.js's function-patching approach needs a clean module registry, see its header
+ * comment. */
+ipcMain.handle('replay-game', (event, { seed, context }) => {
   return new Promise((resolve, reject) => {
     const worker = new Worker(path.join(__dirname, 'worker', 'replayWorker.js'), {
-      workerData: { ...lastBatchContext, seed }
+      workerData: { ...context, seed }
     });
     worker.on('message', (msg) => {
       if (msg.type === 'done') resolve(msg.events);

@@ -12,9 +12,11 @@ contextBridge.exposeInMainWorld('sim', {
   cancel: () => ipcRenderer.invoke('cancel-batch'),
   skillPresets: skillPresetList,
   onProgress: (callback) => ipcRenderer.on('batch-progress', (_event, msg) => callback(msg)),
-  onResult: (callback) => ipcRenderer.on('batch-result', (_event, stats) => callback(stats)),
+  // Payload is {stats, context} -- context (deck texts + engine/mctsConfig) rides along so the
+  // renderer can hand it straight to resultsStore.save without a separate round trip.
+  onResult: (callback) => ipcRenderer.on('batch-result', (_event, payload) => callback(payload)),
   onError: (callback) => ipcRenderer.on('batch-error', (_event, message) => callback(message)),
-  replayGame: (seed) => ipcRenderer.invoke('replay-game', { seed })
+  replayGame: (seed, context) => ipcRenderer.invoke('replay-game', { seed, context })
 });
 
 contextBridge.exposeInMainWorld('deckStore', {
@@ -22,6 +24,12 @@ contextBridge.exposeInMainWorld('deckStore', {
   save: (name, decklistText) => ipcRenderer.invoke('save-deck', { name, decklistText }),
   load: (name) => ipcRenderer.invoke('load-deck', name),
   delete: (name) => ipcRenderer.invoke('delete-deck', name)
+});
+
+contextBridge.exposeInMainWorld('resultsStore', {
+  list: () => ipcRenderer.invoke('list-batches'),
+  save: (name, stats, context) => ipcRenderer.invoke('save-batch', { name, stats, context }),
+  delete: (name) => ipcRenderer.invoke('delete-batch', name)
 });
 
 contextBridge.exposeInMainWorld('cards', {

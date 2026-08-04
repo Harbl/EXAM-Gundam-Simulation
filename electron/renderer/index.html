@@ -248,6 +248,14 @@
   .savedRow { display: flex; gap: 8px; margin-top: 8px; }
   .savedRow select { flex: 1; }
 
+  /* Collapsing this down to a thin strip (instead of the old broken "fullscreen the board" attempt)
+     is what actually gives the replay panel real room -- flex-basis shrinks to just the toggle
+     button's width and the replay panel's own `flex: 2.2` picks up the freed space automatically. */
+  #batchListPanel { flex: 1; }
+  #batchListPanel.collapsed { flex: 0 0 auto; padding: 16px 10px; overflow: hidden; }
+  #batchListPanel.collapsed h2 { border-bottom: none; padding-bottom: 0; }
+  #batchListPanel.collapsed h2 span, #batchListPanel.collapsed #batchList { display: none; }
+
   .savedDeckList { margin-top: 6px; border: 1px solid var(--grey); }
   .savedDeckRow {
     display: flex; align-items: center; justify-content: space-between; gap: 8px;
@@ -264,6 +272,16 @@
     padding: 1px 7px; font-size: 12px; clip-path: none; cursor: pointer;
   }
   .savedDeckList .hint { padding: 8px; margin: 0; }
+
+  .batchGameList { background: #0c0c0c; border-bottom: 1px solid #222; max-height: 220px; overflow-y: auto; }
+  .batchGameRow {
+    padding: 6px 12px 6px 24px; font-size: 12px; color: #ccc; cursor: pointer;
+    border-bottom: 1px solid #1a1a1a; font-family: 'Consolas', monospace;
+  }
+  .batchGameRow:last-child { border-bottom: none; }
+  .batchGameRow:hover { background: #1a1a1a; color: var(--gold); }
+  .batchGameList .hint { padding: 6px 12px 6px 24px; margin: 0; font-size: 11px; }
+
   .smallBtn { flex: none !important; padding: 7px 14px !important; font-size: 11px !important; background: linear-gradient(180deg, #3a3a3a, #222); color: var(--text); border: 1px solid var(--grey); }
 
   .callouts { display: flex; flex-wrap: wrap; gap: 14px; margin: 8px 0 4px; }
@@ -292,35 +310,50 @@
   .timeline .evtThumb { width: 22px; height: 31px; object-fit: cover; background: #000; flex-shrink: 0; border: 1px solid #333; }
   .timeline .end { color: var(--gold); font-weight: bold; margin-top: 6px; }
 
-  .viewToggle { display: flex; gap: 8px; margin: 10px 0 4px; }
+  .viewToggle { display: flex; gap: 8px; margin: 10px 0 4px; flex: none; }
   .viewToggle button.active { border-color: var(--gold); color: var(--gold); }
-  .playbackControls { display: flex; align-items: center; gap: 8px; margin-top: 8px; }
+  .playbackControls { display: flex; align-items: center; gap: 8px; margin-top: 8px; flex: none; }
   .playbackControls input[type=range] { flex: 1; }
-  #eventCaption { font-size: 11.5px; color: var(--gold); margin: 6px 0; min-height: 14px; }
-  .board { display: flex; flex-direction: column; gap: 10px; margin-top: 4px; font-size: 12px; max-height: 520px; overflow-y: auto; }
-  .boardPlayer { border: 1px solid var(--grey); border-left: 2px solid transparent; padding: 8px; background: #0d0d0d; }
+  #eventCaption { font-size: 11.5px; color: var(--gold); margin: 6px 0; min-height: 14px; flex: none; }
+
+  /* Replay panel fills the full panel height (not a fixed px cap -- position:fixed "fullscreen" was
+     tried and abandoned: .panel's own clip-path makes it a containing block for fixed descendants in
+     Chromium, so a fixed overlay just gets clipped to the panel's own box instead of escaping it).
+     #replaySection/#replayBoard/.board form a flex-column chain down to whichever view is active, so
+     that view's own scrollable region gets 100% of the space between the toggle buttons above and the
+     panel's bottom edge -- no separate fixed height to keep in sync with window resizes. */
+  .replayPanel { display: flex; flex-direction: column; }
+  .replayPanel > h2, .replayPanel > #replayHint { flex: none; }
+  #replaySection { display: none; flex-direction: column; flex: 1; min-height: 0; }
+  #replayTimeline { flex: 1; min-height: 0; overflow-y: auto; }
+  #replayBoard { display: none; flex-direction: column; flex: 1; min-height: 0; }
+  /* Side-by-side (not stacked) so both players' zones share the panel's full height instead of each
+     needing their own half -- roughly halves the vertical room a hand/battle-area row needs to fit
+     into before wrapping, which is what actually keeps both fully visible without scrolling. */
+  .board { display: flex; flex-direction: row; gap: 10px; margin-top: 4px; font-size: 12px; flex: 1; min-height: 0; }
+  .boardPlayer { border: 1px solid var(--grey); border-left: 2px solid transparent; padding: 8px; background: #0d0d0d; flex: 1; min-width: 0; overflow-y: auto; }
   .boardPlayer.active { border-left-color: var(--gold); }
   .boardPlayerHead {
     display: flex; justify-content: space-between; align-items: center;
     font-family: var(--font-head); letter-spacing: 1px; color: var(--gold);
-    text-transform: uppercase; font-size: 11px; margin-bottom: 6px;
+    text-transform: uppercase; font-size: 13px; margin-bottom: 8px;
   }
-  .boardRow { margin-bottom: 7px; }
-  .boardRow .rowLabel { font-size: 9.5px; color: #888; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 3px; }
-  .boardTiles, .shieldRow, .handRow { display: flex; flex-wrap: wrap; gap: 5px; }
-  .unitTile { width: 62px; background: #111; border: 1px solid var(--grey); padding: 3px; text-align: center; transition: opacity 300ms; }
+  .boardRow { margin-bottom: 9px; }
+  .boardRow .rowLabel { font-size: 11px; color: #888; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 4px; }
+  .boardTiles, .shieldRow, .handRow { display: flex; flex-wrap: wrap; gap: 7px; }
+  .unitTile { width: 88px; background: #111; border: 1px solid var(--grey); padding: 4px; text-align: center; transition: opacity 300ms; }
   .unitTile.rested { opacity: 0.5; }
-  .unitTile img { width: 54px; height: 76px; object-fit: cover; background: #000; display: block; margin: 0 auto 2px; }
-  .unitTile .uName { font-size: 8px; line-height: 1.15; height: 18px; overflow: hidden; }
-  .unitTile .hpTrack { background: #222; height: 4px; margin-top: 2px; }
+  .unitTile img { width: 76px; height: 107px; object-fit: cover; background: #000; display: block; margin: 0 auto 3px; }
+  .unitTile .uName { font-size: 11px; line-height: 1.2; height: 26px; overflow: hidden; }
+  .unitTile .hpTrack { background: #222; height: 6px; margin-top: 3px; }
   .unitTile .hpFill { background: var(--red-glow); height: 100%; transition: width 420ms ease; }
-  .unitTile .pilotBadge { font-size: 7.5px; color: var(--gold); overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
-  .miniStat { font-size: 10px; color: #999; }
-  .shieldBack { width: 24px; height: 34px; background: linear-gradient(160deg, #3a3a3a, #111); border: 1px solid var(--grey); flex-shrink: 0; }
-  .shieldFront { width: 24px; height: 34px; flex-shrink: 0; }
-  .shieldFront img { width: 24px; height: 34px; object-fit: cover; border: 1px solid var(--gold); display: block; }
-  .handTile { width: 42px; flex-shrink: 0; }
-  .handTile img { width: 42px; height: 59px; object-fit: cover; border: 1px solid var(--grey); display: block; }
+  .unitTile .pilotBadge { font-size: 10px; color: var(--gold); overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+  .miniStat { font-size: 12px; color: #999; }
+  .shieldBack { width: 34px; height: 48px; background: linear-gradient(160deg, #3a3a3a, #111); border: 1px solid var(--grey); flex-shrink: 0; }
+  .shieldFront { width: 34px; height: 48px; flex-shrink: 0; }
+  .shieldFront img { width: 34px; height: 48px; object-fit: cover; border: 1px solid var(--gold); display: block; }
+  .handTile { width: 60px; flex-shrink: 0; }
+  .handTile img { width: 60px; height: 84px; object-fit: cover; border: 1px solid var(--grey); display: block; }
 
   /* Full-motion board animation primitives -- everything is driven by JS (FLIP position/scale
      transforms via inline style, applied by flipFrom/animateExitTo in the script below) except three
@@ -408,6 +441,7 @@
   <button id="navSimulate" class="active">Simulate</button>
   <button id="navBuilder">Deck Builder</button>
   <button id="navDecks">Saved Decks</button>
+  <button id="navLog">Log</button>
 </nav>
 <main>
 <div class="screen" id="simulateScreen">
@@ -467,28 +501,11 @@
     <canvas id="statsChart" width="620" height="460" style="display:none; max-width:100%; margin-top:6px;"></canvas>
     <button id="exportStatsBtn" class="smallBtn" style="display:none; margin-top:10px;">Export Stats Infographic</button>
     <div id="exportStatus" class="smallStatus"></div>
-    <div id="replaySection" style="display:none">
-      <h2 style="margin-top:16px">Replay a Game</h2>
-      <div class="savedRow">
-        <input type="number" id="replayGameNum" value="1" min="1" style="width:80px" />
-        <button id="replayBtn" class="smallBtn">View Replay</button>
-      </div>
-      <div class="viewToggle">
-        <button id="logViewBtn" class="smallBtn active" type="button">Log View</button>
-        <button id="boardViewBtn" class="smallBtn" type="button">Board View</button>
-      </div>
-      <div id="replayTimeline"></div>
-      <div id="replayBoard" style="display:none">
-        <div class="playbackControls">
-          <button id="playbackPrev" class="smallBtn" type="button">◀ Prev</button>
-          <button id="playbackPlay" class="smallBtn" type="button">Play</button>
-          <button id="playbackNext" class="smallBtn" type="button">Next ▶</button>
-          <input type="range" id="playbackScrub" min="0" max="0" value="0" />
-        </div>
-        <div id="eventCaption"></div>
-        <div id="boardRoot" class="board"></div>
-      </div>
+    <div class="savedRow" id="saveBatchRow" style="display:none">
+      <input type="text" id="batchNameInput" placeholder="Name this batch" />
+      <button id="saveBatchBtn" class="smallBtn">Save Batch</button>
     </div>
+    <div id="saveBatchStatus" class="smallStatus"></div>
     <div id="error"></div>
   </div>
 </div>
@@ -535,6 +552,34 @@
     <div id="savedDeckList" class="savedDeckList"></div>
   </div>
 </div>
+
+<div class="screen hidden" id="logScreen">
+  <div class="panel" id="batchListPanel">
+    <h2><span>Saved Batches</span><button id="collapseBatchListBtn" class="smallBtn" type="button" style="margin-left:auto">◀</button></h2>
+    <div id="batchList" class="savedDeckList"></div>
+  </div>
+  <div class="panel replayPanel" style="flex: 2.2">
+    <h2>Replay a Game</h2>
+    <p id="replayHint" class="hint">Expand a saved batch on the left and pick a game to replay.</p>
+    <div id="replaySection">
+      <div class="viewToggle">
+        <button id="logViewBtn" class="smallBtn active" type="button">Log View</button>
+        <button id="boardViewBtn" class="smallBtn" type="button">Board View</button>
+      </div>
+      <div id="replayTimeline"></div>
+      <div id="replayBoard">
+        <div class="playbackControls">
+          <button id="playbackPrev" class="smallBtn" type="button">◀ Prev</button>
+          <button id="playbackPlay" class="smallBtn" type="button">Play</button>
+          <button id="playbackNext" class="smallBtn" type="button">Next ▶</button>
+          <input type="range" id="playbackScrub" min="0" max="0" value="0" />
+        </div>
+        <div id="eventCaption"></div>
+        <div id="boardRoot" class="board"></div>
+      </div>
+    </div>
+  </div>
+</div>
 </main>
 </div>
 
@@ -567,9 +612,14 @@
   const exportStatsBtn = document.getElementById('exportStatsBtn');
   const exportStatusEl = document.getElementById('exportStatus');
   const replaySection = document.getElementById('replaySection');
-  const replayGameNum = document.getElementById('replayGameNum');
   const replayTimeline = document.getElementById('replayTimeline');
+  const replayHintEl = document.getElementById('replayHint');
+  const saveBatchRow = document.getElementById('saveBatchRow');
+  const batchNameInput = document.getElementById('batchNameInput');
+  const saveBatchStatusEl = document.getElementById('saveBatchStatus');
+  const saveBatchBtn = document.getElementById('saveBatchBtn');
   let lastStats = null;
+  let lastContext = null;
   let fadeTimeout = null;
 
   runBtn.addEventListener('click', () => {
@@ -582,9 +632,11 @@
     resultsEl.style.opacity = '0';
     exportStatsBtn.style.display = 'none';
     exportStatusEl.textContent = '';
-    replaySection.style.display = 'none';
-    replayTimeline.innerHTML = '';
+    saveBatchRow.style.display = 'none';
+    batchNameInput.value = '';
+    saveBatchStatusEl.textContent = '';
     lastStats = null;
+    lastContext = null;
     clearTimeout(fadeTimeout);
     progressFill.style.width = '0%';
     progressText.textContent = '';
@@ -693,11 +745,12 @@
     `;
   }
 
-  window.sim.onResult((stats) => {
+  window.sim.onResult(({ stats, context }) => {
     runBtn.disabled = false;
     cancelBtn.disabled = true;
     setStatus('ready', 'COMPLETE');
     lastStats = stats;
+    lastContext = context;
     exportStatusEl.textContent = '';
 
     // Fade the pulsing emblem/progress bar out rather than snapping it away, so the finished stat
@@ -714,13 +767,10 @@
     drawBarChart(statsChart, CHART_GROUPS(stats), 13);
     exportStatsBtn.style.display = 'inline-block';
 
+    // Replaying/browsing individual games now lives entirely on the Log page, against saved
+    // batches -- so the only thing offered here is a way to save this batch to get there.
     const hasGames = stats.perGame && stats.perGame.length > 0;
-    replaySection.style.display = hasGames ? 'block' : 'none';
-    if (hasGames) {
-      replayGameNum.max = String(stats.perGame.length);
-      replayGameNum.value = '1';
-    }
-    replayTimeline.innerHTML = '';
+    saveBatchRow.style.display = hasGames ? 'flex' : 'none';
   });
 
   window.sim.onError((message) => {
@@ -733,8 +783,16 @@
     chartLegend.style.display = 'none';
     statsChart.style.display = 'none';
     exportStatsBtn.style.display = 'none';
-    replaySection.style.display = 'none';
+    saveBatchRow.style.display = 'none';
     errorEl.textContent = message;
+  });
+
+  saveBatchBtn.addEventListener('click', async () => {
+    const name = batchNameInput.value.trim();
+    if (!name) { batchNameInput.focus(); return; }
+    if (!lastStats || !lastContext) return;
+    await window.resultsStore.save(name, lastStats, lastContext);
+    saveBatchStatusEl.textContent = `Saved "${name}".`;
   });
 
   // --- Saved decks (Deck A / Deck B panels) ---
@@ -819,6 +877,97 @@
       savedDeckListEl.appendChild(row);
     }
   }
+
+  // --- Log page: saved batches, expandable to a per-game list, click a game to replay it full-page ---
+  const batchListEl = document.getElementById('batchList');
+  const MAX_RENDERED_GAMES = 500;
+
+  async function refreshSavedBatches() {
+    if (!window.resultsStore) return;
+    const batches = await window.resultsStore.list();
+    renderBatchList(batches);
+  }
+
+  function buildGameRows(container, batch) {
+    const perGame = batch.stats.perGame || [];
+    const shown = perGame.slice(0, MAX_RENDERED_GAMES);
+    shown.forEach((g, i) => {
+      const gRow = document.createElement('div');
+      gRow.className = 'batchGameRow';
+      const outcome = g.draw ? 'Draw' : g.timedOut ? 'Timed out' : `P${g.winner} won`;
+      gRow.textContent = `#${i + 1} — ${outcome} — ${Math.ceil(g.turns / 2)} turns`;
+      gRow.addEventListener('click', (ev) => {
+        ev.stopPropagation();
+        viewReplay(g.seed, batch.context);
+      });
+      container.appendChild(gRow);
+    });
+    if (perGame.length > MAX_RENDERED_GAMES) {
+      const hint = document.createElement('p');
+      hint.className = 'hint';
+      hint.textContent = `...and ${perGame.length - MAX_RENDERED_GAMES} more -- narrow this down by saving smaller batches.`;
+      container.appendChild(hint);
+    }
+  }
+
+  function renderBatchList(batches) {
+    batchListEl.innerHTML = '';
+    if (!batches.length) {
+      batchListEl.innerHTML = '<p class="hint">No saved batches yet -- run one on the Simulate screen and save it.</p>';
+      return;
+    }
+    for (const b of batches) {
+      const row = document.createElement('div');
+      row.className = 'savedDeckRow';
+      const rowLeft = document.createElement('div');
+      rowLeft.className = 'rowLeft';
+      const label = document.createElement('span');
+      label.textContent = b.name;
+      const meta = document.createElement('span');
+      meta.className = 'savedDeckMeta';
+      meta.textContent =
+        `${new Date(b.savedAt).toLocaleDateString()} — ${b.stats.games} games — ` +
+        `A ${pct(b.stats.deckA.winRate)} / B ${pct(b.stats.deckB.winRate)}`;
+      label.appendChild(meta);
+      rowLeft.appendChild(label);
+      const delBtn = document.createElement('button');
+      delBtn.type = 'button';
+      delBtn.className = 'deleteDeckBtn';
+      delBtn.title = 'Delete this batch';
+      delBtn.textContent = '×';
+      row.append(rowLeft, delBtn);
+
+      // Game rows are built lazily on first expand, not up front for every saved batch -- a batch can
+      // carry up to MAX_RENDERED_GAMES worth of DOM nodes, no need to pay that for every collapsed row.
+      const gamesList = document.createElement('div');
+      gamesList.className = 'batchGameList';
+      gamesList.style.display = 'none';
+      row.addEventListener('click', () => {
+        const showing = gamesList.style.display !== 'none';
+        gamesList.style.display = showing ? 'none' : 'block';
+        if (!showing && !gamesList.dataset.built) {
+          buildGameRows(gamesList, b);
+          gamesList.dataset.built = '1';
+        }
+      });
+      delBtn.addEventListener('click', async (ev) => {
+        ev.stopPropagation();
+        await window.resultsStore.delete(b.name);
+        refreshSavedBatches();
+      });
+
+      const wrap = document.createElement('div');
+      wrap.append(row, gamesList);
+      batchListEl.appendChild(wrap);
+    }
+  }
+
+  const batchListPanel = document.getElementById('batchListPanel');
+  const collapseBatchListBtn = document.getElementById('collapseBatchListBtn');
+  collapseBatchListBtn.addEventListener('click', () => {
+    const collapsed = batchListPanel.classList.toggle('collapsed');
+    collapseBatchListBtn.textContent = collapsed ? '▶' : '◀';
+  });
 
   const nameAInput = document.getElementById('nameA');
   const nameBInput = document.getElementById('nameB');
@@ -1443,7 +1592,7 @@
     logViewBtn.classList.toggle('active', mode === 'log');
     boardViewBtn.classList.toggle('active', mode === 'board');
     replayTimeline.style.display = mode === 'log' ? 'block' : 'none';
-    replayBoardEl.style.display = mode === 'board' ? 'block' : 'none';
+    replayBoardEl.style.display = mode === 'board' ? 'flex' : 'none';
     if (mode === 'board') renderCurrentBoardStep();
     else stopPlayback();
   }
@@ -1477,18 +1626,17 @@
     }, 900);
   });
 
-  document.getElementById('replayBtn').addEventListener('click', async () => {
-    if (!lastStats || !lastStats.perGame) return;
-    const game = lastStats.perGame[Number(replayGameNum.value) - 1];
-    if (!game) {
-      replayTimeline.innerHTML = '<p style="color:var(--red-glow)">No such game number.</p>';
-      return;
-    }
+  // Replaces the old "type a game number, click View Replay" flow -- games are now picked by
+  // clicking a row in a saved batch's expanded game list on the Log page (see renderBatchList
+  // below), which already has the exact seed + that batch's own context on hand.
+  async function viewReplay(seed, context) {
+    replaySection.style.display = 'flex';
+    replayHintEl.style.display = 'none';
     stopPlayback();
     currentReplayEvents = null;
     replayTimeline.innerHTML = 'Loading replay...';
     try {
-      const events = await window.sim.replayGame(game.seed);
+      const events = await window.sim.replayGame(seed, context);
       renderTimeline(events);
       currentReplayEvents = events;
       currentReplayIndex = 0;
@@ -1503,23 +1651,27 @@
     } catch (err) {
       replayTimeline.innerHTML = '<p style="color:var(--red-glow)">' + err.message + '</p>';
     }
-  });
+  }
 
-  // --- Nav: Simulate / Deck Builder / Saved Decks ---
+  // --- Nav: Simulate / Deck Builder / Saved Decks / Log ---
   const navSimulate = document.getElementById('navSimulate');
   const navBuilder = document.getElementById('navBuilder');
   const navDecks = document.getElementById('navDecks');
+  const navLog = document.getElementById('navLog');
   const simulateScreen = document.getElementById('simulateScreen');
   const builderScreen = document.getElementById('builderScreen');
   const decksScreen = document.getElementById('decksScreen');
+  const logScreen = document.getElementById('logScreen');
 
   function showScreen(which) {
     simulateScreen.classList.toggle('hidden', which !== 'simulate');
     builderScreen.classList.toggle('hidden', which !== 'builder');
     decksScreen.classList.toggle('hidden', which !== 'decks');
+    logScreen.classList.toggle('hidden', which !== 'log');
     navSimulate.classList.toggle('active', which === 'simulate');
     navBuilder.classList.toggle('active', which === 'builder');
     navDecks.classList.toggle('active', which === 'decks');
+    navLog.classList.toggle('active', which === 'log');
   }
   navSimulate.addEventListener('click', () => showScreen('simulate'));
   navDecks.addEventListener('click', () => {
@@ -1529,6 +1681,10 @@
   navBuilder.addEventListener('click', () => {
     showScreen('builder');
     initBuilderOnce();
+  });
+  navLog.addEventListener('click', () => {
+    showScreen('log');
+    refreshSavedBatches();
   });
 
   // --- Deck Builder ---
@@ -2084,8 +2240,9 @@
     const titleA = nameAInput.value.trim() || 'Deck A';
     const titleB = nameBInput.value.trim() || 'Deck B';
     // Uses whatever is currently pasted/loaded in the Deck A/B textareas to build the visual deck
-    // lists -- same assumption the standalone per-deck "Export Image" buttons already make (the
-    // batch's own decks aren't separately cached beyond lastBatchContext's engine/mctsConfig).
+    // lists -- same assumption the standalone per-deck "Export Image" buttons already make (lastStats
+    // doesn't carry the decklists themselves, just results; lastContext does, but only its
+    // engine/mctsConfig are relevant here since the textareas already have the actual deck text).
     const entriesA = await groupedEntriesFromText(document.getElementById('deckA').value);
     const entriesB = await groupedEntriesFromText(document.getElementById('deckB').value);
     const canvas = await composeStatsInfographicCanvas(lastStats, titleA, titleB, entriesA, entriesB);
