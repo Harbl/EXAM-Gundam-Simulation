@@ -247,6 +247,23 @@
 
   .savedRow { display: flex; gap: 8px; margin-top: 8px; }
   .savedRow select { flex: 1; }
+
+  .savedDeckList { margin-top: 6px; border: 1px solid var(--grey); }
+  .savedDeckRow {
+    display: flex; align-items: center; justify-content: space-between; gap: 8px;
+    padding: 10px 12px; border-bottom: 1px solid #222; cursor: pointer; font-size: 14px;
+  }
+  .savedDeckRow:last-child { border-bottom: none; }
+  .savedDeckRow:hover { background: #1a1a1a; }
+  .savedDeckRow .rowLeft { display: flex; align-items: center; gap: 10px; min-width: 0; }
+  .savedDeckRow .savedDeckMeta { color: #777; font-size: 10.5px; margin-left: 6px; }
+  .savedDeckColors { display: flex; gap: 4px; flex: none; }
+  .colorDot { width: 11px; height: 11px; border-radius: 50%; border: 1px solid rgba(0,0,0,0.5); }
+  .savedDeckRow .deleteDeckBtn {
+    flex: none; background: none; border: 1px solid #442; color: var(--red-glow);
+    padding: 1px 7px; font-size: 12px; clip-path: none; cursor: pointer;
+  }
+  .savedDeckList .hint { padding: 8px; margin: 0; }
   .smallBtn { flex: none !important; padding: 7px 14px !important; font-size: 11px !important; background: linear-gradient(180deg, #3a3a3a, #222); color: var(--text); border: 1px solid var(--grey); }
 
   .callouts { display: flex; flex-wrap: wrap; gap: 14px; margin: 8px 0 4px; }
@@ -390,6 +407,7 @@
 <nav>
   <button id="navSimulate" class="active">Simulate</button>
   <button id="navBuilder">Deck Builder</button>
+  <button id="navDecks">Saved Decks</button>
 </nav>
 <main>
 <div class="screen" id="simulateScreen">
@@ -508,6 +526,13 @@
       <select id="filterCost"><option value="">Any Cost</option></select>
     </div>
     <div id="cardGrid" class="cardGrid"><p class="hint">Type a search term or pick a filter to browse the card database.</p></div>
+  </div>
+</div>
+
+<div class="screen hidden" id="decksScreen">
+  <div class="panel">
+    <h2>Saved Decks</h2>
+    <div id="savedDeckList" class="savedDeckList"></div>
   </div>
 </div>
 </main>
@@ -726,6 +751,72 @@
       select.innerHTML = `<option value="">${placeholder}</option>`;
       for (const d of decks) select.appendChild(new Option(d.name, d.name));
       select.value = current;
+    }
+    await renderSavedDeckList(decks);
+  }
+
+  // Same 5 game colors card data uses (src/deck/validator.js's colorCounts keys, lowercase full
+  // words) -- a small display-only accent, not derived from the app's own Zeon red/gold theme colors.
+  const GAME_COLOR_HEX = { blue: '#3d7dca', green: '#4f9c4f', red: '#c0392b', white: '#e8e4d8', purple: '#8e5bc4' };
+
+  // Saved Decks page: click a row to open it in the Deck Builder for viewing/editing, click x to
+  // delete it. Kept on its own nav page rather than embedded in the Deck Builder panel so it doesn't
+  // compete for space there -- the Deck Builder's own dropdown is still there for a quick in-place
+  // swap while already editing.
+  async function renderSavedDeckList(decks) {
+    savedDeckListEl.innerHTML = '';
+    if (!decks.length) {
+      savedDeckListEl.innerHTML = '<p class="hint">No saved decks yet.</p>';
+      return;
+    }
+    // validateDeck (behind window.cards.validate) already computes colorCounts for the deck-color-count
+    // legality rule -- reused here rather than re-deriving color info from the card DB separately.
+    const withColors = await Promise.all(decks.map(async (d) => {
+      const result = window.cards ? await window.cards.validate(d.decklistText) : null;
+      const colorCounts = (result && result.colorCounts) || {};
+      const colors = Object.keys(colorCounts).sort((a, b) => colorCounts[b] - colorCounts[a]);
+      return { deck: d, colors };
+    }));
+    // Built via DOM methods (not innerHTML string interpolation) since deck names are user-typed free
+    // text -- same .textContent-over-innerHTML rule the rest of this app follows for user input.
+    for (const { deck: d, colors } of withColors) {
+      const row = document.createElement('div');
+      row.className = 'savedDeckRow';
+      const rowLeft = document.createElement('div');
+      rowLeft.className = 'rowLeft';
+      const label = document.createElement('span');
+      label.textContent = d.name;
+      const meta = document.createElement('span');
+      meta.className = 'savedDeckMeta';
+      meta.textContent = new Date(d.savedAt).toLocaleDateString();
+      label.appendChild(meta);
+      const colorWrap = document.createElement('span');
+      colorWrap.className = 'savedDeckColors';
+      for (const color of colors) {
+        const dot = document.createElement('span');
+        dot.className = 'colorDot';
+        dot.style.background = GAME_COLOR_HEX[color] || '#666';
+        dot.title = color[0].toUpperCase() + color.slice(1);
+        colorWrap.appendChild(dot);
+      }
+      rowLeft.append(label, colorWrap);
+      const delBtn = document.createElement('button');
+      delBtn.type = 'button';
+      delBtn.className = 'deleteDeckBtn';
+      delBtn.title = 'Delete this deck';
+      delBtn.textContent = '×';
+      row.append(rowLeft, delBtn);
+      row.addEventListener('click', () => {
+        showScreen('builder');
+        initBuilderOnce();
+        loadSavedDeckIntoBuilder(d.name);
+      });
+      delBtn.addEventListener('click', async (ev) => {
+        ev.stopPropagation();
+        await window.deckStore.delete(d.name);
+        refreshSavedDecks();
+      });
+      savedDeckListEl.appendChild(row);
     }
   }
 
@@ -1414,19 +1505,27 @@
     }
   });
 
-  // --- Nav: Simulate / Deck Builder ---
+  // --- Nav: Simulate / Deck Builder / Saved Decks ---
   const navSimulate = document.getElementById('navSimulate');
   const navBuilder = document.getElementById('navBuilder');
+  const navDecks = document.getElementById('navDecks');
   const simulateScreen = document.getElementById('simulateScreen');
   const builderScreen = document.getElementById('builderScreen');
+  const decksScreen = document.getElementById('decksScreen');
 
   function showScreen(which) {
     simulateScreen.classList.toggle('hidden', which !== 'simulate');
     builderScreen.classList.toggle('hidden', which !== 'builder');
+    decksScreen.classList.toggle('hidden', which !== 'decks');
     navSimulate.classList.toggle('active', which === 'simulate');
     navBuilder.classList.toggle('active', which === 'builder');
+    navDecks.classList.toggle('active', which === 'decks');
   }
   navSimulate.addEventListener('click', () => showScreen('simulate'));
+  navDecks.addEventListener('click', () => {
+    showScreen('decks');
+    refreshSavedDecks();
+  });
   navBuilder.addEventListener('click', () => {
     showScreen('builder');
     initBuilderOnce();
@@ -1444,6 +1543,7 @@
   const deckTotalEl = document.getElementById('deckTotal');
   const builderErrorsEl = document.getElementById('builderErrors');
   const savedBuilderSelect = document.getElementById('savedBuilder');
+  const savedDeckListEl = document.getElementById('savedDeckList');
   const MAX_RENDERED_CARDS = 60;
 
   // Idempotent/cached via a shared promise -- both the Deck Builder nav (which also needs to
@@ -1480,9 +1580,9 @@
   // same expanded card-art grid renderDeckList() already draws -- this is the "view a saved deck in
   // an expanded format" Jake asked for, distinct from the small Deck A/B dropdowns on the Simulate
   // screen (which just load raw text into a textarea).
-  savedBuilderSelect.addEventListener('change', async () => {
-    if (!savedBuilderSelect.value || !window.deckStore || !window.cards) return;
-    const deck = await window.deckStore.load(savedBuilderSelect.value);
+  async function loadSavedDeckIntoBuilder(name) {
+    if (!name || !window.deckStore || !window.cards) return;
+    const deck = await window.deckStore.load(name);
     if (!deck) return;
     await ensureCardsLoaded();
     const result = await window.cards.validate(deck.decklistText);
@@ -1495,7 +1595,9 @@
     renderCardGrid();
     validateBuilderDeck();
     builderStatusEl.textContent = `Loaded "${deck.name}".`;
-  });
+  }
+
+  savedBuilderSelect.addEventListener('change', () => loadSavedDeckIntoBuilder(savedBuilderSelect.value));
 
   // Card art ships inside the app at electron/renderer/assets/cards/{number}.webp (populated by
   // bin/download-images.js). A missing file just hides the <img> instead of showing a broken-image icon.
