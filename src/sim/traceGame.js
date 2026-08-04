@@ -125,6 +125,23 @@ management.enforceHandLimit = function (player, chooseDiscards) {
   return result;
 };
 
+// Effect-driven discards (e.g. Overflowing Affection GD01-118's "Draw 2. Then, discard 1.") go
+// through this shared helper rather than enforceHandLimit (that's specifically the end-of-turn
+// discard-to-limit step) -- without this patch, ~18 registry.js effects' discards would never emit
+// a trace event at all, even though they discard correctly in real game state (looked like a
+// gameplay bug in the replay viewer, but was only ever a trace-visibility gap).
+const origDiscardFromHand = management.discardFromHand;
+management.discardFromHand = function (player, card) {
+  const isReal = !!realState && realState.players.includes(player);
+  const playerIdx = isReal ? realState.players.indexOf(player) : null;
+  const cardRefForEvent = isReal ? cardRef(card.def) : null;
+  const result = origDiscardFromHand.call(this, player, card);
+  if (isReal) {
+    events.push({ type: 'discard', turn: realState.turnNumber, player: playerIdx, card: cardRefForEvent });
+  }
+  return result;
+};
+
 const phases = require('../rules/phases');
 
 const origDrawCard = phases.drawCard;
@@ -146,24 +163,42 @@ phases.drawCard = function (state, player, opts = {}) {
 const actions = require('../rules/actions');
 const combat = require('../rules/combat');
 
+// Every one of these action patches (deploy/deployBase/becomeBase/playCommand/pairPilot/
+// pairPilotFromTrash/resolveAttack below) pushes its OWN event before delegating to the original
+// function, not after -- the original functions fire the card's own trigger effects synchronously
+// inside their own call (Deploy/When Paired/[Main]/Attack-timing text that can draw, discard, deal
+// damage, or destroy), and those nested effects push their own trace events through the patches
+// above. Pushing the parent's event afterward would land it in the array AFTER everything its own
+// effect caused -- e.g. Overflowing Affection GD01-118's "Draw 2. Then, discard 1." showed up in a
+// replay as two draws and a discard happening BEFORE the card was even played. Where an event needs
+// data only the call's return value provides (the newly created instance's id, for deploy/deployBase
+// -- deployUnit/deployBase create that instance internally, unlike becomeBase/pairPilot/playCommand
+// which are only ever given an already-existing instance/def as an argument), a placeholder event is
+// pushed up front and mutated in place once the call returns -- the array position (and therefore
+// display order) is fixed by the push, not the mutation.
 const origDeployUnit = actions.deployUnit;
 actions.deployUnit = function (state, player, def, chooseToTrash, context) {
-  const result = origDeployUnit.call(this, state, player, def, chooseToTrash, context);
-  if (state === realState) {
-    // `result` is the newly created instance -- carrying its id (not just the card number) is what
-    // lets the board replay's reducer track this exact battle-area slot across later damage/destroy
-    // events, even when two copies of the same card number are in play at once.
-    events.push({ type: 'deploy', turn: state.turnNumber, player: state.players.indexOf(player), card: cardRef(def), unit: instanceRef(result) });
+  const isReal = state === realState;
+  let ev = null;
+  if (isReal) {
+    ev = { type: 'deploy', turn: state.turnNumber, player: state.players.indexOf(player), card: cardRef(def), unit: null };
+    events.push(ev);
   }
+  const result = origDeployUnit.call(this, state, player, def, chooseToTrash, context);
+  if (isReal) ev.unit = instanceRef(result);
   return result;
 };
 
 const origDeployBase = actions.deployBase;
 actions.deployBase = function (state, player, def) {
-  const result = origDeployBase.call(this, state, player, def);
-  if (state === realState) {
-    events.push({ type: 'deployBase', turn: state.turnNumber, player: state.players.indexOf(player), card: cardRef(def), unit: instanceRef(result) });
+  const isReal = state === realState;
+  let ev = null;
+  if (isReal) {
+    ev = { type: 'deployBase', turn: state.turnNumber, player: state.players.indexOf(player), card: cardRef(def), unit: null };
+    events.push(ev);
   }
+  const result = origDeployBase.call(this, state, player, def);
+  if (isReal) ev.unit = instanceRef(result);
   return result;
 };
 
@@ -177,25 +212,23 @@ actions.deployBase = function (state, player, def) {
 // player's Base" is exactly what that event already represents.
 const origBecomeBase = actions.becomeBase;
 actions.becomeBase = function (state, player, instance) {
-  const result = origBecomeBase.call(this, state, player, instance);
-  if (state === realState) {
-    events.push({ type: 'deployBase', turn: state.turnNumber, player: state.players.indexOf(player), card: cardRef(instance.def), unit: instanceRef(result) });
+  const isReal = state === realState;
+  if (isReal) {
+    events.push({ type: 'deployBase', turn: state.turnNumber, player: state.players.indexOf(player), card: cardRef(instance.def), unit: instanceRef(instance) });
   }
-  return result;
+  return origBecomeBase.call(this, state, player, instance);
 };
 
 const origPlayCommand = actions.playCommand;
 actions.playCommand = function (state, player, def, opts) {
-  const result = origPlayCommand.call(this, state, player, def, opts);
   if (state === realState) {
     events.push({ type: 'command', turn: state.turnNumber, player: state.players.indexOf(player), card: cardRef(def) });
   }
-  return result;
+  return origPlayCommand.call(this, state, player, def, opts);
 };
 
 const origPairPilot = actions.pairPilot;
 actions.pairPilot = function (state, player, unit, pilotInstance) {
-  const result = origPairPilot.call(this, state, player, unit, pilotInstance);
   if (state === realState) {
     events.push({
       type: 'pair',
@@ -205,12 +238,11 @@ actions.pairPilot = function (state, player, unit, pilotInstance) {
       unit: instanceRef(unit)
     });
   }
-  return result;
+  return origPairPilot.call(this, state, player, unit, pilotInstance);
 };
 
 const origPairPilotFromTrash = actions.pairPilotFromTrash;
 actions.pairPilotFromTrash = function (state, player, unit, trashInstance) {
-  const result = origPairPilotFromTrash.call(this, state, player, unit, trashInstance);
   if (state === realState) {
     events.push({
       type: 'pairFromTrash',
@@ -220,17 +252,15 @@ actions.pairPilotFromTrash = function (state, player, unit, trashInstance) {
       unit: instanceRef(unit)
     });
   }
-  return result;
+  return origPairPilotFromTrash.call(this, state, player, unit, trashInstance);
 };
 
 const origResolveAttack = combat.resolveAttack;
 combat.resolveAttack = function (state, attackerPlayerIdx, attacker, declaredTarget, hooks) {
   const isReal = state === realState;
-  const shieldsBefore = isReal && state.players.map((p) => p.shields.length);
-  const result = origResolveAttack.call(this, state, attackerPlayerIdx, attacker, declaredTarget, hooks);
+  let ev = null;
   if (isReal) {
-    const shieldsAfter = state.players.map((p) => p.shields.length);
-    events.push({
+    ev = {
       type: 'attack',
       turn: state.turnNumber,
       player: attackerPlayerIdx,
@@ -239,10 +269,13 @@ combat.resolveAttack = function (state, attackerPlayerIdx, attacker, declaredTar
         declaredTarget.type === 'player'
           ? { type: 'player', player: 1 - attackerPlayerIdx }
           : { type: 'unit', unit: instanceRef(declaredTarget.instance) },
-      shieldsBefore,
-      shieldsAfter
-    });
+      shieldsBefore: state.players.map((p) => p.shields.length),
+      shieldsAfter: null
+    };
+    events.push(ev);
   }
+  const result = origResolveAttack.call(this, state, attackerPlayerIdx, attacker, declaredTarget, hooks);
+  if (isReal) ev.shieldsAfter = state.players.map((p) => p.shields.length);
   return result;
 };
 

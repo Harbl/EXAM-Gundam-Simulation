@@ -1,4 +1,4 @@
-const { dealDamage, getAP, getHP, getRemainingHP, getKeywords, isImmuneToEffectDestroy, recoverHP, removeFromField, restBaseOrRedirect, destroyCard, sendToZone, destroyTopShield } = require('../rules/management');
+const { dealDamage, getAP, getHP, getRemainingHP, getKeywords, isImmuneToEffectDestroy, recoverHP, removeFromField, restBaseOrRedirect, destroyCard, sendToZone, destroyTopShield, discardFromHand } = require('../rules/management');
 const { deployUnit, deployBase, becomeBase, pairPilotFromTrash, pairPilot } = require('../rules/actions');
 const { drawCard } = require('../rules/phases');
 const { resolveUnitBattleDamage, applyBreach, destroyAndFireEffect, destroyOutrightAndFireEffect, resolveBurst } = require('../rules/combat');
@@ -231,8 +231,7 @@ function gundamAge2Destroyed(state, player) {
   player.hand.push(chosen);
 
   const toDiscard = [...player.hand].sort((a, b) => (b.def.cost || 0) - (a.def.cost || 0))[0];
-  player.hand.splice(player.hand.indexOf(toDiscard), 1);
-  player.trash.push(toDiscard);
+  discardFromHand(player, toDiscard);
 }
 
 // --- Nu Gundam GD05-020 ------------------------------------------------------
@@ -352,8 +351,7 @@ function overflowingAffectionCommand(state, player) {
   drawCard(state, player);
   const toDiscard = [...player.hand].sort((a, b) => (b.def.cost || 0) - (a.def.cost || 0))[0];
   if (toDiscard) {
-    player.hand.splice(player.hand.indexOf(toDiscard), 1);
-    player.trash.push(toDiscard);
+    discardFromHand(player, toDiscard);
   }
 }
 
@@ -475,8 +473,7 @@ function reineforceJrDeploy(state, player) {
 function airframeSeizureCommand(state, player) {
   if (player.hand.length === 0) return;
   const toDiscard = [...player.hand].sort((a, b) => (b.def.cost || 0) - (a.def.cost || 0))[0];
-  player.hand.splice(player.hand.indexOf(toDiscard), 1);
-  player.trash.push(toDiscard);
+  discardFromHand(player, toDiscard);
   drawCard(state, player);
   drawCard(state, player);
 }
@@ -591,8 +588,7 @@ function domonKasshuWhenPaired(state, player) {
   const toDiscard = specialMoveCommands.sort((a, b) => (b.def.cost || 0) - (a.def.cost || 0))[0]
     || [...player.hand].sort((a, b) => (b.def.cost || 0) - (a.def.cost || 0))[0];
   if (!toDiscard) return;
-  player.hand.splice(player.hand.indexOf(toDiscard), 1);
-  player.trash.push(toDiscard);
+  discardFromHand(player, toDiscard);
 
   const isSpecialMoveCommand = toDiscard.def.type === 'command' && (toDiscard.def.traits || []).includes('Special Move');
   if (isSpecialMoveCommand && toDiscard.def.effects && toDiscard.def.effects.command) {
@@ -1011,8 +1007,7 @@ function ryuseiGoDeploy(state, player, instance, context) {
   drawCard(state, player);
   const toDiscard = [...player.hand].sort((a, b) => (b.def.cost || 0) - (a.def.cost || 0))[0];
   if (toDiscard) {
-    player.hand.splice(player.hand.indexOf(toDiscard), 1);
-    player.trash.push(toDiscard);
+    discardFromHand(player, toDiscard);
   }
 }
 
@@ -2151,8 +2146,7 @@ function unicornGundamUnicornModeDestroyed(state, player, unit, context) {
   sendToZone(player.hand, context.pilot);
   const toDiscard = [...player.hand].sort((a, b) => (b.def.cost || 0) - (a.def.cost || 0))[0];
   if (toDiscard) {
-    player.hand.splice(player.hand.indexOf(toDiscard), 1);
-    player.trash.push(toDiscard);
+    discardFromHand(player, toDiscard);
   }
 }
 
@@ -2241,8 +2235,7 @@ function charsGelgoogActivateMain(state, player, instance, context) {
   const toDiscard = context.hooks && context.hooks.chooseCard
     ? context.hooks.chooseCard(discardCandidates)
     : [...discardCandidates].sort((a, b) => (b.def.cost || 0) - (a.def.cost || 0))[0];
-  player.hand.splice(player.hand.indexOf(toDiscard), 1);
-  player.trash.push(toDiscard);
+  discardFromHand(player, toDiscard);
 
   if (!instance.pilot) {
     const pilotCandidates = player.trash.filter(
@@ -2564,8 +2557,7 @@ function chuchusDemiTrainerAttack(state, player) {
   drawCard(state, player);
   const toDiscard = [...player.hand].sort((a, b) => (b.def.cost || 0) - (a.def.cost || 0))[0];
   if (toDiscard) {
-    player.hand.splice(player.hand.indexOf(toDiscard), 1);
-    player.trash.push(toDiscard);
+    discardFromHand(player, toDiscard);
   }
 }
 
@@ -2687,8 +2679,7 @@ function dearkaElthmanBurst(state, player, instance) {
 function dearkaElthmanWhenLinked(state, player) {
   const toDiscard = [...player.hand].sort((a, b) => (b.def.cost || 0) - (a.def.cost || 0))[0];
   if (!toDiscard) return;
-  player.hand.splice(player.hand.indexOf(toDiscard), 1);
-  player.trash.push(toDiscard);
+  discardFromHand(player, toDiscard);
   drawCard(state, player);
 }
 
@@ -3252,8 +3243,7 @@ function gundamAge1NormalLRDeploy(state, player) {
   );
   if (candidates.length) {
     const toDiscard = [...candidates].sort((a, b) => (a.def.cost || 0) - (b.def.cost || 0))[0];
-    player.hand.splice(player.hand.indexOf(toDiscard), 1);
-    player.trash.push(toDiscard);
+    discardFromHand(player, toDiscard);
     placeExResource(state, player);
   }
   if (player.resourceArea.length >= 7) drawCard(state, player);
@@ -3836,8 +3826,7 @@ function quattroBajeenaWhenLinked(state, player, unit) {
   drawCard(state, player);
   const toDiscard = [...player.hand].sort((a, b) => (b.def.cost || 0) - (a.def.cost || 0))[0];
   if (toDiscard) {
-    player.hand.splice(player.hand.indexOf(toDiscard), 1);
-    player.trash.push(toDiscard);
+    discardFromHand(player, toDiscard);
   }
 }
 
@@ -4088,8 +4077,7 @@ function aNewSignCommand(state, player) {
   for (let i = 0; i < 2; i++) {
     const toDiscard = [...player.hand].sort((a, b) => (b.def.cost || 0) - (a.def.cost || 0))[0];
     if (!toDiscard) break;
-    player.hand.splice(player.hand.indexOf(toDiscard), 1);
-    player.trash.push(toDiscard);
+    discardFromHand(player, toDiscard);
   }
 }
 
@@ -4189,8 +4177,7 @@ function gwadanDeploy(state, player) {
   const candidates = player.hand.filter((c) => c.def.color === 'red');
   const toDiscard = [...candidates].sort((a, b) => (a.def.cost || 0) - (b.def.cost || 0))[0];
   if (!toDiscard) return;
-  player.hand.splice(player.hand.indexOf(toDiscard), 1);
-  player.trash.push(toDiscard);
+  discardFromHand(player, toDiscard);
   drawCard(state, player);
 }
 
@@ -4714,8 +4701,7 @@ function aileStrikeGundamGD03072Deploy(state, player, instance) {
   drawCard(state, player);
   const toDiscard = [...player.hand].sort((a, b) => (b.def.cost || 0) - (a.def.cost || 0))[0];
   if (toDiscard) {
-    player.hand.splice(player.hand.indexOf(toDiscard), 1);
-    player.trash.push(toDiscard);
+    discardFromHand(player, toDiscard);
   }
 }
 
@@ -7150,8 +7136,7 @@ function noinsTaurusDestroyed(state, player) {
   drawCard(state, player);
   const toDiscard = [...player.hand].sort((a, b) => (b.def.cost || 0) - (a.def.cost || 0))[0];
   if (toDiscard) {
-    player.hand.splice(player.hand.indexOf(toDiscard), 1);
-    player.trash.push(toDiscard);
+    discardFromHand(player, toDiscard);
   }
 }
 
@@ -7290,8 +7275,7 @@ function trowaBartonGD05DestroysEnemy(state, player) {
   drawCard(state, player);
   const toDiscard = [...player.hand].sort((a, b) => (b.def.cost || 0) - (a.def.cost || 0))[0];
   if (toDiscard) {
-    player.hand.splice(player.hand.indexOf(toDiscard), 1);
-    player.trash.push(toDiscard);
+    discardFromHand(player, toDiscard);
   }
 }
 
@@ -8776,8 +8760,7 @@ function strikeGundamST04002Deploy(state, player) {
   drawCard(state, player);
   const toDiscard = [...player.hand].sort((a, b) => (b.def.cost || 0) - (a.def.cost || 0))[0];
   if (toDiscard) {
-    player.hand.splice(player.hand.indexOf(toDiscard), 1);
-    player.trash.push(toDiscard);
+    discardFromHand(player, toDiscard);
   }
 }
 
@@ -9274,8 +9257,7 @@ function gundamBarbatos1stFormST10008Deploy(state, player) {
   drawCard(state, player);
   const toDiscard = [...player.hand].sort((a, b) => (b.def.cost || 0) - (a.def.cost || 0))[0];
   if (toDiscard) {
-    player.hand.splice(player.hand.indexOf(toDiscard), 1);
-    player.trash.push(toDiscard);
+    discardFromHand(player, toDiscard);
   }
 }
 

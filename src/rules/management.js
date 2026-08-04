@@ -314,6 +314,15 @@ function enforceBaseLimit(player) {
   }
 }
 
+/** Discards a specific card from hand (effect-driven "draw N, discard 1"-style text), as opposed to
+ * enforceHandLimit's end-of-turn discard-to-limit. Pulled out so the replay trace can observe every
+ * effect discard the same way it already observes destroys/damage, rather than each registry.js
+ * effect splicing hand/trash directly and leaving no hook to patch. */
+function discardFromHand(player, card) {
+  player.hand.splice(player.hand.indexOf(card), 1);
+  player.trash.push(card);
+}
+
 function enforceHandLimit(player, chooseDiscards) {
   while (player.hand.length > LIMITS.MAX_HAND) {
     const excess = player.hand.length - LIMITS.MAX_HAND;
@@ -363,5 +372,6 @@ module.exports = {
   enforceBattleAreaLimit,
   enforceBaseLimit,
   enforceHandLimit,
+  discardFromHand,
   checkDefeat
 };

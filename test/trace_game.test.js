@@ -220,6 +220,46 @@ test('discard events fire for a real end-phase hand-limit discard, naming the di
   }
 });
 
+// Regression test for a real gap found in play: Overflowing Affection's "Draw 2. Then, discard 1."
+// went through registry.js's own inline hand.splice/trash.push, bypassing enforceHandLimit entirely
+// -- so the discard genuinely happened in game state, but never emitted a trace 'discard' event, and
+// looked from the replay viewer like the card only ever drew and never discarded. Fixed by routing
+// every effect-driven discard through management.js's discardFromHand, patched here the same way as
+// enforceHandLimit. A deck of one real copy of the card (GD01-118) mirrored against itself, same
+// synthetic-deck technique as blockerDeck below, forces it to be played organically most turns.
+function overflowingAffectionDeck() {
+  const commandDef = lookupCard('GD01-118');
+  const resourceDef = { number: 'X-RES', name: 'Test Resource', type: 'resource', color: 'white', cost: 0, level: 0 };
+  return { main: Array.from({ length: 50 }, () => commandDef), resource: Array.from({ length: 10 }, () => resourceDef) };
+}
+
+test('an effect-driven discard (Overflowing Affection GD01-118) emits a discard event, not just the draws', () => {
+  const deck = overflowingAffectionDeck();
+  const events = traceGame(deck, deck, 1);
+  const commandEvents = events.filter((e) => e.type === 'command' && e.card.number === 'GD01-118');
+  assert.ok(commandEvents.length > 0, 'a 50-copy deck of this card should get played organically');
+  const discardEvents = events.filter((e) => e.type === 'discard');
+  assert.ok(discardEvents.length > 0, 'each play should draw 2 then discard 1, and it must be traced');
+  for (const e of discardEvents) {
+    assert.equal(e.card.number, 'GD01-118');
+  }
+});
+
+// Regression test for a second, related gap: the 'command' event was pushed only after playCommand
+// (and therefore the card's own [Main] effect) had already fully resolved, so a replay showed the
+// card's own draws/discard happening BEFORE the "card played" event that caused them. Fixed by
+// pushing the action's own event before delegating to the original function, same pattern applied
+// to every other action patch (deploy/deployBase/becomeBase/pairPilot/pairPilotFromTrash/
+// resolveAttack) in traceGame.js, not just playCommand.
+test('a command event precedes the draw/discard events its own [Main] effect causes, not the other way around', () => {
+  const deck = overflowingAffectionDeck();
+  const events = traceGame(deck, deck, 1);
+  const commandIdx = events.findIndex((e) => e.type === 'command' && e.card.number === 'GD01-118');
+  assert.ok(commandIdx !== -1);
+  const nextThree = events.slice(commandIdx + 1, commandIdx + 4).map((e) => e.type);
+  assert.deepEqual(nextThree, ['draw', 'draw', 'discard']);
+});
+
 // Jake's own real deck produced zero organic Blocker interceptions across 60 seeds -- it simply has
 // no Blocker-keyword units. Same synthetic-deck technique as the discard test above: a deck of one
 // real Blocker card (EB01-011 Beginning Gundam, a genuine keyword-bearing card, not a made-up def)
