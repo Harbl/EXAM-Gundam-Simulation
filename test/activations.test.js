@@ -213,3 +213,22 @@ test('Tallgeese only offers reactivating while rested and 4 Resources are active
   resource(player, 1);
   assert.equal(collectActivateCandidates(state, 0).length, 1);
 });
+
+test('<Support> Units (e.g. Buster Gundam) are offered as generic Activate*Main candidates and really buff an ally', () => {
+  const player = createPlayer(0);
+  const state = createGame(player, createPlayer(1));
+  const source = deployUnit(state, player, lookupCard('GD01-046'));
+
+  assert.deepEqual(collectActivateCandidates(state, 0), [], 'no other friendly Unit to target yet');
+
+  const ally = deployUnit(state, player, { number: 'A', type: 'unit', ap: 1, hp: 1 });
+  const candidates = collectActivateCandidates(state, 0);
+  assert.equal(candidates.length, 1);
+  assert.equal(candidates[0].source, source);
+  assert.equal(candidates[0].args.target, ally);
+
+  candidates[0].handler(state, player, source, candidates[0].args);
+  assert.equal(source.rested, true, 'Support rests the supporter as its own cost');
+  assert.equal(ally.buffs.some((b) => b.ap === 3), true, 'Buster Gundam has Support 3');
+  assert.deepEqual(collectActivateCandidates(state, 0), [], 'rested supporter is no longer a legal activator');
+});

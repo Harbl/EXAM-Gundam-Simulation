@@ -89,6 +89,7 @@
     "ap": 3,
     "hp": 4,
     "traits": ["Teiwaz", "Tekkadan"],
+    "linkCondition": "Teiwaz/Tekkadan",
     "effectRefs": { "deploy": "roueiDeploy" }
   },
   {
@@ -140,6 +141,7 @@
     "ap": 3,
     "hp": 2,
     "traits": ["Zeon", "Cyclops Team"],
+    "linkCondition": "Cyclops Team",
     "effectRefs": { "whenLinked": "hyGoggWhenLinked" }
   },
   {
@@ -152,6 +154,7 @@
     "ap": 3,
     "hp": 3,
     "traits": ["Zeon", "Cyclops Team"],
+    "linkCondition": "Cyclops Team",
     "keywords": {}
   },
   {
@@ -257,7 +260,7 @@
   },
   {
     "number": "GD03-004", "name": "Hambrabi", "type": "unit", "color": "blue",
-    "level": 5, "cost": 4, "ap": 5, "hp": 4, "traits": ["Titans"],
+    "level": 5, "cost": 4, "ap": 5, "hp": 3, "traits": ["Titans"],
     "linkCondition": "Yazan Gable",
     "effectRefs": { "attack": "hambrabiAttack" }
   },
@@ -277,7 +280,7 @@
   {
     "number": "GD03-007", "name": "Gundam NT-1 Full Armor", "type": "unit", "color": "blue",
     "level": 3, "cost": 2, "ap": 2, "hp": 3, "traits": ["Earth Federation"],
-    "linkCondition": "Christina Mackenzie/Amuro Ray",
+    "linkCondition": "Christina Mackenzie",
     "effectRefs": { "destroyed": "gundamNT1FullArmorDestroyed" }
   },
   {
@@ -363,7 +366,7 @@
   },
   {
     "number": "GD03-025", "name": "Gundam Sandrock Custom", "type": "unit", "color": "green",
-    "level": 5, "cost": 4, "ap": 5, "hp": 4, "traits": ["G Team"],
+    "level": 6, "cost": 5, "ap": 5, "hp": 4, "traits": ["G Team"],
     "linkCondition": "Quatre Raberba Winner",
     "tauntTrait": "Maganac Corps"
   },
@@ -387,7 +390,7 @@
   },
   {
     "number": "GD03-030", "name": "Gundam Kyrios (Tail Unit Flight Mode)", "type": "unit", "color": "green",
-    "level": 3, "cost": 4, "ap": 3, "hp": 4, "traits": ["CB", "GN Drive"],
+    "level": 3, "cost": 3, "ap": 3, "hp": 4, "traits": ["CB", "GN Drive"],
     "linkCondition": "Allelujah Haptism/Hallelujah Haptism",
     "handCostReduction": { "trait": "CB", "count": 1, "amount": 1, "linkUnitOnly": true }
   },
@@ -435,7 +438,7 @@
   {
     "number": "GD03-042", "name": "Duel Gundam (Assault Shroud)", "type": "unit", "color": "red",
     "level": 5, "cost": 3, "ap": 3, "hp": 4, "traits": ["ZAFT"],
-    "linkCondition": "Yzak Joule",
+    "linkCondition": "Yzak Jule",
     "activeTargetLevelCapWhileAPAtLeast": { "ap": 5, "cap": 5 }
   },
   {
@@ -522,6 +525,7 @@
   {
     "number": "GD03-061", "name": "Gundam Barbatos 6th Form", "type": "unit", "color": "purple",
     "level": 6, "cost": 5, "ap": 5, "hp": 4, "traits": ["Tekkadan", "Gundam Frame"],
+    "linkCondition": "Mikazuki Augus",
     "repairIfHPExactly": { "hp": 1, "amount": 3 }
   },
   {
@@ -838,7 +842,7 @@
   },
   {
     "number": "GD03-124", "name": "Ribo Colony", "type": "base", "color": "blue",
-    "level": 0, "cost": 5, "ap": 0, "hp": 5, "traits": ["Earth Federation", "Stronghold"],
+    "level": 3, "cost": 1, "ap": 0, "hp": 5, "traits": ["Earth Federation", "Stronghold"],
     "effectRefs": { "burst": "riboColonyBurst", "deploy": "riboColonyDeploy", "allyPaired": "riboColonyAllyPaired" }
   },
   {

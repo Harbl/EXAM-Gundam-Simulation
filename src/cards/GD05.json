@@ -34,7 +34,7 @@
     "ap": 4,
     "hp": 2,
     "traits": ["Earth Federation", "Londo Bell"],
-    "linkCondition": "Amuro Ray",
+    "linkCondition": "Amuro Ray/Londo Bell",
     "effectRefs": { "destroyed": "regzDestroyed" }
   },
   {
@@ -183,6 +183,7 @@
     "ap": 4,
     "hp": 3,
     "traits": ["MF", "Gundam Fighter"],
+    "linkCondition": "Gundam Fighter",
     "effectRefs": { "whenLinked": "risingGundamWhenLinked" }
   },
   {
@@ -233,6 +234,7 @@
     "ap": 3,
     "hp": 4,
     "traits": ["Orb"],
+    "linkCondition": "Orb",
     "keywords": { "blocker": true }
   },
   {
@@ -245,7 +247,7 @@
     "ap": 3,
     "hp": 4,
     "traits": ["Orb"],
-    "linkCondition": "Kira Yamato"
+    "linkCondition": "Kira Yamato/Orb"
   },
   {
     "number": "GD05-089",
@@ -266,9 +268,8 @@
     "color": "white",
     "level": 3,
     "cost": 1,
-    "traits": ["Special Move"],
-    "apBonus": 1,
-    "hpBonus": 1,
+    "traits": ["Gundam Fighter", "Shuffle Alliance", "Special Move"],
+    "pilotMode": { "name": "Chibodee Crocket", "apBonus": 1, "hpBonus": 1 },
     "pairableFromTrash": "MF",
     "effectRefs": { "command": "cyclonePunchCommand" }
   },
@@ -454,6 +455,7 @@
     "ap": 4,
     "hp": 3,
     "traits": ["Tekkadan"],
+    "linkCondition": "Tekkadan",
     "keywords": { "blocker": true }
   },
   {
@@ -517,7 +519,7 @@
     "hp": 4,
     "traits": ["MF", "Shuffle Alliance"],
     "linkCondition": "Sai Saici",
-    "effectRefs": { "destroysShield": "dragonGundamDestroysShield" }
+    "effectRefs": { "destroysShield": "dragonGundamDestroysShield", "attack": "dragonGundamAttack" }
   },
   {
     "number": "GD05-060",
@@ -529,6 +531,7 @@
     "ap": 5,
     "hp": 3,
     "traits": ["Tekkadan", "Gundam Frame"],
+    "linkCondition": "Tekkadan",
     "effectRefs": { "deploy": "gundamFlaurosRyuseiGoDestroy", "attack": "gundamFlaurosRyuseiGoDestroy" }
   },
   {
@@ -552,8 +555,7 @@
     "level": 4,
     "cost": 1,
     "traits": ["Gundam Fighter", "Shuffle Alliance", "Special Move"],
-    "apBonus": 2,
-    "hpBonus": 0,
+    "pilotMode": { "name": "Sai Saici", "apBonus": 2, "hpBonus": 0 },
     "pairableFromTrash": "MF",
     "effectRefs": { "command": "hokaKyotenJuzetsujinCommand" }
   },
@@ -565,8 +567,7 @@
     "level": 4,
     "cost": 1,
     "traits": ["Gundam Fighter", "Shuffle Alliance", "Special Move"],
-    "apBonus": 0,
-    "hpBonus": 2,
+    "pilotMode": { "name": "Argo Gulskii", "apBonus": 0, "hpBonus": 2 },
     "pairableFromTrash": "MF",
     "effectRefs": { "command": "gravitonHammerCommand" }
   },
@@ -592,6 +593,7 @@
     "ap": 5,
     "hp": 6,
     "traits": ["ZAFT", "Minerva Squad"],
+    "linkCondition": "Shinn Asuka",
     "keywords": { "firstStrike": true },
     "oncePerTurnBattleDamageReduction": 2
   },
@@ -632,6 +634,7 @@
     "ap": 1,
     "hp": 4,
     "traits": ["Titans"],
+    "linkCondition": "Titans",
     "duringLinkAp": 2,
     "duringLinkKeywords": { "repair": 1 }
   },
@@ -657,7 +660,8 @@
     "cost": 2,
     "ap": 3,
     "hp": 4,
-    "traits": ["League Militaire"]
+    "traits": ["League Militaire"],
+    "linkCondition": "League Militaire"
   },
   {
     "number": "GD05-011",
@@ -707,7 +711,6 @@
     "ap": 2,
     "hp": 4,
     "traits": ["Orb"],
-    "linkCondition": "Orb",
     "effectRefs": { "friendlyUnitDeployed": "murasameFriendlyUnitDeployed" }
   },
   {
@@ -747,6 +750,7 @@
     "ap": 5,
     "hp": 4,
     "traits": ["Academy"],
+    "linkCondition": "Academy",
     "keywords": { "breach": 3 },
     "effectRefs": { "activateAction": "gundamSchwarzetteActivateAction" }
   },
@@ -760,7 +764,7 @@
     "ap": 2,
     "hp": 2,
     "traits": ["Earth Federation", "Londo Bell"],
-    "linkCondition": "Amuro Ray",
+    "linkCondition": "Amuro Ray/Londo Bell",
     "effectRefs": { "deploy": "reGZBWSDeploy" }
   },
   {

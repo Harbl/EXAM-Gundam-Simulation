@@ -137,18 +137,18 @@ test('Gundam Heavyarms Custom GD03-029: destroying an enemy with battle damage d
   assert.equal(plain.damage, 0);
 });
 
-test('Gundam Kyrios (Tail Unit Flight Mode) GD03-030: hand cost is 4 normally, drops to 3 while a (CB) Link Unit is in play', () => {
+test('Gundam Kyrios (Tail Unit Flight Mode) GD03-030: hand cost is 3 normally, drops to 2 while a (CB) Link Unit is in play', () => {
   const player = createPlayer(0);
-  const def = lookupCard('GD03-030'); // Lv.3, cost 4
-  player.resourceArea.push(resource(), resource(), resource(), resource());
-  player.resourceArea[3].rested = true; // 3 active, satisfies Lv.3
+  const def = lookupCard('GD03-030'); // Lv.3, cost 3
+  player.resourceArea.push(resource(), resource(), resource());
+  player.resourceArea[2].rested = true; // 2 active, satisfies Lv.3
 
   const cbUnit = { def: { traits: ['CB'] }, isLinkUnit: false };
   player.battleArea.push(cbUnit);
-  assert.equal(canAfford(player, def), false, '(CB) Unit present but not a Link Unit -- full cost of 4, not payable by 3 active');
+  assert.equal(canAfford(player, def), false, '(CB) Unit present but not a Link Unit -- full cost of 3, not payable by 2 active');
 
   cbUnit.isLinkUnit = true;
-  assert.equal(canAfford(player, def), true, '(CB) Link Unit in play drops the cost to 3, payable by 3 active');
+  assert.equal(canAfford(player, def), true, '(CB) Link Unit in play drops the cost to 2, payable by 2 active');
 });
 
 test('Gundam AGE-1 Flat GD03-031 is vanilla (Lv4/cost2/4AP/3HP)', () => {

@@ -1,6 +1,6 @@
 {
   "name": "gundam-tcg-sim",
-  "version": "0.1.8",
+  "version": "0.1.9",
   "private": true,
   "description": "Windows desktop app that simulates batches of Gundam Card Game matches between two pasted decklists.",
   "main": "electron/main.js",
@@ -9,7 +9,7 @@
     "test": "node --test",
     "sim": "node bin/simulate.js",
     "images": "node bin/download-images.js",
-    "dist": "electron-builder --win"
+    "dist": "electron-builder --win --publish never"
   },
   "devDependencies": {
     "electron": "^32.0.0",
@@ -33,6 +33,14 @@
       "data/**/*",
       "bin/**/*",
       "package.json"
-    ]
+    ],
+    "publish": {
+      "provider": "github",
+      "owner": "Harbl",
+      "repo": "EXAM-Gundam-Simulation"
+    }
+  },
+  "dependencies": {
+    "electron-updater": "^6.8.9"
   }
 }

@@ -9,6 +9,8 @@
  * distinct from every other cost field which is static.
  */
 function effectiveCost(player, def, opts = {}) {
+  const alt = alternateLevelCost(player, def, opts);
+  if (alt) return alt.cost;
   let cost = def.cost || 0;
   const reduction = def.handCostReduction;
   if (reduction) {
@@ -121,11 +123,46 @@ function scalingLevelCostReduction(player, def, opts = {}) {
   return 0;
 }
 
+/**
+ * Rising Freedom Gundam EB01-039: "When playing this card from your hand, if 3 or more enemy Units
+ * are in play, play it as if it has 3 Lv. and cost" -- an unconditional (no player choice) alternate
+ * Level/Cost that replaces the normal one outright whenever the board-state condition holds, so it's
+ * checked once here and read by both effectiveCost and canAfford below.
+ */
+function alternateLevelCost(player, def, opts) {
+  const cond = def.alternateLevelCostIfEnemyUnitsAtLeast;
+  if (!cond || !opts.state) return null;
+  const enemy = opts.state.players.find((p) => p !== player);
+  return enemy && enemy.battleArea.length >= cond.count ? { level: cond.level, cost: cond.cost } : null;
+}
+
+/**
+ * Unlocking the Development Diagram ST10-014: "you may discard 1 (G Generation) Unit card. If you
+ * do, play this card as if it has 2 Lv. and cost." A real, optional cost (a hand card), so callers
+ * only take it when the card wouldn't otherwise be affordable at its normal Level/Cost -- discarding
+ * a card you didn't need to is a real loss with no compensating benefit, unlike the free reductions
+ * elsewhere in this file.
+ */
+function discardAltCostCandidate(player, def, opts) {
+  const alt = def.discardAltCost;
+  if (!alt || !opts.state) return null;
+  return (
+    player.hand.find(
+      (c) => (!alt.type || c.def.type === alt.type) && (!alt.trait || (c.def.traits || []).includes(alt.trait))
+    ) || null
+  );
+}
+
 function canAfford(player, def, opts = {}) {
-  const level = Math.max(0, (def.level || 0) - scalingLevelCostReduction(player, def, opts));
-  if (player.resourceArea.length < level) return false;
+  const alt = alternateLevelCost(player, def, opts);
+  const level = alt ? alt.level : Math.max(0, (def.level || 0) - scalingLevelCostReduction(player, def, opts));
   const active = player.resourceArea.filter((r) => !r.rested);
-  return active.length >= effectiveCost(player, def, opts);
+  if (player.resourceArea.length >= level && active.length >= effectiveCost(player, def, opts)) return true;
+  const discardAlt = def.discardAltCost;
+  if (discardAlt && discardAltCostCandidate(player, def, opts)) {
+    return player.resourceArea.length >= discardAlt.level && active.length >= discardAlt.cost;
+  }
+  return false;
 }
 
 /** 5-17-3-2-3: an EX Resource (or any Resource token) is removed from the game the moment it's
@@ -137,10 +174,28 @@ function canAfford(player, def, opts = {}) {
  * Resource, not just a minor optimization, so it isn't a heuristic tradeoff to get right, it's
  * strictly correct payment order. */
 function payCost(player, def, opts = {}) {
+  let cost = effectiveCost(player, def, opts);
+  // ST10-014's discard-optional alternate cost (see discardAltCostCandidate above) is only taken when
+  // the normal Level/Cost isn't otherwise met -- re-derives the same "normally affordable" check
+  // canAfford already made, since payCost has no way to know which branch the caller's earlier
+  // canAfford call actually took.
+  if (def.discardAltCost) {
+    const alt = alternateLevelCost(player, def, opts);
+    const normalLevel = alt ? alt.level : Math.max(0, (def.level || 0) - scalingLevelCostReduction(player, def, opts));
+    const normallyAffordable = player.resourceArea.length >= normalLevel && player.resourceArea.filter((r) => !r.rested).length >= cost;
+    if (!normallyAffordable) {
+      const candidate = discardAltCostCandidate(player, def, opts);
+      if (candidate) {
+        player.hand.splice(player.hand.indexOf(candidate), 1);
+        player.trash.push(candidate);
+        cost = def.discardAltCost.cost;
+      }
+    }
+  }
   const active = player.resourceArea.filter((r) => !r.rested);
   const ordered = [...active.filter((r) => !r.def.isToken), ...active.filter((r) => r.def.isToken)];
   let usedExResource = false;
-  for (let i = 0; i < effectiveCost(player, def, opts); i++) {
+  for (let i = 0; i < cost; i++) {
     const resource = ordered[i];
     if (resource.def.isToken) {
       player.resourceArea.splice(player.resourceArea.indexOf(resource), 1);

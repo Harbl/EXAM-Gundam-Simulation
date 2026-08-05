@@ -66,6 +66,21 @@
     flex-shrink: 0;
   }
   header .status { color: var(--gold); letter-spacing: 2px; }
+  .updateBanner {
+    font-family: var(--font-head);
+    font-weight: bold;
+    letter-spacing: 1px;
+    text-transform: none;
+    font-size: 12px;
+    color: #000;
+    background: var(--gold);
+    border: none;
+    border-radius: 4px;
+    padding: 5px 12px;
+    cursor: pointer;
+  }
+  .updateBanner:hover { filter: brightness(1.1); }
+  .updateBanner:disabled { cursor: default; filter: brightness(0.85); }
   .appBody { flex: 1; display: flex; min-height: 0; }
   nav {
     width: 150px;
@@ -433,6 +448,7 @@
 
 <header>
   <div class="brand"><span class="emblem"></span><span>EXAM // GUNDAM TCG SIM</span></div>
+  <button id="updateBanner" class="updateBanner" style="display:none"></button>
   <div class="status"><span class="dot ready" id="statusDot"></span><span id="statusText">READY</span></div>
 </header>
 
@@ -1109,6 +1125,9 @@
           players[e.player].hand.push(...e.hand.map((c, idx) => ({ ...c, _key: `hand-${e.player}-${i}-${idx}` })));
           break;
         case 'gameStart': activePlayer = e.firstPlayer; break;
+        // 5-17-3: both players start the game with an EX Base already in play (see traceGame.js's
+        // matching comment for why this needs its own event, distinct from 'deployBase').
+        case 'baseSetup': p.base = newUnit(e.base); break;
         case 'turnStart': {
           activePlayer = e.player;
           // Start-phase active step: only the turn's own player untaps their Units/Base -- this is
@@ -1208,6 +1227,7 @@
     switch (e.type) {
       case 'mulligan': return `P${e.player} ${e.mulliganed ? 'mulligans' : 'keeps their opening hand'}`;
       case 'openingHand': return `P${e.player}'s opening hand is set`;
+      case 'baseSetup': return `P${e.player}'s EX Base is placed`;
       case 'gameStart': return `First player: P${e.firstPlayer}`;
       case 'turnStart': return `Round ${Math.ceil(e.turn / 2)} — P${e.player}'s turn`;
       case 'destroy': return `P${e.player}'s ${e.unit.name} is destroyed`;
@@ -2272,6 +2292,37 @@
     refreshSavedDecks();
   } catch (err) {
     errorEl.textContent = 'Saved decks failed to load: ' + err.message;
+  }
+
+  // --- Update banner: main.js checks GitHub Releases a few seconds after launch (never blocking
+  // startup, never silently downloading -- see main.js's autoUpdater comment). This just reflects
+  // whatever stage main.js reports; errors (e.g. offline) are swallowed rather than shown, since a
+  // failed background check isn't something the user needs to be bothered about.
+  if (window.updater) {
+    const updateBannerEl = document.getElementById('updateBanner');
+    let updateStage = null;
+    updateBannerEl.addEventListener('click', () => {
+      if (updateStage === 'available') window.updater.download();
+      else if (updateStage === 'downloaded') window.updater.quitAndInstall();
+    });
+    window.updater.onStatus((status) => {
+      updateStage = status.status;
+      if (status.status === 'available') {
+        updateBannerEl.textContent = `Update available (v${status.version}) — click to download`;
+        updateBannerEl.disabled = false;
+        updateBannerEl.style.display = '';
+      } else if (status.status === 'downloading') {
+        updateBannerEl.textContent = `Downloading update... ${Math.round(status.percent)}%`;
+        updateBannerEl.disabled = true;
+        updateBannerEl.style.display = '';
+      } else if (status.status === 'downloaded') {
+        updateBannerEl.textContent = 'Update ready — click to restart & install';
+        updateBannerEl.disabled = false;
+        updateBannerEl.style.display = '';
+      } else {
+        updateBannerEl.style.display = 'none';
+      }
+    });
   }
 </script>
 </body>

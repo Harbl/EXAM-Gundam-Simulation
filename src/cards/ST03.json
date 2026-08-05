@@ -21,6 +21,7 @@
     "ap": 3,
     "hp": 2,
     "traits": ["Zeon"],
+    "linkCondition": "Char Aznable",
     "effectRefs": { "destroyed": "charsZakuST03006Destroyed" }
   },
   {
@@ -95,7 +96,7 @@
   },
   {
     "number": "ST03-010", "name": "Full Frontal", "type": "pilot", "color": "red",
-    "level": 6, "cost": 1, "apBonus": 2, "hpBonus": 2, "traits": ["Neo Zeon", "Cyber Newtype"],
+    "level": 6, "cost": 1, "apBonus": 2, "hpBonus": 2, "traits": ["Neo Zeon", "Cyber-Newtype"],
     "effectRefs": { "burst": "addSelfToHandBurst", "whenPaired": "fullFrontalWhenPaired" }
   },
   {

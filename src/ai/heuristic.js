@@ -323,7 +323,16 @@ function runPairingsLookahead(state, playerIdx) {
 function runActivations(state, playerIdx) {
   const player = state.players[playerIdx];
   for (const { source, args, handler } of collectActivateCandidates(state, playerIdx)) {
-    handler(state, player, source, args);
+    // See src/rules/effects.js's fireCardEffect/triggerEvent comment: resolvingSource lets
+    // dealEffectDamage check the acting Unit's own Level (Gouf Vijayanta EB01-014), and a couple of
+    // real Activate*Main abilities (GD02-047, GD04-125) deal effect damage.
+    const prevSource = state.resolvingSource;
+    state.resolvingSource = source;
+    try {
+      handler(state, player, source, args);
+    } finally {
+      state.resolvingSource = prevSource;
+    }
   }
 }
 

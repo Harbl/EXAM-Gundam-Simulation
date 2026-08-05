@@ -1,8 +1,9 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 
-const { createInstance, createPlayer } = require('../src/rules/state');
+const { createInstance, createPlayer, createGame } = require('../src/rules/state');
 const { canAfford, payCost } = require('../src/rules/cost');
+const { lookupCard } = require('../src/cards/index');
 
 function resource(rested = false) {
   const r = createInstance({ number: 'RESOURCE', name: 'Resource', type: 'resource' }, 0);
@@ -82,4 +83,53 @@ test('payCost prefers resting normal Resources over spending a token, even when 
   payCost(player, { cost: 1 });
   assert.equal(player.resourceArea.includes(exResource), false, 'once no normal Resource is left active, the token is the payment of last resort');
   assert.equal(player.resourceArea.length, 2);
+});
+
+test('Rising Freedom Gundam EB01-039 plays as Lv.3/cost 3 instead of Lv.6/cost 5 once 3+ enemy Units are in play', () => {
+  const player = createPlayer(0);
+  const opponent = createPlayer(1);
+  const state = createGame(player, opponent);
+  const def = lookupCard('EB01-039');
+
+  player.resourceArea.push(resource(), resource(), resource());
+  assert.equal(canAfford(player, def, { state }), false, 'Lv.6/cost 5 normally, not affordable with 3 resources');
+
+  for (let i = 0; i < 3; i++) opponent.battleArea.push(createInstance({ number: `E${i}`, type: 'unit', ap: 1, hp: 1 }, 1));
+  assert.equal(canAfford(player, def, { state }), true, '3 enemy Units in play drops it to Lv.3/cost 3');
+
+  payCost(player, def, { state });
+  assert.equal(player.resourceArea.filter((r) => r.rested).length, 3, 'paid the alternate cost (3), not the normal one (5)');
+});
+
+test('Unlocking the Development Diagram ST10-014 only discards a (G Generation) Unit when the normal Lv.4/cost 4 isn\'t otherwise affordable', () => {
+  const player = createPlayer(0);
+  const opponent = createPlayer(1);
+  const state = createGame(player, opponent);
+  const def = lookupCard('ST10-014');
+  const ggenUnit = createInstance({ number: 'U1', type: 'unit', traits: ['G Generation'] }, 0);
+  player.hand.push(ggenUnit);
+
+  assert.equal(canAfford(player, def, { state }), false, 'no resources at all, not even the alternate Lv.2/cost 2');
+
+  player.resourceArea.push(resource(), resource());
+  assert.equal(canAfford(player, def, { state }), true, 'Lv.2/cost 2 alternate is met and a discard candidate exists');
+
+  payCost(player, def, { state });
+  assert.equal(player.hand.includes(ggenUnit), false, 'the (G Generation) Unit was discarded to pay the alternate cost');
+  assert.equal(player.trash.includes(ggenUnit), true);
+  assert.equal(player.resourceArea.filter((r) => r.rested).length, 2, 'paid the alternate cost (2), not the normal one (4)');
+});
+
+test('Unlocking the Development Diagram ST10-014 does NOT discard when the normal Lv.4/cost 4 is already affordable', () => {
+  const player = createPlayer(0);
+  const opponent = createPlayer(1);
+  const state = createGame(player, opponent);
+  const def = lookupCard('ST10-014');
+  const ggenUnit = createInstance({ number: 'U1', type: 'unit', traits: ['G Generation'] }, 0);
+  player.hand.push(ggenUnit);
+  for (let i = 0; i < 4; i++) player.resourceArea.push(resource());
+
+  payCost(player, def, { state });
+  assert.equal(player.hand.includes(ggenUnit), true, 'no need to discard -- the normal cost was already payable');
+  assert.equal(player.resourceArea.filter((r) => r.rested).length, 4);
 });

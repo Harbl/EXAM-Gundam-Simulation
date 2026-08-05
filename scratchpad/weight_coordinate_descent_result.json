@@ -1,0 +1,24 @@
+{
+  "originalWeights": {
+    "shields": 10,
+    "baseHP": 3,
+    "boardStats": 1,
+    "hand": 2,
+    "resources": 2,
+    "activationPotential": 4,
+    "trashSynergy": 3,
+    "exResourceHeld": 5
+  },
+  "finalWeights": {
+    "shields": 10,
+    "baseHP": 3,
+    "boardStats": 1,
+    "hand": 2,
+    "resources": 2,
+    "activationPotential": 4,
+    "trashSynergy": 3,
+    "exResourceHeld": 5
+  },
+  "adoptionLog": [],
+  "confirmation": null
+}

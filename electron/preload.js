@@ -40,3 +40,9 @@ contextBridge.exposeInMainWorld('cards', {
 contextBridge.exposeInMainWorld('exporter', {
   saveImage: (dataUrl, suggestedName) => ipcRenderer.invoke('save-image', { dataUrl, suggestedName })
 });
+
+contextBridge.exposeInMainWorld('updater', {
+  download: () => ipcRenderer.invoke('download-update'),
+  quitAndInstall: () => ipcRenderer.invoke('quit-and-install'),
+  onStatus: (callback) => ipcRenderer.on('update-status', (_event, status) => callback(status))
+});

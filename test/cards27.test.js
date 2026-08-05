@@ -39,6 +39,44 @@ test('Gundam Leopard GD02-064 ignores enemy Command effect damage during its con
   assert.equal(leopard.damage, 4, "opponent's turn now -- immunity does not apply");
 });
 
+test('Gouf Vijayanta EB01-014 is immune to enemy Unit (not Command) effect damage from a Lv.5-or-lower source, only on the opponent\'s turn', () => {
+  const player = createPlayer(0);
+  const opponent = createPlayer(1);
+  const state = createGame(player, opponent);
+  const { dealEffectDamage, fireCardEffect } = require('../src/rules/effects');
+
+  const gouf = deployUnit(state, player, lookupCard('EB01-014'));
+  const lowLevelSource = deployUnit(state, opponent, { number: 'S1', type: 'unit', level: 5, ap: 1, hp: 1,
+    effects: { attack: (s, p) => dealEffectDamage(s, p, player, gouf, 1) } });
+  const highLevelSource = deployUnit(state, opponent, { number: 'S2', type: 'unit', level: 6, ap: 1, hp: 1,
+    effects: { attack: (s, p) => dealEffectDamage(s, p, player, gouf, 1) } });
+
+  state.activePlayerIdx = 1; // opponent's turn, relative to Gouf's controller
+  fireCardEffect(state, opponent, lowLevelSource, 'attack', {});
+  assert.equal(gouf.damage, 0, 'Lv.5 enemy Unit source, opponent\'s turn -- immune');
+
+  fireCardEffect(state, opponent, highLevelSource, 'attack', {});
+  assert.equal(gouf.damage, 1, 'Lv.6 enemy Unit source -- too high Level, not immune');
+
+  state.activePlayerIdx = 0; // now Gouf controller's own turn
+  fireCardEffect(state, opponent, lowLevelSource, 'attack', {});
+  assert.equal(gouf.damage, 2, 'same Lv.5 source, but not the opponent\'s turn anymore -- immunity does not apply');
+});
+
+test('Gouf Vijayanta EB01-014\'s immunity does not apply to enemy Command effect damage', () => {
+  const player = createPlayer(0);
+  const opponent = createPlayer(1);
+  const state = createGame(player, opponent);
+  const { dealEffectDamage } = require('../src/rules/effects');
+
+  const gouf = deployUnit(state, player, lookupCard('EB01-014'));
+  const pingCommand = { number: 'C', type: 'command', effects: { command: (s, p) => dealEffectDamage(s, p, player, gouf, 1) } };
+
+  state.activePlayerIdx = 1;
+  playCommand(state, opponent, pingCommand);
+  assert.equal(gouf.damage, 1, 'a Command, not a Unit -- Gouf\'s immunity is specifically "from enemy Units"');
+});
+
 test('Gundam Barbatos 3rd Form GD02-068 Deploy deals 2 damage to itself', () => {
   const player = createPlayer(0);
   const opponent = createPlayer(1);

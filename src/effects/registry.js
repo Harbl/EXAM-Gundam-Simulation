@@ -91,7 +91,7 @@ function charsZakuST03006Destroyed(state, player) {
     const [chosen] = top3.splice(matchIdx, 1);
     player.hand.push(chosen);
   }
-  player.deck.unshift(...top3);
+  player.deck.push(...shuffle(top3));
 }
 
 // --- Char Aznable ST03-011 (Pilot) ----------------------------------------
@@ -960,9 +960,12 @@ function shiningGundamSuperModeAttack(state, player, unit) {
 }
 
 // --- Sazabi GD05-049 ---
-// <Suppression> (data). [Attack] You may choose 1 of your Units. Destroy it. If you do, your
-// opponent chooses 1 of their non-battling Units and destroys it. (Heuristic default: only worth
-// it when your weakest spare Unit is a worse loss than the opponent's biggest non-battling threat.)
+// <Suppression> (data). [Attack] You may choose 1 of your Units. Destroy it. If you do, all enemy
+// players each choose 1 of their non-battling Units. Destroy them. (The OPPONENT picks their own
+// sacrifice, not the attacker -- a rational opponent minimizes their own loss by giving up their
+// weakest non-battling Unit, not their strongest. Heuristic default: only worth it when your
+// weakest spare Unit is a worse loss than the opponent's weakest non-battling Unit, i.e. rarely --
+// this is a real but narrow-value trade, not a one-sided "kill their best thing" effect.)
 function sazabiAttack(state, player, unit, context) {
   const ownCandidates = player.battleArea.filter((u) => u !== unit);
   if (ownCandidates.length === 0) return;
@@ -972,7 +975,7 @@ function sazabiAttack(state, player, unit, context) {
   if (enemyCandidates.length === 0) return;
 
   const toSacrifice = [...ownCandidates].sort((a, b) => getRemainingHP(a) - getRemainingHP(b))[0];
-  const enemyTarget = [...enemyCandidates].sort((a, b) => getAP(b) - getAP(a))[0];
+  const enemyTarget = [...enemyCandidates].sort((a, b) => getAP(a) + getRemainingHP(a) - (getAP(b) + getRemainingHP(b)))[0];
   if (getAP(toSacrifice) + getRemainingHP(toSacrifice) >= getAP(enemyTarget) + getRemainingHP(enemyTarget)) return;
 
   destroyCard(state, player, toSacrifice);
@@ -1048,7 +1051,7 @@ function kshatriyaWhenPaired(state, player, unit, context) {
 }
 
 // --- Unicorn Gundam 02 Banshee (Destroy Mode) GD01-003 ---
-// Link Condition [Christina Mackenzie]/[Amuro Ray]. [During Link][Attack] Choose 12 cards from your
+// Link Condition [Marida Cruz]. [During Link][Attack] Choose 12 cards from your
 // trash. Return them to your deck and shuffle it. If you do, set this Unit as active. It gains
 // <First Strike> during this turn.
 function unicornBansheeDestroyModeAttack(state, player, unit, context) {
@@ -1535,7 +1538,9 @@ function gravitonHammerCommand(state, player, instance, context) {
 
 // --- Dragon Gundam GD05-035 ---
 // Link Condition [Sai Saici]. [Once per Turn] When this Unit destroys an enemy shield-area card
-// with damage, choose 1 enemy Unit with 3 or less AP. Deal 2 damage to it.
+// with damage, choose 1 enemy Unit with 3 or less AP. Deal 2 damage to it. [During Link][Attack]
+// Activate Main on the card paired with this Unit -- same "forward to the paired Pilot's own
+// Activate-Main" shape as Gundam Maxter's gundamMaxterAttack/Gundam Rose's gundamRoseAttack.
 function dragonGundamDestroysShield(state, player, instance, context) {
   if (instance.activationsUsed.dragonShieldTrigger) return;
   instance.activationsUsed.dragonShieldTrigger = true;
@@ -1545,6 +1550,11 @@ function dragonGundamDestroysShield(state, player, instance, context) {
     ? context.hooks.chooseUnit(candidates)
     : candidates.sort((a, b) => getRemainingHP(a) - getRemainingHP(b))[0];
   if (target) dealDamage(target, 2);
+}
+function dragonGundamAttack(state, player, unit) {
+  if (!unit.isLinkUnit || !unit.pilot) return;
+  const pilotActivateMain = unit.pilot.def.effects && unit.pilot.def.effects.activateMain;
+  if (pilotActivateMain) pilotActivateMain(state, player, unit.pilot, {});
 }
 
 // --- Aegis Gundam ST04-006 ---
@@ -1685,9 +1695,7 @@ function mikhailKaminskyBurst(state, player, instance) {
   player.hand.push(instance);
 }
 function mikhailKaminskyAttack(state, player, unit, context) {
-  const candidates = player.battleArea.filter(
-    (u) => (u.def.traits || []).includes('Cyclops Team') && !getKeywords(u).breach
-  );
+  const candidates = player.battleArea.filter((u) => (u.def.traits || []).includes('Cyclops Team'));
   const target = context.hooks && context.hooks.chooseUnit ? context.hooks.chooseUnit(candidates) : candidates[0];
   if (target) target.buffs.push({ breach: 1, scope: 'turn' });
 }
@@ -2034,8 +2042,9 @@ function amateYuzurihaMachuWhenLinked(state, player) {
 // --- Shuji Itō ST06-010 (Pilot) ---
 // [Burst] Add this card to your hand. [During Link][Attack] If you have a (Clan) Unit in play,
 // look at the top card of your deck. Return it to the top or bottom of your deck (a pure scry --
-// keep (Clan) cards on top, send anything else to the bottom, since there's no other selection
-// criterion in the printed text).
+// same "keep Unit/Base on top, bury anything else" heuristic as Kayra's Re-GZ GD05-029's identical
+// ability shape, since there's no other selection criterion in the printed text -- a card's own
+// traits aren't a reasoned basis for whether it's worth keeping on top).
 function shujiItoBurst(state, player, instance) {
   player.hand.push(instance);
 }
@@ -2043,9 +2052,12 @@ function shujiItoAttack(state, player, unit) {
   if (!unit.isLinkUnit) return;
   if (!player.battleArea.some((u) => (u.def.traits || []).includes('Clan'))) return;
   if (player.deck.length === 0) return;
-  const top = player.deck.shift();
-  if ((top.def.traits || []).includes('Clan')) player.deck.unshift(top);
-  else player.deck.push(top);
+  const top = player.deck[0];
+  const worthKeeping = top.def.type === 'unit' || top.def.type === 'base';
+  if (!worthKeeping) {
+    player.deck.shift();
+    player.deck.push(top);
+  }
 }
 
 // --- Schoolgirl and Smuggler ST06-012 (Command) ---
@@ -5467,7 +5479,25 @@ function radishDestroyed(state, player, instance) {
   if (target) restEnemyByEffect(state, player, opponent, target);
 }
 
-// --- GD04 batch 1 (GD04-004 through GD04-023, excl. GD04-001/002/003/005/006/008/010/011/012/014/016/017 which are vanilla or data-only) ---
+// --- Gundam GD04-001 ---
+// [During Link][Attack] If you are attacking an enemy Unit, you may return a blue Pilot paired with
+// this Unit to its owner's hand. (Heuristic default: never bounce -- returning the paired Pilot loses
+// this Unit's isLinkUnit tempo/stat bonuses with no immediate compensating benefit the way e.g. Nu
+// Gundam GD05-017's "you may... if you do" is worth it specifically when it enables a favorable kill.
+// shouldBounce is a real, if constant, heuristic decision -- the branch it guards is the actual,
+// tested mechanic, so a future smarter heuristic or a real player choice both just need to change
+// this one variable.)
+function gundamGD04001Attack(state, player, unit, context) {
+  if (!unit.isLinkUnit || !unit.pilot || unit.pilot.def.color !== 'blue') return;
+  if (!context.target || context.target.type !== 'unit') return;
+  const shouldBounce = false;
+  if (!shouldBounce) return;
+  const pilot = unit.pilot;
+  unit.pilot = null;
+  sendToZone(player.hand, pilot);
+}
+
+// --- GD04 batch 1 (GD04-004 through GD04-023, excl. GD04-002/003/005/006/008/010/011/012/014/016/017 which are vanilla or data-only) ---
 
 // --- Psycho Gundam Mk-II GD04-004 ---
 // [Repair 2] (data, see effects.js). [Once per Turn] When you pair a (Cyber-Newtype) Pilot with one
@@ -5960,7 +5990,7 @@ function unicornGundamAwakenedLRPlusFriendlyPlaysCommand(state, player, instance
 
 // --- Turn A Gundam (LR+) GD04-067 ---
 // [ActivateMain][Once per Turn] (1): Choose 1 Unit card with [Repair]/[Breach]/[First Strike]/
-// [Support]/[High-Maneuver]/[Suppression]/[Blocker] from any player's trash. During this turn, this
+// [Support]/[High-Maneuver]/[Suppression]/[Blocker] from your trash. During this turn, this
 // Unit gets AP+1 and all of those keywords from that Unit card. (Engine-correct, but not wired into
 // the AI's runActivations -- same "spending a resource for a judgement call" precedent as
 // Archangel ST04-015/Zeta Gundam GD02-069 above; picking the best trash card to copy needs real
@@ -5973,7 +6003,7 @@ function turnAGundamLRPlusActivateMain(state, player, instance, context) {
   if (activeResources.length < 1) return false;
   const target = context.target;
   if (!target || target.def.type !== 'unit') return false;
-  if (!state.players.some((p) => p.trash.includes(target))) return false;
+  if (!player.trash.includes(target)) return false;
   const kw = target.def.keywords || {};
   const hasCopyableKeyword = TURN_A_GD04067_BOOLEAN_KEYWORDS.some((k) => kw[k]) || kw.repair || kw.breach || kw.support;
   if (!hasCopyableKeyword) return false;
@@ -6907,7 +6937,7 @@ function chaosGundamAttack(state, player, instance) {
 
 // --- Abyss Gundam GD05-040 (Unit) ---
 // (data-only comment, no function; keywords.support, same generic <Support> rule as Buster Gundam
-// GD01-046 -- not wired into any AI activation path yet, same scoping note as that card.)
+// GD01-046 -- resolved generically by src/ai/activations.js's RESOLVERS.SUPPORT.)
 
 // --- Gaia Gundam (MA Mode) (U+) GD05-041 (Unit) ---
 // (data-only comment, no function; uses costReductionIfEnemyDiscardedByEffect, src/rules/cost.js)
@@ -7709,10 +7739,9 @@ function redGundam0085Attack(state, player, unit) {
 
 // --- Gouf Vijayanta EB01-014 ---
 // "During your opponent's turn, this Unit can't receive effect damage from enemy Units that are
-// Lv.5 or lower." Not implemented: dealEffectDamage is only ever called with the damage's source
-// PLAYER, not the specific source Unit instance, so there's no way to check the source's level here
-// without threading a new parameter through every existing call site -- left as a documented
-// simplification, same shape as White Ark GD05-124's un-plumbed alternative-cost text.
+// Lv.5 or lower." Implemented as data (`effectDamageImmuneFromUnitsLevelAtMost`), checked in
+// src/rules/effects.js's dealEffectDamage against state.resolvingSource (the Unit instance whose
+// ability is currently resolving, set by fireCardEffect/triggerEvent/the Activate-Main dispatchers).
 
 // --- Prototype Asshimar TR-3 "Kehaar" EB01-015 ---
 // [Destroyed] If there are 2 or more other rested Units in play, choose 1 rested enemy Unit. Deal 1
@@ -7775,7 +7804,7 @@ function gundamPixyAttack(state, player, unit) {
 function buildStrikeGundamFullPackageEXWhenPaired(state, player, unit, context) {
   const pilot = context.pilot;
   if (!pilot || !(pilot.def.traits || []).includes('G Generation')) return;
-  const ggenInTrash = player.trash.filter((c) => (c.def.traits || []).includes('G Generation')).length;
+  const ggenInTrash = player.trash.filter((c) => c.def.type === 'unit' && (c.def.traits || []).includes('G Generation')).length;
   if (ggenInTrash < 2) return;
   if (player.resourceDeck.length) {
     const resource = player.resourceDeck.shift();
@@ -7957,9 +7986,8 @@ function darilbaldeStartOfTurn(state, player, instance) {
 
 // --- Rising Freedom Gundam EB01-039 ---
 // "When playing this card from your hand, if 3 or more enemy Units are in play, play it as if it
-// has 3 Lv. and cost." Not implemented: an alternate-cost-on-condition mechanic with no existing
-// plumbing into the deploy-from-hand cost/level resolution (src/rules/cost.js, actions.js) -- left
-// as a documented simplification, same shape as White Ark GD05-124's un-plumbed alternative cost.
+// has 3 Lv. and cost." Implemented as data (`alternateLevelCostIfEnemyUnitsAtLeast`), resolved by
+// src/rules/cost.js's alternateLevelCost helper (read by effectiveCost/canAfford).
 
 // --- Gundam Epyon EB01-040 ---
 // "[Deploy] If there are 2 or more enemy players, choose 1 to 3 friendly Units. They gain [Breach 3]
@@ -8530,8 +8558,9 @@ function tiffaAdillFreedenDeploy(state, player) {
 
 // === ST01 batch ===
 
-// --- Gundam (MA Form) ST01-002 --- Link Condition [Amuro Ray]. [When Paired] Draw 1.
-function gundamMAFormWhenPaired(state, player) {
+// --- Gundam (MA Form) ST01-002 --- Link Condition [Amuro Ray]. [When Paired・(White Base Team) Pilot] Draw 1.
+function gundamMAFormWhenPaired(state, player, unit, context) {
+  if (!(context.pilot.def.traits || []).includes('White Base Team')) return;
   drawCard(state, player);
 }
 
@@ -9299,10 +9328,9 @@ function tacticalTrainingCommand(state, player, instance, context) {
 
 // --- Unlocking the Development Diagram ST10-014 --- [Main] Draw 2.
 // "When playing this card from your hand, you may discard 1 (G Generation) Unit card. If you do,
-// play this card as if it has 2 Lv. and cost." Not implemented: an alternate-cost-on-discard
-// mechanic with no existing plumbing into the deploy-from-hand cost/level resolution
-// (src/rules/cost.js, actions.js) -- left as a documented simplification, same shape as Rising
-// Freedom Gundam EB01-039's un-plumbed alternative cost.
+// play this card as if it has 2 Lv. and cost." Implemented as data (`discardAltCost`), resolved by
+// src/rules/cost.js's discardAltCostCandidate helper (read by canAfford/payCost) -- only taken when
+// the normal Lv./cost isn't otherwise affordable (see payCost's comment for why).
 function unlockingTheDevelopmentDiagramCommand(state, player) {
   drawCard(state, player);
   drawCard(state, player);
@@ -9472,6 +9500,7 @@ module.exports = {
   hokaKyotenJuzetsujinCommand,
   gravitonHammerCommand,
   dragonGundamDestroysShield,
+  dragonGundamAttack,
   aegisGundamAttack,
   gfredActivateMain,
   gfredWhenLinked,
@@ -9876,6 +9905,7 @@ module.exports = {
   esperansaDeploy,
   gnArmorTypeEDeploy,
   unicornGundamAwakenedLRPlusFriendlyPlaysCommand,
+  gundamGD04001Attack,
   turnAGundamLRPlusActivateMain,
   turnAGundamGD04069EndOfTurn,
   alSaachezAEUEnactMoraliaDeploy,

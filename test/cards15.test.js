@@ -97,10 +97,17 @@ test('Shuji Itō ST06-010 Attack scries the top card only During Link and only w
   const linkedUnit = deployUnit(state, player, { number: 'U2', type: 'unit', ap: 1, hp: 1, linkCondition: 'Shuji Itō' });
   pairPilot(state, player, linkedUnit, createInstance({ number: 'P2', name: 'Shuji Itō', type: 'pilot' }, 0));
   assert.equal(linkedUnit.isLinkUnit, true);
-  player.deck.unshift(createInstance({ number: 'D0', type: 'unit', traits: ['Earth Federation'] }, 0));
+
+  // Same "keep Unit/Base on top, bury anything else" heuristic as Kayra's Re-GZ GD05-029's identical
+  // ability shape -- a card's own traits aren't the criterion, its type is.
+  player.deck.unshift(createInstance({ number: 'D0', type: 'command' }, 0));
   lookupCard('ST06-010').effects.attack(state, player, linkedUnit);
   assert.equal(player.deck.length, 2, 'a pure scry: no card leaves the deck');
-  assert.equal(player.deck[player.deck.length - 1].def.number, 'D0', 'non-(Clan) card sent to the bottom');
+  assert.equal(player.deck[player.deck.length - 1].def.number, 'D0', 'non-Unit/Base card sent to the bottom');
+
+  player.deck.unshift(createInstance({ number: 'D2', type: 'unit', traits: ['Earth Federation'] }, 0));
+  lookupCard('ST06-010').effects.attack(state, player, linkedUnit);
+  assert.equal(player.deck[0].def.number, 'D2', 'a Unit card is kept on top');
 });
 
 test('Schoolgirl and Smuggler ST06-012 digs 3, reveals a (Clan) Unit/Pilot card to hand, shuffles the rest to the bottom', () => {

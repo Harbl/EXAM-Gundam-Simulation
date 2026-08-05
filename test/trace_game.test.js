@@ -50,7 +50,13 @@ test('traceGame returns a structured event log, mulligan decisions first, gameSt
   const openingHandEvents = events.slice(2, 4);
   assert.deepEqual(openingHandEvents.map((e) => e.type), ['openingHand', 'openingHand']);
 
-  const gameStart = events[4];
+  // baseSetup (5-17-3: both players start with an EX Base already in play) follows, one per player,
+  // still before gameStart.
+  const baseSetupEvents = events.slice(4, 6);
+  assert.deepEqual(baseSetupEvents.map((e) => e.type), ['baseSetup', 'baseSetup']);
+  assert.ok(baseSetupEvents.every((e) => e.base && e.base.number === 'EX-BASE'));
+
+  const gameStart = events[6];
   assert.equal(gameStart.type, 'gameStart');
   assert.ok(gameStart.firstPlayer === 0 || gameStart.firstPlayer === 1);
 
@@ -107,12 +113,15 @@ test('resource events fire for the active player only, once per turn they place 
   }
 });
 
-test('a real Burst reveal (Jaburo, seed 1) logs the shield card and whether it activated', () => {
+test('a real Burst reveal (Jaburo, seed 2) logs the shield card and whether it activated', () => {
   const deck = buildJakesDeck();
-  const events = traceGame(deck, deck, 1);
-  const burst = events.find((e) => e.type === 'burst');
-  assert.ok(burst, 'expected at least one Burst reveal in this seeded game');
-  assert.equal(burst.card.number, 'GD04-122');
+  const events = traceGame(deck, deck, 2);
+  // Filtered by card, not just "the first burst in the log" -- which specific shield gets hit first is
+  // an AI-decision outcome (sensitive to card-data/search changes like the GD01-006/GD01-026/ST01-001/
+  // ST03-006 linkCondition fixes), not a rules fact this test is meant to pin down. What's meant to be
+  // pinned down is Jaburo's specific Burst behavior.
+  const burst = events.find((e) => e.type === 'burst' && e.card.number === 'GD04-122');
+  assert.ok(burst, 'expected a Jaburo Burst reveal in this seeded game');
   assert.equal(burst.activated, true);
   assert.ok(burst.player === 0 || burst.player === 1);
   // Jaburo's Burst converts the Shield straight into a Base (jaburoBurst -> becomeBase), never hand.
@@ -124,9 +133,9 @@ test('a real Burst reveal (Jaburo, seed 1) logs the shield card and whether it a
   assert.equal(typeof becomeBaseEvent.unit.id, 'number');
 });
 
-test('burst.endedUpInHand is true for a "add this Shield to your hand" effect (Amuro Ray ST01-010, seed 1)', () => {
+test('burst.endedUpInHand is true for a "add this Shield to your hand" effect (Amuro Ray ST01-010, seed 2)', () => {
   const deck = buildJakesDeck();
-  const events = traceGame(deck, deck, 1);
+  const events = traceGame(deck, deck, 2);
   const burst = events.find((e) => e.type === 'burst' && e.card.number === 'ST01-010');
   assert.ok(burst, 'expected an Amuro Ray Burst reveal in this seeded game');
   assert.equal(burst.activated, true);

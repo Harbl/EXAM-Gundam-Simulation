@@ -66,6 +66,7 @@
       "League Militaire",
       "Victory Type"
     ],
+    "linkCondition": "League Militaire",
     "effectRefs": {
       "attack": "victoryGundamGD04003Attack"
     }
@@ -173,6 +174,7 @@
       "League Militaire",
       "Shrike Team"
     ],
+    "linkCondition": "Shrike Team",
     "effectRefs": {
       "deploy": "gunEZDeploy"
     }
@@ -252,7 +254,8 @@
       "Earth Federation",
       "White Base Team"
     ],
-    "linkCondition": "Amuro Ray"
+    "linkCondition": "Amuro Ray",
+    "effectRefs": { "attack": "gundamGD04001Attack" }
   },
   {
     "number": "GD04-065",
@@ -1009,7 +1012,7 @@
       "CB",
       "Trinity"
     ],
-    "linkCondition": "Trinity/Ali alSaachez",
+    "linkCondition": "Ali al-Saachez/Trinity",
     "effectRefs": {
       "whenLinked": "gundamThroneZweiWhenLinked"
     }
@@ -1386,7 +1389,7 @@
     "traits": [
       "Superpower Bloc"
     ],
-    "linkCondition": "Ali alSaachez",
+    "linkCondition": "Ali al-Saachez",
     "effectRefs": {
       "deploy": "alSaachezAEUEnactMoraliaDeploy"
     }
@@ -1519,7 +1522,7 @@
     "traits": [
       "Superpower Bloc"
     ],
-    "linkCondition": "Ali alSaachez"
+    "linkCondition": "Ali al-Saachez"
   },
   {
     "number": "GD04-080",
@@ -1549,7 +1552,7 @@
     "hpBonus": 0,
     "traits": [
       "Titans",
-      "CyberNewtype"
+      "Cyber-Newtype"
     ],
     "effectRefs": {
       "burst": "rosamiaBadamBurst",
@@ -1653,7 +1656,7 @@
     "hpBonus": 1,
     "traits": [
       "Earth Federation",
-      "CyberNewtype"
+      "Cyber-Newtype"
     ],
     "effectRefs": {
       "burst": "deuxMurasameBurst",
@@ -1950,7 +1953,7 @@
     "cost": 1,
     "traits": [
       "Earth Federation",
-      "CyberNewtype"
+      "Cyber-Newtype"
     ],
     "pilotMode": {
       "name": "Gates Capa",

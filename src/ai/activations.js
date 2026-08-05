@@ -1,4 +1,13 @@
 const { getAP, getRemainingHP, getKeywords } = require('../rules/management');
+const { activateSupport } = require('../rules/effects');
+
+/** <Support(amount)> (13-1-3): rest this Unit, another friendly Unit gets AP+amount this turn. Shared
+ * by ~11 cards (Buster Gundam GD01-046, Abyss Gundam GD05-040, etc.) via keywords.support rather than
+ * a per-card effectRefs.activateMain, so it's resolved generically here (see activateMainSource /
+ * RESOLVERS.SUPPORT below) instead of needing an entry for every card number that has it. */
+function supportHandler(state, player, source, args) {
+  activateSupport(source, args.target);
+}
 
 /** Keyword-copy value for Turn A Gundam (LR+) GD04-067: how good a trash Unit card is to copy from. */
 function turnAKeywordValue(card) {
@@ -314,6 +323,13 @@ const RESOLVERS = {
   'ST02-006': (state, player, opponent, source) => {
     if (source.activationsUsed.setActive) return null;
     return player.resourceArea.filter((r) => !r.rested).length >= 4 ? {} : null;
+  },
+  // <Support(amount)>: no once-per-turn flag beyond the shared "must be active" guard (activateSupport
+  // itself rests the source as its cost, which naturally stops it firing again until reactivated) --
+  // targets the highest-AP other friendly Unit, same default-target convention as GD03-038 above.
+  SUPPORT: (state, player, opponent, source) => {
+    const target = player.battleArea.filter((u) => u !== source).sort((a, b) => getAP(b) - getAP(a))[0];
+    return target ? { target } : null;
   }
 };
 
@@ -341,6 +357,9 @@ function activateMainSource(instance) {
   }
   if (instance.pilot && instance.pilot.def.effects && instance.pilot.def.effects.activateMain) {
     return { handler: instance.pilot.def.effects.activateMain, number: instance.pilot.def.number };
+  }
+  if (instance.def.keywords && instance.def.keywords.support) {
+    return { handler: supportHandler, number: 'SUPPORT' };
   }
   return null;
 }

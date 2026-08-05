@@ -1,4 +1,5 @@
 const { app, BrowserWindow, ipcMain, dialog } = require('electron');
+const { autoUpdater } = require('electron-updater');
 const { Worker } = require('node:worker_threads');
 const path = require('node:path');
 const fs = require('node:fs');
@@ -46,7 +47,36 @@ function createWindow() {
   mainWindow.loadFile(path.join(__dirname, 'renderer', 'index.html'));
 }
 
-app.whenReady().then(createWindow);
+// Update checking (electron-updater, reading package.json's build.publish -- the GitHub repo
+// releases already get uploaded to manually). autoDownload is off on purpose: this only tells the
+// renderer a new version exists (a small dismissible banner) and downloads/installs on the user's
+// own click, never silently in the background -- surprising someone mid-batch-run with a relaunch
+// would be a bad experience for a simulator that can run for minutes. Only wired up in a packaged
+// build: an unpackaged `npm start` has no app-update.yml for electron-updater to read and would just
+// throw on every check.
+autoUpdater.autoDownload = false;
+autoUpdater.on('update-available', (info) => {
+  if (mainWindow) mainWindow.webContents.send('update-status', { status: 'available', version: info.version });
+});
+autoUpdater.on('download-progress', (progress) => {
+  if (mainWindow) mainWindow.webContents.send('update-status', { status: 'downloading', percent: progress.percent });
+});
+autoUpdater.on('update-downloaded', () => {
+  if (mainWindow) mainWindow.webContents.send('update-status', { status: 'downloaded' });
+});
+autoUpdater.on('error', (err) => {
+  if (mainWindow) mainWindow.webContents.send('update-status', { status: 'error', message: err.message });
+});
+
+ipcMain.handle('download-update', () => autoUpdater.downloadUpdate());
+ipcMain.handle('quit-and-install', () => autoUpdater.quitAndInstall());
+
+app.whenReady().then(() => {
+  createWindow();
+  // A few seconds after launch, not immediately -- lets the window paint and the batch-runner UI
+  // become usable first, so an update check (a network call) never feels like it's blocking startup.
+  if (app.isPackaged) setTimeout(() => autoUpdater.checkForUpdates().catch(() => {}), 3000);
+});
 
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') app.quit();

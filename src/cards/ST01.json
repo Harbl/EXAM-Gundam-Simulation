@@ -34,6 +34,7 @@
     "hp": 4,
     "traits": ["Earth Federation", "White Base Team"],
     "keywords": { "repair": 2 },
+    "linkCondition": "Amuro Ray",
     "effectRefs": { "startOfTurn": "gundamDuringPairStartOfTurn" }
   },
   {

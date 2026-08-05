@@ -67,24 +67,25 @@ test('Unicorn Gundam (Unicorn Mode) GD01-005: a Link Unit\'s Destroyed sends its
   assert.equal(player.hand.length, 1, 'the pre-existing hand card was discarded to trash, Pilot took its place');
 });
 
-test('Jegan GD01-016: hand cost is 3 normally, drops to 2 while 2+ (Earth Federation) Units are in play', () => {
+test('Jegan GD01-016: hand cost is 2 normally, drops to 1 while 2+ (Earth Federation) Units are in play', () => {
   const player = createPlayer(0);
   const def = lookupCard('GD01-016');
-  player.resourceArea.push(resource(), resource(), resource());
-  assert.equal(canAfford(player, def), true, '3 active resources covers the full cost of 3');
+  player.resourceArea.push(resource(), resource(), resource()); // 3 total, satisfies Lv.3
+  assert.equal(canAfford(player, def), true, '3 active resources covers the full cost of 2');
 
-  player.resourceArea = [resource(), resource()];
-  assert.equal(canAfford(player, def), false, 'only 2 active resources, full cost of 3 not payable yet');
+  player.resourceArea[0].rested = true;
+  player.resourceArea[1].rested = true; // only 1 active, still 3 total (satisfies Lv.3)
+  assert.equal(canAfford(player, def), false, 'only 1 active resource, full cost of 2 not payable yet');
 
   player.battleArea.push(
     { def: { traits: ['Earth Federation'] } },
     { def: { traits: ['Earth Federation'] } }
   );
-  assert.equal(canAfford(player, def), true, '2+ (Earth Federation) Units in play drops the cost to 2');
+  assert.equal(canAfford(player, def), true, '2+ (Earth Federation) Units in play drops the cost to 1');
 
   payCost(player, def);
   const restedCount = player.resourceArea.filter((r) => r.rested).length;
-  assert.equal(restedCount, 2, 'only 2 resources actually get spent, matching the reduced cost');
+  assert.equal(restedCount, 3, 'the 2 already-rested plus 1 newly-spent, matching the reduced cost of 1');
 });
 
 test('G-Sky Easy GD01-014 Activate*Action heals a chosen Unit for 1, once per turn, only while linked', () => {

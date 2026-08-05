@@ -6,12 +6,17 @@ const { deployUnit } = require('../src/rules/actions');
 const { dealDamage } = require('../src/rules/management');
 const registry = require('../src/effects/registry');
 
-test('Gundam (MA Form) ST01-002: whenPaired draws 1', () => {
+test('Gundam (MA Form) ST01-002: whenPaired draws 1, but only for a (White Base Team) Pilot', () => {
   const player = createPlayer(0);
   const state = createGame(player, createPlayer(1));
   player.deck.push(createInstance({ number: 'D1', type: 'unit' }, 0));
-  registry.gundamMAFormWhenPaired(state, player);
-  assert.equal(player.hand.length, 1);
+  const nonWhiteBasePilot = createInstance({ number: 'P1', type: 'pilot', traits: ['Zeon'] }, 0);
+  registry.gundamMAFormWhenPaired(state, player, null, { pilot: nonWhiteBasePilot });
+  assert.equal(player.hand.length, 0, 'no draw for a non-(White Base Team) Pilot');
+
+  const whiteBasePilot = createInstance({ number: 'P2', type: 'pilot', traits: ['White Base Team'] }, 0);
+  registry.gundamMAFormWhenPaired(state, player, null, { pilot: whiteBasePilot });
+  assert.equal(player.hand.length, 1, 'draws 1 for a (White Base Team) Pilot');
 });
 
 test('Guntank ST01-004: Deploy rests an enemy Unit with 2 or less HP', () => {

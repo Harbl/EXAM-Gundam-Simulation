@@ -14,14 +14,24 @@ function triggerEvent(state, eventName, context) {
     const cardsOnField = [...player.battleArea, player.base].filter(Boolean);
     for (const instance of cardsOnField) {
       const handler = instance.def.effects && instance.def.effects[eventName];
-      if (handler) handler(state, player, instance, context);
-      // Jerid Messa GD02-086 / Challia Bull (GQ) GD02-090: a Pilot's own board-state-conditional
-      // stat text needs to re-evaluate at startOfTurn same as a Unit's -- mirrors fireCardEffect's
-      // existing pilot-forwarding for self-scoped triggers (13-2-x). No pre-GD02 Pilot has a
-      // broadcast-event handler, so this is purely additive.
-      if (instance.pilot) {
-        const pilotHandler = instance.pilot.def.effects && instance.pilot.def.effects[eventName];
-        if (pilotHandler) pilotHandler(state, player, instance, context);
+      // Gouf Vijayanta EB01-014: dealEffectDamage needs to know which Unit's ability is currently
+      // resolving to check that source's own Level -- resolvingSource is set/restored around every
+      // handler invocation here and in fireCardEffect below, the two chokepoints all card-ability
+      // handlers are actually called through.
+      const prevSource = state.resolvingSource;
+      state.resolvingSource = instance;
+      try {
+        if (handler) handler(state, player, instance, context);
+        // Jerid Messa GD02-086 / Challia Bull (GQ) GD02-090: a Pilot's own board-state-conditional
+        // stat text needs to re-evaluate at startOfTurn same as a Unit's -- mirrors fireCardEffect's
+        // existing pilot-forwarding for self-scoped triggers (13-2-x). No pre-GD02 Pilot has a
+        // broadcast-event handler, so this is purely additive.
+        if (instance.pilot) {
+          const pilotHandler = instance.pilot.def.effects && instance.pilot.def.effects[eventName];
+          if (pilotHandler) pilotHandler(state, player, instance, context);
+        }
+      } finally {
+        state.resolvingSource = prevSource;
       }
     }
   }
@@ -36,19 +46,27 @@ function triggerEvent(state, eventName, context) {
  */
 function fireCardEffect(state, player, instance, eventName, context = {}) {
   const handler = instance.def.effects && instance.def.effects[eventName];
-  if (handler) handler(state, player, instance, context);
-  if (instance.pilot) {
-    const pilotHandler = instance.pilot.def.effects && instance.pilot.def.effects[eventName];
-    if (pilotHandler) pilotHandler(state, player, instance, context);
-  }
-  // At the Risk of One's Life GD05-104: "This Unit gains [an ability] during this turn" -- a
-  // Command-granted, turn-scoped triggered ability. Stored as a buff carrying the actual handler
-  // function (grantedEffect: {eventName, fn}) so it resolves generically here for any future
-  // "gains the following ability" text, not just this one card.
-  for (const buff of instance.buffs) {
-    if (buff.grantedEffect && buff.grantedEffect.eventName === eventName) {
-      buff.grantedEffect.fn(state, player, instance, context);
+  // See triggerEvent's matching comment above: resolvingSource is what lets dealEffectDamage check
+  // the source Unit's own Level (Gouf Vijayanta EB01-014).
+  const prevSource = state.resolvingSource;
+  state.resolvingSource = instance;
+  try {
+    if (handler) handler(state, player, instance, context);
+    if (instance.pilot) {
+      const pilotHandler = instance.pilot.def.effects && instance.pilot.def.effects[eventName];
+      if (pilotHandler) pilotHandler(state, player, instance, context);
     }
+    // At the Risk of One's Life GD05-104: "This Unit gains [an ability] during this turn" -- a
+    // Command-granted, turn-scoped triggered ability. Stored as a buff carrying the actual handler
+    // function (grantedEffect: {eventName, fn}) so it resolves generically here for any future
+    // "gains the following ability" text, not just this one card.
+    for (const buff of instance.buffs) {
+      if (buff.grantedEffect && buff.grantedEffect.eventName === eventName) {
+        buff.grantedEffect.fn(state, player, instance, context);
+      }
+    }
+  } finally {
+    state.resolvingSource = prevSource;
   }
 }
 
@@ -154,6 +172,22 @@ function dealEffectDamage(state, sourcePlayer, targetOwner, target, amount) {
     targetOwner.base.def.orbEffectDamageImmuneThreshold !== undefined &&
     amount <= targetOwner.base.def.orbEffectDamageImmuneThreshold &&
     (target.def.traits || []).includes('Orb')
+  ) {
+    return;
+  }
+  // Gouf Vijayanta EB01-014: "During your opponent's turn, this Unit can't receive effect damage
+  // from enemy Units that are Lv.5 or lower." state.resolvingSource (set by fireCardEffect/
+  // triggerEvent above) is the Unit instance whose ability is currently resolving; !resolvingCommand
+  // narrows "enemy Units" the same way Fighting Alone's check above does, since this engine doesn't
+  // separately tag Pilot-granted text (resolvingSource is still the paired Unit for those, which is
+  // correct -- 2-11-3, a paired Pilot's text is gained by the Unit).
+  if (
+    sourcePlayer !== targetOwner &&
+    !state.resolvingCommand &&
+    target.def.effectDamageImmuneFromUnitsLevelAtMost !== undefined &&
+    state.players[state.activePlayerIdx] === sourcePlayer &&
+    state.resolvingSource &&
+    (state.resolvingSource.def.level || 0) <= target.def.effectDamageImmuneFromUnitsLevelAtMost
   ) {
     return;
   }

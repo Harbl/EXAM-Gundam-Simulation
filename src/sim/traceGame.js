@@ -350,6 +350,16 @@ function traceGame(deckA, deckB, seed, options = {}) {
     events.push({ type: 'openingHand', player: i, hand: state.players[i].hand.map((c) => cardRef(c.def)) });
   }
 
+  // 5-17-3: both players start with an EX Base already in play -- initializeGame (src/rules/setup.js)
+  // assigns it directly to player.base rather than going through deployBase/becomeBase, so unlike
+  // every other Base a player ever has, nothing here would otherwise emit an event for it. Without
+  // this, the replay viewer's board (electron/renderer/index.html's buildSnapshot, which only ever
+  // populates a player's Base in response to a 'deployBase' event) never shows a player's Base at all
+  // for the entire game unless they later deploy a real Base card over the EX Base.
+  for (let i = 0; i < state.players.length; i++) {
+    events.push({ type: 'baseSetup', player: i, base: instanceRef(state.players[i].base) });
+  }
+
   if (options.mctsConfigA) state.players[0].mctsConfig = options.mctsConfigA;
   if (options.mctsConfigB) state.players[1].mctsConfig = options.mctsConfigB;
   const engines = [options.engineA || 'mcts', options.engineB || 'mcts'];

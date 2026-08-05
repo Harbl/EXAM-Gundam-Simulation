@@ -72,6 +72,7 @@
   {
     "number": "ST10-014", "name": "Unlocking the Development Diagram", "type": "command", "color": "blue",
     "level": 4, "cost": 4,
+    "discardAltCost": { "type": "unit", "trait": "G Generation", "level": 2, "cost": 2 },
     "effectRefs": { "command": "unlockingTheDevelopmentDiagramCommand" }
   },
   {

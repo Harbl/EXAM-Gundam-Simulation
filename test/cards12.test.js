@@ -57,7 +57,7 @@ test('Kämpfer When Paired grants all (Cyclops Team) Units a Lv-independent 5-AP
   assert.equal(result.instance, target, 'active AP5 enemy is now a legal target for every Cyclops Team Unit, not just Kämpfer');
 });
 
-test('Mikhail Kaminsky Attack grants Breach 1 to a chosen (Cyclops Team) ally this turn, skipping one that already has it', () => {
+test('Mikhail Kaminsky Attack grants Breach 1 to a chosen (Cyclops Team) ally this turn, including one that already has it (mandatory "Choose 1", no printed exclusion)', () => {
   const player = createPlayer(0);
   const opponent = createPlayer(1);
   const state = createGame(player, opponent);
@@ -67,9 +67,14 @@ test('Mikhail Kaminsky Attack grants Breach 1 to a chosen (Cyclops Team) ally th
 
   const unit = deployUnit(state, player, { number: 'X', type: 'unit', ap: 2, hp: 2 });
   unit.pilot = createInstance(lookupCard('GD03-090'), 0);
-  lookupCard('GD03-090').effects.attack(state, player, unit, {});
+  lookupCard('GD03-090').effects.attack(state, player, unit, { hooks: { chooseUnit: (candidates) => target } });
   assert.equal(getKeywords(target).breach, 1);
   assert.equal(unrelated.buffs.length, 0, 'non-Cyclops-Team Unit is never a candidate');
+
+  const buffed = deployUnit(state, player, { number: 'X2', type: 'unit', ap: 2, hp: 2 });
+  buffed.pilot = createInstance(lookupCard('GD03-090'), 0);
+  lookupCard('GD03-090').effects.attack(state, player, buffed, { hooks: { chooseUnit: (candidates) => alreadyBreach } });
+  assert.equal(alreadyBreach.buffs.length, 1, 'a Cyclops Team Unit that already has Breach is still a legal choice');
 });
 
 test("Tokwan's Unit takes no return damage when blocked by a Lv.4-or-lower blocker, but does from a Lv.5+ one", () => {

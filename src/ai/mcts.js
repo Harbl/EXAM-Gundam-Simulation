@@ -226,7 +226,17 @@ function applyAction(state, playerIdx, action, hooks) {
     const resolver = RESOLVERS[handlerInfo.number];
     if (!resolver) return;
     const args = resolver(state, player, opponent, source);
-    if (args) handlerInfo.handler(state, player, source, args);
+    if (args) {
+      // See heuristic.js's runActivations comment: resolvingSource lets dealEffectDamage check the
+      // acting Unit's own Level (Gouf Vijayanta EB01-014).
+      const prevSource = state.resolvingSource;
+      state.resolvingSource = source;
+      try {
+        handlerInfo.handler(state, player, source, args);
+      } finally {
+        state.resolvingSource = prevSource;
+      }
+    }
   }
 }
 
