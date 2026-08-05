@@ -65,7 +65,7 @@ game from that run the same way as a batch you just finished.
 
 ![Browsing a saved batch's results in the Log page](docs/screenshots/log-view.png)
 
-**Run a single-elimination tournament**, not just a flat batch. Pick any of your
+**Run a single or double-elimination tournament**, not just a flat batch. Pick any of your
 saved decks as entrants, choose a Best of 1/3/5/7 match format and AI skill tier,
 and EXAM randomly seeds a bracket and plays it out round by round, revealing
 each winner into the next round as soon as their match resolves. Save the
