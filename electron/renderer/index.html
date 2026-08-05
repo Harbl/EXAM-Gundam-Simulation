@@ -276,7 +276,13 @@
      than following the label's now-vertical flow in document order. */
   #batchListPanel.collapsed h2 span { writing-mode: vertical-rl; margin-top: 10px; }
   #batchListPanel.collapsed #collapseBatchListBtn { margin-left: 0; order: -1; }
-  #batchListPanel.collapsed #batchList { display: none; }
+  #batchListPanel.collapsed #batchListContent { display: none; }
+
+  #batchListPanel h3 {
+    font-family: var(--font-head); font-size: 11px; letter-spacing: 1.5px; text-transform: uppercase;
+    color: #888; margin: 14px 0 4px;
+  }
+  #batchListPanel h3:first-of-type { margin-top: 4px; }
 
   .savedDeckList { margin-top: 6px; border: 1px solid var(--grey); }
   .savedDeckRow {
@@ -322,6 +328,44 @@
   .swatchB { background: var(--gold); }
   .smallStatus { font-size: 11.5px; color: var(--gold); margin-top: 4px; min-height: 14px; }
   .buttons.builderActions .smallBtn { flex: 1 !important; }
+
+  /* Tournament screen: entrant checklist, bracket columns, champion banner, expandable per-deck stats */
+  .tourneyEntrantRow { cursor: pointer; }
+  .tourneyEntrantRow input[type=checkbox] { flex: none; width: auto; margin-right: 4px; accent-color: var(--red); }
+
+  .tourneyChampionBanner {
+    border: 1px solid var(--gold); border-top: 2px solid var(--gold); padding: 14px; text-align: center;
+    margin-bottom: 14px; background: rgba(201,169,81,0.06);
+  }
+  .tourneyChampionBanner .num { font-family: var(--font-head); font-size: 22px; color: var(--gold); letter-spacing: 1px; }
+  .tourneyChampionBanner .lbl { font-size: 11px; letter-spacing: 1px; text-transform: uppercase; color: #aaa; margin-top: 4px; }
+
+  .bracket { display: flex; gap: 22px; overflow-x: auto; padding-bottom: 8px; }
+  .bracketRound { display: flex; flex-direction: column; justify-content: space-around; gap: 12px; flex: none; width: 190px; }
+  .bracketRound .roundLabel { font-family: var(--font-head); font-size: 10.5px; letter-spacing: 1.5px; text-transform: uppercase; color: #888; text-align: center; margin-bottom: 4px; }
+  .bracketMatch { border: 1px solid var(--grey); background: #0c0c0c; font-size: 12px; }
+  .bracketMatch.clickable { cursor: pointer; }
+  .bracketMatch.clickable:hover { border-color: var(--red); }
+  /* transition on the base rule (not just .eliminated) is what makes toggling the class on an
+     already-painted row animate, instead of the entrant just appearing pre-faded -- see
+     updateEntrantSlot in the script below, which reuses the same persistent DOM node across a live
+     tournament's progress events rather than rebuilding the bracket from scratch each time. */
+  .bracketMatch .entrant {
+    padding: 6px 8px; border-bottom: 1px solid #222; display: flex; justify-content: space-between;
+    gap: 6px; transition: opacity 400ms ease, color 300ms ease;
+  }
+  .bracketMatch .entrant:last-child { border-bottom: none; }
+  .bracketMatch .entrant.winner { color: var(--gold); font-weight: bold; }
+  .bracketMatch .entrant.bye { color: #666; font-style: italic; }
+  .bracketMatch .entrant.pending { color: #555; }
+  .bracketMatch .entrant.eliminated { opacity: 0.35; text-decoration: line-through; }
+  .bracketMatch .score { font-family: 'Consolas', monospace; color: #999; flex: none; }
+  .bracketMatch .batchGameList { margin-top: 2px; max-height: 160px; }
+
+  .tourneyDeckStats details { border: 1px solid var(--grey); margin-top: 8px; }
+  .tourneyDeckStats summary { padding: 9px 12px; cursor: pointer; font-family: var(--font-head); font-size: 12.5px; letter-spacing: 1px; }
+  .tourneyDeckStats summary:hover { background: #1a1a1a; }
+  .tourneyDeckStats .statsBody { padding: 4px 12px 12px; }
 
   #replaySection { border-top: 1px solid var(--grey); padding-top: 4px; }
   /* #replayTimeline (below) already flexes to fill the panel and does the real scrolling -- this used
@@ -484,6 +528,7 @@
   <button id="navBuilder">Deck Builder</button>
   <button id="navDecks">Saved Decks</button>
   <button id="navLog">Log</button>
+  <button id="navTournament">Tournament</button>
 </nav>
 <main>
 <div class="screen" id="simulateScreen">
@@ -598,7 +643,12 @@
 <div class="screen hidden" id="logScreen">
   <div class="panel" id="batchListPanel">
     <h2><span>Saved Batches</span><button id="collapseBatchListBtn" class="smallBtn" type="button">◀</button></h2>
-    <div id="batchList" class="savedDeckList"></div>
+    <div id="batchListContent">
+      <h3>Single Matches</h3>
+      <div id="batchList" class="savedDeckList"></div>
+      <h3>Tournaments</h3>
+      <div id="tournamentListPanel" class="savedDeckList"></div>
+    </div>
   </div>
   <div class="panel replayPanel" style="flex: 2.2">
     <h2>Replay a Game</h2>
@@ -630,6 +680,50 @@
     </div>
   </div>
 </div>
+
+<div class="screen hidden" id="tournamentScreen">
+  <div class="panel">
+    <h2>Entrants</h2>
+    <p class="hint">Pick at least 2 saved decks to randomly seed into a single-elimination bracket.</p>
+    <div id="tourneyDeckList" class="savedDeckList"></div>
+    <div class="skillRow">
+      <div>
+        <label for="tourneyBestOf">Match format</label>
+        <select id="tourneyBestOf">
+          <option value="1">Best of 1</option>
+          <option value="3" selected>Best of 3</option>
+          <option value="5">Best of 5</option>
+          <option value="7">Best of 7</option>
+        </select>
+      </div>
+      <div>
+        <label for="tourneySkill">AI piloting skill</label>
+        <select id="tourneySkill"></select>
+      </div>
+    </div>
+    <div class="buttons">
+      <button id="tourneyRunBtn">Start Tournament</button>
+      <button id="tourneyCancelBtn" disabled>Cancel</button>
+    </div>
+    <div id="tourneyStatus" class="smallStatus"></div>
+  </div>
+
+  <div class="panel" style="flex: 1.8">
+    <h2>Bracket</h2>
+    <div id="tourneyProgress" style="display:none">
+      <div class="pulsingEmblem"></div>
+      <div id="tourneyProgressText"></div>
+    </div>
+    <div id="tourneyChampion" style="display:none"></div>
+    <div id="tourneyBracket"><p class="hint">Run a tournament to see the bracket here.</p></div>
+    <div id="tourneyDeckStats" class="tourneyDeckStats"></div>
+    <div class="savedRow" id="saveTourneyRow" style="display:none">
+      <input type="text" id="tourneyNameInput" placeholder="Name this tournament" />
+      <button id="saveTourneyBtn" class="smallBtn">Save Tournament</button>
+    </div>
+    <div id="saveTourneyStatus" class="smallStatus"></div>
+  </div>
+</div>
 </main>
 </div>
 
@@ -655,6 +749,7 @@
 
   const skillASelect = document.getElementById('skillA');
   const skillBSelect = document.getElementById('skillB');
+  const tourneySkillSelect = document.getElementById('tourneySkill');
   const savedASelect = document.getElementById('savedA');
   const savedBSelect = document.getElementById('savedB');
   const statsChart = document.getElementById('statsChart');
@@ -674,6 +769,11 @@
   let lastStats = null;
   let lastContext = null;
   let fadeTimeout = null;
+  let tourneySavedDecks = [];
+  let currentTourneyEntrants = [];
+  let liveBracketMatchEls = null;
+  let currentTourneyResult = null;
+  let currentTourneyContext = null;
 
   runBtn.addEventListener('click', () => {
     const deckAText = document.getElementById('deckA').value;
@@ -1203,6 +1303,15 @@
           p.resourceCount++;
           p.resources.push(newUnit(e.resource));
           break;
+        // Effect-driven "place 1 rested Resource" (e.g. Gundam Deathscythe GD01-025's own [When
+        // Paired]) -- same as 'resource' above, except the tile starts already rested.
+        case 'restedResource': {
+          p.resourceCount++;
+          const restedResource = newUnit(e.resource);
+          restedResource.rested = true;
+          p.resources.push(restedResource);
+          break;
+        }
         // A cost payment rests specific Resources (or, for a spent EX Resource token, removes it from
         // the game outright) -- traceGame.js's payCost patch is the one chokepoint that knows exactly
         // which physical Resources a given payment touched.
@@ -1289,6 +1398,65 @@
           removeFromHandByNumber(p.hand, e.card.number);
           p.trashCount++;
           break;
+        // "Place the top N cards of your deck into your trash" effects (e.g. Gundam Exia Repair
+        // GD05-050's own [Destroyed] ability) -- the card never touches hand, it goes straight from
+        // deck to trash, so this just bumps the trash count (nothing to remove from hand/board).
+        case 'mill':
+          p.trashCount++;
+          break;
+        // "Add 1 of your Shields to your hand" (nearly every Base's own [Deploy] text) -- the Shield
+        // count drops and the card lands in hand, same shape as a Burst that ends up in hand but
+        // without a reveal/activation step.
+        case 'shieldToHand':
+          p.shieldCount = Math.max(0, p.shieldCount - 1);
+          p.hand.push({ ...e.card, _key: `hand-${e.player}-${i}` });
+          break;
+        // "Choose 1 card from your trash, add it to your hand" recursion/search effects.
+        case 'recurFromTrash':
+          p.trashCount = Math.max(0, p.trashCount - 1);
+          p.hand.push({ ...e.card, _key: `hand-${e.player}-${i}` });
+          break;
+        // A card left trash for somewhere that isn't a rendered zone (exiled to pay a cost, deployed
+        // from trash -- that arrival is traced separately by 'deploy'/'deployBase', shuffled back into
+        // the deck) -- only the trash count itself needs to move.
+        case 'trashRemoved':
+          p.trashCount = Math.max(0, p.trashCount - 1);
+          break;
+        // "Return this Unit's paired Pilot to hand" bounce effects -- the Unit itself stays put, only
+        // its pilot badge should drop. The pilot's own arrival in hand is a separate 'draw' event
+        // (see management.js's addToHand), so this only ever needs to clear the badge here.
+        case 'unpair': {
+          const unit = p.battleArea.find((u) => u.id === e.unit.id) || (p.base && p.base.id === e.unit.id ? p.base : null);
+          if (unit) unit.pilot = null;
+          break;
+        }
+        // "Destroy 1 enemy Pilot" (e.g. Eliminate Target GD03-110) -- same badge-clearing as 'unpair'
+        // above, but the Pilot lands in trash rather than hand, so this also bumps the trash count.
+        case 'destroyPilot': {
+          const unit = p.battleArea.find((u) => u.id === e.unit.id) || (p.base && p.base.id === e.unit.id ? p.base : null);
+          if (unit) unit.pilot = null;
+          p.trashCount++;
+          break;
+        }
+        // "Return this enemy Unit to its owner's hand" -- by far the most common bounce text in the
+        // card pool. The Unit leaves the board entirely (unlike 'unpair' above, where only the pilot
+        // leaves); its paired Pilot (if any, and if it wasn't a token) follows it to hand too, 3-3-6.
+        case 'returnToHand': {
+          const idx = p.battleArea.findIndex((u) => u.id === e.unit.id);
+          if (idx !== -1) p.battleArea.splice(idx, 1);
+          else if (p.base && p.base.id === e.unit.id) p.base = null;
+          p.hand.push({ ...e.unit, _key: `hand-${e.player}-${i}-unit` });
+          if (e.pilot) p.hand.push({ ...e.pilot, _key: `hand-${e.player}-${i}-pilot` });
+          break;
+        }
+        // A rare "shuffle this enemy Unit back into its owner's deck" effect -- the deck isn't a
+        // rendered zone, so (unlike 'returnToHand' above) this is purely a board departure.
+        case 'returnToDeck': {
+          const idx = p.battleArea.findIndex((u) => u.id === e.unit.id);
+          if (idx !== -1) p.battleArea.splice(idx, 1);
+          else if (p.base && p.base.id === e.unit.id) p.base = null;
+          break;
+        }
       }
     }
     return { players, activePlayer, event: events[uptoIdx] || null };
@@ -1309,6 +1477,15 @@
       case 'destroy': return `P${e.player}'s ${e.unit.name} is destroyed`;
       case 'damage': return `P${e.player}'s ${e.instance.name} takes ${e.amount} damage`;
       case 'discard': return `P${e.player} discards ${e.card.name} (hand limit)`;
+      case 'mill': return `P${e.player} places ${e.card.name} (${e.card.number}) into the trash`;
+      case 'shieldToHand': return `P${e.player} adds ${e.card.name} (${e.card.number}) from a Shield to hand`;
+      case 'recurFromTrash': return `P${e.player} adds ${e.card.name} (${e.card.number}) from trash to hand`;
+      case 'trashRemoved': return `P${e.player} removes ${e.card.name} (${e.card.number}) from trash`;
+      case 'unpair': return `P${e.player}'s ${e.pilot.name} returns to hand, unpairing from ${e.unit.name}`;
+      case 'destroyPilot': return `P${e.player}'s ${e.pilot.name} is destroyed, unpairing from ${e.unit.name}`;
+      case 'restedResource': return `P${e.player} places a rested Resource`;
+      case 'returnToHand': return `P${e.player}'s ${e.unit.name} returns to hand${e.pilot ? ' (with ' + e.pilot.name + ')' : ''}`;
+      case 'returnToDeck': return `P${e.player}'s ${e.unit.name} is shuffled back into the deck`;
       case 'gameEnd': return e.draw ? 'Draw' : e.timedOut ? 'Timed out' : `P${e.winner} wins`;
       default: return e.type;
     }
@@ -1761,20 +1938,24 @@
   const navBuilder = document.getElementById('navBuilder');
   const navDecks = document.getElementById('navDecks');
   const navLog = document.getElementById('navLog');
+  const navTournament = document.getElementById('navTournament');
   const simulateScreen = document.getElementById('simulateScreen');
   const builderScreen = document.getElementById('builderScreen');
   const decksScreen = document.getElementById('decksScreen');
   const logScreen = document.getElementById('logScreen');
+  const tournamentScreen = document.getElementById('tournamentScreen');
 
   function showScreen(which) {
     simulateScreen.classList.toggle('hidden', which !== 'simulate');
     builderScreen.classList.toggle('hidden', which !== 'builder');
     decksScreen.classList.toggle('hidden', which !== 'decks');
     logScreen.classList.toggle('hidden', which !== 'log');
+    tournamentScreen.classList.toggle('hidden', which !== 'tournament');
     navSimulate.classList.toggle('active', which === 'simulate');
     navBuilder.classList.toggle('active', which === 'builder');
     navDecks.classList.toggle('active', which === 'decks');
     navLog.classList.toggle('active', which === 'log');
+    navTournament.classList.toggle('active', which === 'tournament');
   }
   navSimulate.addEventListener('click', () => showScreen('simulate'));
   navDecks.addEventListener('click', () => {
@@ -1788,6 +1969,11 @@
   navLog.addEventListener('click', () => {
     showScreen('log');
     refreshSavedBatches();
+    refreshSavedTournaments();
+  });
+  navTournament.addEventListener('click', () => {
+    showScreen('tournament');
+    refreshTourneyDecks();
   });
 
   // --- Deck Builder ---
@@ -1831,8 +2017,15 @@
     for (const c of costs) filterCost.appendChild(new Option('Cost ' + c, c));
   }
 
+  // Same "synthetic game-logic number, not a researched printed card" gap as TOKEN_ART_NUMBER below,
+  // but for stats instead of art -- src/rules/setup.js's EX_BASE_DEF (hp:3) never appears in
+  // src/cards/*.json (the deck builder's printed-card DB this whole file is built from), so without
+  // this fallback the Base tile's HP bar silently has nothing to compute against and never renders.
+  const SYNTHETIC_UNIT_STATS = {
+    'EX-BASE': { type: 'base', hp: 3, ap: 0 }
+  };
   function cardByNumber(number) {
-    return allCards.find((c) => c.number === number);
+    return allCards.find((c) => c.number === number) || SYNTHETIC_UNIT_STATS[number];
   }
 
   // Loading a saved deck into the builder replaces deckQty wholesale and re-renders it through the
@@ -2381,7 +2574,7 @@
   // sandbox:false comment for the bug this guards against).
   try {
     const presets = (window.sim && window.sim.skillPresets) || [];
-    for (const select of [skillASelect, skillBSelect]) {
+    for (const select of [skillASelect, skillBSelect, tourneySkillSelect]) {
       for (const preset of presets) {
         const option = document.createElement('option');
         option.value = preset.id;
@@ -2398,6 +2591,382 @@
     refreshSavedDecks();
   } catch (err) {
     errorEl.textContent = 'Saved decks failed to load: ' + err.message;
+  }
+
+  // --- Tournament: random single-elimination bracket across N saved decks, best-of-1/3/5/7 ---
+  const tourneyDeckListEl = document.getElementById('tourneyDeckList');
+  const tourneyBestOfSelect = document.getElementById('tourneyBestOf');
+  const tourneyRunBtn = document.getElementById('tourneyRunBtn');
+  const tourneyCancelBtn = document.getElementById('tourneyCancelBtn');
+  const tourneyStatusEl = document.getElementById('tourneyStatus');
+  const tourneyProgressEl = document.getElementById('tourneyProgress');
+  const tourneyProgressTextEl = document.getElementById('tourneyProgressText');
+  const tourneyChampionEl = document.getElementById('tourneyChampion');
+  const tourneyBracketEl = document.getElementById('tourneyBracket');
+  const tourneyDeckStatsEl = document.getElementById('tourneyDeckStats');
+  const saveTourneyRow = document.getElementById('saveTourneyRow');
+  const tourneyNameInput = document.getElementById('tourneyNameInput');
+  const saveTourneyBtn = document.getElementById('saveTourneyBtn');
+  const saveTourneyStatusEl = document.getElementById('saveTourneyStatus');
+
+  async function refreshTourneyDecks() {
+    if (!window.deckStore) return;
+    const decks = await window.deckStore.list();
+    tourneySavedDecks = decks;
+    const checkedNames = new Set(
+      [...tourneyDeckListEl.querySelectorAll('input[type=checkbox]:checked')].map((cb) => cb.value)
+    );
+    tourneyDeckListEl.innerHTML = '';
+    if (!decks.length) {
+      tourneyDeckListEl.innerHTML = '<p class="hint">No saved decks yet -- save some from the Deck Builder first.</p>';
+      return;
+    }
+    for (const d of decks) {
+      const row = document.createElement('label');
+      row.className = 'savedDeckRow tourneyEntrantRow';
+      const checkbox = document.createElement('input');
+      checkbox.type = 'checkbox';
+      checkbox.value = d.name;
+      checkbox.checked = checkedNames.has(d.name);
+      const label = document.createElement('span');
+      label.textContent = d.name;
+      row.append(checkbox, label);
+      tourneyDeckListEl.appendChild(row);
+    }
+  }
+
+  // Compact, renderer-side re-derivation of src/sim/tournament.js's deckStats -- the engine's own
+  // version never leaves the worker (only the plain-data {rounds, champion} bracket does over IPC),
+  // same "recompute display stats client-side from delivered data" pattern as CHART_GROUPS above.
+  function tourneyDeckStats(entrantId, rounds) {
+    let matchesPlayed = 0, matchesWon = 0, gamesPlayed = 0, gamesWon = 0, mulligans = 0, turnsSum = 0, eliminatedRound = null;
+    rounds.forEach((round, roundIdx) => {
+      for (const match of round) {
+        if (!match.result) continue;
+        const isA = match.a && match.a.id === entrantId;
+        const isB = match.b && match.b.id === entrantId;
+        if (!isA && !isB) continue;
+        const side = isA ? 0 : 1;
+        matchesPlayed++;
+        if (match.result.winnerIdx === side) matchesWon++;
+        else eliminatedRound = roundIdx;
+        for (const game of match.result.games) {
+          gamesPlayed++;
+          turnsSum += Math.ceil(game.turns / 2);
+          if (!game.draw && !game.timedOut && game.winner === side) gamesWon++;
+          if (game.mulliganed[side]) mulligans++;
+        }
+      }
+    });
+    return {
+      matchesPlayed, matchesWon, gamesPlayed, gamesWon,
+      winRate: gamesPlayed === 0 ? 0 : gamesWon / gamesPlayed,
+      mulliganRate: gamesPlayed === 0 ? 0 : mulligans / gamesPlayed,
+      avgTurns: gamesPlayed === 0 ? 0 : turnsSum / gamesPlayed,
+      eliminatedRound
+    };
+  }
+
+  // Builds the static DOM shape for a bracket (round columns, one box per match, TBD placeholder
+  // rows) and returns a [round][matchIndex] -> {a: {row,name,score}, b: {...}, box} registry. Kept
+  // separate from updateBracketFromSnapshot below so the *same* DOM nodes persist across a live
+  // tournament's progress events -- that's what lets the eliminated-row fade be a real CSS transition
+  // (a class toggled on an already-painted element) instead of a node that's born already faded.
+  function buildBracketSkeleton(container, rounds) {
+    container.innerHTML = '';
+    const bracket = document.createElement('div');
+    bracket.className = 'bracket';
+    const matchEls = [];
+    rounds.forEach((round, roundIdx) => {
+      const col = document.createElement('div');
+      col.className = 'bracketRound';
+      const label = document.createElement('div');
+      label.className = 'roundLabel';
+      label.textContent = roundIdx === rounds.length - 1 ? 'Final' : 'Round ' + (roundIdx + 1);
+      col.appendChild(label);
+      const rowEls = [];
+      round.forEach(() => {
+        const box = document.createElement('div');
+        box.className = 'bracketMatch';
+        const els = { box };
+        for (const side of ['a', 'b']) {
+          const row = document.createElement('div');
+          row.className = 'entrant pending';
+          const name = document.createElement('span');
+          name.className = 'entrantName';
+          name.textContent = 'TBD';
+          const score = document.createElement('span');
+          score.className = 'score';
+          row.append(name, score);
+          box.appendChild(row);
+          els[side] = { row, name, score };
+        }
+        col.appendChild(box);
+        rowEls.push(els);
+      });
+      bracket.appendChild(col);
+      matchEls.push(rowEls);
+    });
+    container.appendChild(bracket);
+    return matchEls;
+  }
+
+  function updateEntrantSlot(slotEls, entrant, match, side) {
+    const { row, name, score } = slotEls;
+    if (!entrant) {
+      name.textContent = match.bye ? '— bye —' : 'TBD';
+      score.textContent = '';
+      row.className = 'entrant' + (match.bye ? ' bye' : ' pending');
+      return;
+    }
+    name.textContent = entrant.name;
+    const won = match.result && match.result.winnerIdx === side;
+    const lost = match.result && match.result.winnerIdx === (1 - side);
+    score.textContent = match.result ? (side === 0 ? match.result.scoreA : match.result.scoreB) : '';
+    row.className = 'entrant' + (won ? ' winner' : '') + (lost ? ' eliminated' : '');
+  }
+
+  // Patches an existing skeleton's DOM in place from a bracket snapshot -- safe to call repeatedly
+  // (each live progress event, then once more on the final result) since it just re-derives each
+  // slot's text/class from whatever the snapshot says right now.
+  function updateBracketFromSnapshot(matchEls, rounds) {
+    rounds.forEach((round, roundIdx) => {
+      round.forEach((match, matchIdx) => {
+        const els = matchEls[roundIdx] && matchEls[roundIdx][matchIdx];
+        if (!els) return;
+        updateEntrantSlot(els.a, match.a, match, 0);
+        updateEntrantSlot(els.b, match.b, match, 1);
+      });
+    });
+  }
+
+  function buildMatchGameRows(container, games, deckAText, deckBText, engine, mctsConfig) {
+    games.forEach((g, i) => {
+      const gRow = document.createElement('div');
+      gRow.className = 'batchGameRow';
+      const outcome = g.draw ? 'Draw' : g.timedOut ? 'Timed out' : `P${g.winner} won`;
+      gRow.textContent = `#${i + 1} — ${outcome} — ${Math.ceil(g.turns / 2)} turns`;
+      gRow.addEventListener('click', (ev) => {
+        ev.stopPropagation();
+        viewReplay(g.seed, {
+          deckAText, deckBText, engineA: engine, engineB: engine, mctsConfigA: mctsConfig, mctsConfigB: mctsConfig
+        });
+      });
+      container.appendChild(gRow);
+    });
+  }
+
+  // Makes every *played* match box (bye-free, has a result) clickable to expand its individual games,
+  // same click-a-game-to-replay pattern as a saved batch's game list (buildGameRows above) -- just
+  // scoped to one match's games instead of a whole batch. `replayCtx` is {entrantsById (id -> decklist
+  // text), engine, mctsConfig}, resolved once per tournament (same skill both sides of every match).
+  function enableGameReplayClicks(matchEls, rounds, replayCtx) {
+    rounds.forEach((round, roundIdx) => {
+      round.forEach((match, matchIdx) => {
+        const els = matchEls[roundIdx] && matchEls[roundIdx][matchIdx];
+        if (!els || !match.result || els.gamesWired) return;
+        els.gamesWired = true;
+        els.box.classList.add('clickable');
+        const gamesList = document.createElement('div');
+        gamesList.className = 'batchGameList';
+        gamesList.style.display = 'none';
+        els.box.appendChild(gamesList);
+        els.box.addEventListener('click', () => {
+          const showing = gamesList.style.display !== 'none';
+          gamesList.style.display = showing ? 'none' : 'block';
+          if (!showing && !gamesList.dataset.built) {
+            const deckAText = replayCtx.entrantsById.get(match.a.id);
+            const deckBText = replayCtx.entrantsById.get(match.b.id);
+            buildMatchGameRows(gamesList, match.result.games, deckAText, deckBText, replayCtx.engine, replayCtx.mctsConfig);
+            gamesList.dataset.built = '1';
+          }
+        });
+      });
+    });
+  }
+
+  function renderTourneyDeckStats(entrants, rounds) {
+    tourneyDeckStatsEl.innerHTML = '';
+    for (const entrant of entrants) {
+      const stats = tourneyDeckStats(entrant.id, rounds);
+      const details = document.createElement('details');
+      const summary = document.createElement('summary');
+      const record = `${stats.matchesWon}-${stats.matchesPlayed - stats.matchesWon}`;
+      summary.textContent = `${entrant.name} — ${record} matches, ${pct(stats.winRate)} game win rate`;
+      const body = document.createElement('div');
+      body.className = 'statsBody callouts secondary';
+      body.innerHTML = `
+        <div class="callout"><div class="num">${stats.gamesWon}/${stats.gamesPlayed}</div><div class="lbl">Games won</div></div>
+        <div class="callout"><div class="num">${pct(stats.mulliganRate)}</div><div class="lbl">Mulligan rate</div></div>
+        <div class="callout"><div class="num">${stats.avgTurns.toFixed(1)}</div><div class="lbl">Avg turns</div></div>
+        <div class="callout"><div class="num">${stats.eliminatedRound === null ? '—' : 'R' + (stats.eliminatedRound + 1)}</div><div class="lbl">Eliminated</div></div>
+      `;
+      details.append(summary, body);
+      tourneyDeckStatsEl.appendChild(details);
+    }
+  }
+
+  if (window.tournament) {
+    tourneyRunBtn.addEventListener('click', () => {
+      const checked = [...tourneyDeckListEl.querySelectorAll('input[type=checkbox]:checked')];
+      if (checked.length < 2) {
+        tourneyStatusEl.textContent = 'Pick at least 2 decks.';
+        return;
+      }
+      tourneyStatusEl.textContent = '';
+      tourneyChampionEl.style.display = 'none';
+      tourneyDeckStatsEl.innerHTML = '';
+      tourneyBracketEl.innerHTML = '<p class="hint">Seeding bracket...</p>';
+      saveTourneyRow.style.display = 'none';
+      tourneyNameInput.value = '';
+      saveTourneyStatusEl.textContent = '';
+      liveBracketMatchEls = null;
+      currentTourneyResult = null;
+      currentTourneyContext = null;
+      tourneyProgressTextEl.textContent = 'Starting...';
+      tourneyProgressEl.style.display = 'block';
+      tourneyRunBtn.disabled = true;
+      tourneyCancelBtn.disabled = false;
+
+      currentTourneyEntrants = checked.map((cb, i) => {
+        const deck = tourneySavedDecks.find((d) => d.name === cb.value);
+        return { id: i, name: cb.value, deckText: deck.decklistText };
+      });
+      window.tournament.run(currentTourneyEntrants, Number(tourneyBestOfSelect.value), tourneySkillSelect.value);
+    });
+
+    tourneyCancelBtn.addEventListener('click', () => {
+      window.tournament.cancel();
+      tourneyProgressEl.style.display = 'none';
+      tourneyRunBtn.disabled = false;
+      tourneyCancelBtn.disabled = true;
+      tourneyStatusEl.textContent = 'Cancelled.';
+    });
+
+    // 'seeded' fires once, immediately, with the whole bracket's shape (round 0 paired for real,
+    // every later round a TBD placeholder) -- painting that right away is what makes the bracket
+    // visible before a single game has been played. Each 'match' event after that (bye or real) both
+    // reveals its winner into the next round's slot and (for a real match) fades its loser -- see
+    // updateEntrantSlot's 'eliminated' class.
+    window.tournament.onProgress((msg) => {
+      if (msg.phase === 'seeded') {
+        liveBracketMatchEls = buildBracketSkeleton(tourneyBracketEl, msg.rounds);
+        updateBracketFromSnapshot(liveBracketMatchEls, msg.rounds);
+        tourneyProgressTextEl.textContent = 'Bracket seeded — playing matches...';
+      } else if (msg.phase === 'match' && liveBracketMatchEls) {
+        updateBracketFromSnapshot(liveBracketMatchEls, msg.rounds);
+        tourneyProgressTextEl.textContent = `Round ${msg.round + 1}, match ${msg.matchIndex + 1} complete`;
+      }
+    });
+
+    window.tournament.onResult(({ result, context }) => {
+      tourneyProgressEl.style.display = 'none';
+      tourneyRunBtn.disabled = false;
+      tourneyCancelBtn.disabled = true;
+      tourneyChampionEl.style.display = 'block';
+      tourneyChampionEl.innerHTML = '';
+      const banner = document.createElement('div');
+      banner.className = 'tourneyChampionBanner';
+      const num = document.createElement('div');
+      num.className = 'num';
+      num.textContent = '🏆 ' + result.champion.name;
+      const lbl = document.createElement('div');
+      lbl.className = 'lbl';
+      lbl.textContent = 'Tournament Champion';
+      banner.append(num, lbl);
+      tourneyChampionEl.appendChild(banner);
+
+      if (!liveBracketMatchEls) liveBracketMatchEls = buildBracketSkeleton(tourneyBracketEl, result.rounds);
+      updateBracketFromSnapshot(liveBracketMatchEls, result.rounds);
+      const entrantsById = new Map(context.entrants.map((e) => [e.id, e.deckText]));
+      enableGameReplayClicks(liveBracketMatchEls, result.rounds, {
+        entrantsById, engine: context.engine, mctsConfig: context.mctsConfig
+      });
+      renderTourneyDeckStats(currentTourneyEntrants, result.rounds);
+
+      currentTourneyResult = result;
+      currentTourneyContext = context;
+      saveTourneyRow.style.display = 'flex';
+    });
+
+    window.tournament.onError((message) => {
+      tourneyProgressEl.style.display = 'none';
+      tourneyRunBtn.disabled = false;
+      tourneyCancelBtn.disabled = true;
+      tourneyStatusEl.textContent = message;
+    });
+
+    saveTourneyBtn.addEventListener('click', async () => {
+      const name = tourneyNameInput.value.trim();
+      if (!name || !currentTourneyResult) { tourneyNameInput.focus(); return; }
+      await window.tournamentStore.save(name, currentTourneyResult, currentTourneyContext);
+      saveTourneyStatusEl.textContent = 'Saved.';
+      refreshSavedTournaments();
+    });
+  }
+
+  // --- Log page: saved tournaments (see the Saved Batches "Tournaments" subheading) ---
+  const tournamentListEl = document.getElementById('tournamentListPanel');
+
+  async function refreshSavedTournaments() {
+    if (!window.tournamentStore) return;
+    const tournaments = await window.tournamentStore.list();
+    renderTournamentList(tournaments);
+  }
+
+  function renderTournamentList(tournaments) {
+    tournamentListEl.innerHTML = '';
+    if (!tournaments.length) {
+      tournamentListEl.innerHTML = '<p class="hint">No saved tournaments yet -- run one on the Tournament screen and save it.</p>';
+      return;
+    }
+    for (const t of tournaments) {
+      const row = document.createElement('div');
+      row.className = 'savedDeckRow';
+      const rowLeft = document.createElement('div');
+      rowLeft.className = 'rowLeft';
+      const label = document.createElement('span');
+      label.textContent = t.name;
+      const meta = document.createElement('span');
+      meta.className = 'savedDeckMeta';
+      meta.textContent =
+        `${new Date(t.savedAt).toLocaleDateString()} — ${t.context.entrants.length} decks — ` +
+        `Champion: ${t.result.champion.name}`;
+      label.appendChild(meta);
+      rowLeft.appendChild(label);
+      const delBtn = document.createElement('button');
+      delBtn.type = 'button';
+      delBtn.className = 'deleteDeckBtn';
+      delBtn.title = 'Delete this tournament';
+      delBtn.textContent = '×';
+      row.append(rowLeft, delBtn);
+
+      // Bracket is built lazily on first expand, same reasoning as a saved batch's game list.
+      const bracketWrap = document.createElement('div');
+      bracketWrap.style.display = 'none';
+      row.addEventListener('click', () => {
+        const showing = bracketWrap.style.display !== 'none';
+        bracketWrap.style.display = showing ? 'none' : 'block';
+        if (!showing && !bracketWrap.dataset.built) {
+          const matchEls = buildBracketSkeleton(bracketWrap, t.result.rounds);
+          updateBracketFromSnapshot(matchEls, t.result.rounds);
+          const entrantsById = new Map(t.context.entrants.map((e) => [e.id, e.deckText]));
+          enableGameReplayClicks(matchEls, t.result.rounds, {
+            entrantsById, engine: t.context.engine, mctsConfig: t.context.mctsConfig
+          });
+          bracketWrap.dataset.built = '1';
+        }
+      });
+      delBtn.addEventListener('click', async (ev) => {
+        ev.stopPropagation();
+        await window.tournamentStore.delete(t.name);
+        refreshSavedTournaments();
+      });
+
+      const wrap = document.createElement('div');
+      wrap.append(row, bracketWrap);
+      tournamentListEl.appendChild(wrap);
+    }
   }
 
   // --- Update banner: main.js checks GitHub Releases a few seconds after launch (never blocking

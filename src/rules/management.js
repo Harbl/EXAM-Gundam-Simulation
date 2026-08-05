@@ -350,6 +350,122 @@ function discardFromHand(player, card) {
   player.trash.push(card);
 }
 
+/** Mills the top `count` cards of the deck straight into trash (effect-driven "place the top N cards
+ * of your deck into your trash" text, e.g. Gundam Exia Repair GD05-050's own [Destroyed] ability).
+ * Returns the milled cards, since several such effects also inspect them (e.g. for a trait match) --
+ * pulled out for the exact same reason as discardFromHand above: a registry.js effect splicing
+ * deck/trash directly leaves the replay trace with nothing to patch, which reads in the replay viewer
+ * as "this card isn't sending anything to the trash" even though real game state is correct. */
+function millToTrash(player, count) {
+  const milled = player.deck.splice(0, count);
+  player.trash.push(...milled);
+  return milled;
+}
+
+/** Moves the top Shield straight to hand (e.g. nearly every Base card's own "[Deploy] Add 1 of your
+ * Shields to your hand" text -- distinct from destroyTopShield, which is for a Burst reveal). Returns
+ * the card, or undefined if there were no Shields left. Pulled out for the same reason as
+ * discardFromHand/millToTrash above: a registry.js effect splicing shields/hand directly leaves the
+ * replay trace with nothing to patch -- the Shield count wouldn't drop and the card would never
+ * appear in hand in the replay viewer, even though real game state is correct. */
+function shieldToHand(player) {
+  const card = player.shields.shift();
+  if (card) player.hand.push(card);
+  return card;
+}
+
+/** Recurs a specific card already sitting in trash back to hand (e.g. "choose 1 card from your trash,
+ * add it to your hand" search/recursion text). Same pulled-out-for-tracing reasoning as
+ * discardFromHand/millToTrash/shieldToHand -- without this, the card would vanish from trash in the
+ * replay viewer and never reappear anywhere. */
+function recurFromTrash(player, card) {
+  const idx = player.trash.indexOf(card);
+  if (idx !== -1) player.trash.splice(idx, 1);
+  player.hand.push(card);
+}
+
+/** Removes a specific card from trash for a reason other than recurring it to hand -- exiling it to
+ * pay an ability's cost, deploying it from trash by paying its cost, converting it directly into a
+ * Base (becomeBase), or shuffling it back into the deck. The destination itself is usually already
+ * traced on its own (deployUnit/becomeBase's own patches, or simply not a rendered zone at all -- the
+ * replay viewer has no exile-zone display and doesn't render deck contents individually); this exists
+ * purely so the trash count itself stays accurate. Returns the card, or undefined if it wasn't there. */
+function removeFromTrash(player, card) {
+  const idx = player.trash.indexOf(card);
+  if (idx === -1) return undefined;
+  player.trash.splice(idx, 1);
+  return card;
+}
+
+/** Returns a Unit (or Base) from the field to its owner's deck -- a rare "shuffle it back" effect,
+ * distinct from returnUnitToHand. The deck itself isn't a rendered zone in the replay viewer, so
+ * unlike returnUnitToHand only the Unit's departure from the board needs tracing, not any arrival.
+ * 3-3-6: its paired Pilot follows it to the deck too (removeFromField already does this). */
+function returnUnitToDeck(player, unit) {
+  removeFromField(player, unit, player.deck);
+  sendToZone(player.deck, unit);
+}
+
+/** Places 1 Resource from the resource deck, already rested (e.g. Gundam Deathscythe GD01-025's own
+ * "[When Paired] Place 1 rested Resource" -- distinct from the normal once-per-turn resource action,
+ * which always places one unrested, and from placeExResource (src/rules/effects.js), which creates a
+ * fresh EX Resource token rather than drawing from the resource deck). Returns the resource, or
+ * undefined if the resource deck was empty. Pulled out for the same tracing reason as every other
+ * helper here. */
+function placeRestedResource(player) {
+  if (player.resourceDeck.length === 0) return undefined;
+  const resource = player.resourceDeck.shift();
+  resource.rested = true;
+  player.resourceArea.push(resource);
+  return resource;
+}
+
+/** Adds an already-detached card (typically pulled out of a "look at the top N of your deck" scan) to
+ * hand -- the deck itself isn't a rendered zone in the replay viewer (only its size is public info,
+ * and the replay viewer doesn't even show that), so unlike shieldToHand/recurFromTrash this needs no
+ * companion zone-count bookkeeping; still pulled out purely so the replay trace has something to
+ * patch, same reasoning as every other helper here. */
+function addToHand(player, card) {
+  player.hand.push(card);
+}
+
+/** Removes a Unit's paired Pilot without destroying either of them (e.g. "return this Unit's paired
+ * Pilot to your hand") -- 3-3-6 governs a Pilot's fate when its Unit leaves the field, but this is the
+ * inverse: the Unit stays, only the Pilot leaves. Returns the pilot instance, or undefined if unpaired.
+ * Pulled out so the replay trace can tell a specific board Unit to drop its pilot badge -- nothing else
+ * currently clears `unit.pilot` in the replay viewer's snapshot short of the whole Unit being
+ * destroyed. */
+function unpairPilot(player, unit) {
+  const pilot = unit.pilot;
+  unit.pilot = null;
+  return pilot;
+}
+
+/** Destroys a Unit's paired Pilot alone, sending it to trash while the Unit itself stays on the field
+ * unpaired (e.g. Eliminate Target GD03-110's "[Main] Destroy 1 enemy Pilot"). Same shape as
+ * destroyCard's own pilot-handling branch, pulled out standalone since here the Unit is never
+ * destroyed alongside it. */
+function destroyPilot(player, unit) {
+  const pilot = unit.pilot;
+  if (!pilot) return undefined;
+  unit.pilot = null;
+  sendToZone(player.trash, pilot);
+  return pilot;
+}
+
+/** Returns a Unit (or Base) from the field straight to its owner's hand (e.g. "return this enemy Unit
+ * to its owner's hand" -- by far the most common bounce text in the card pool). 3-3-6: its paired
+ * Pilot follows it to hand too (removeFromField already does this internally); returns that pilot (or
+ * undefined) purely so the caller/tracer knows whether a second card also landed in hand. Same
+ * pulled-out-for-tracing reasoning as every other helper here -- without it, the Unit just vanishes
+ * from the board in the replay viewer and never reappears anywhere. */
+function returnUnitToHand(player, unit) {
+  const pilot = unit.pilot;
+  removeFromField(player, unit, player.hand);
+  sendToZone(player.hand, unit);
+  return pilot;
+}
+
 function enforceHandLimit(player, chooseDiscards) {
   while (player.hand.length > LIMITS.MAX_HAND) {
     const excess = player.hand.length - LIMITS.MAX_HAND;
@@ -400,6 +516,16 @@ module.exports = {
   enforceBaseLimit,
   enforceHandLimit,
   discardFromHand,
+  millToTrash,
+  shieldToHand,
+  recurFromTrash,
+  addToHand,
+  unpairPilot,
+  destroyPilot,
+  returnUnitToHand,
+  returnUnitToDeck,
+  removeFromTrash,
+  placeRestedResource,
   trashSynergyValue,
   checkDefeat
 };

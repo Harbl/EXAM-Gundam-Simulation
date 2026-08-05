@@ -142,6 +142,23 @@ management.discardFromHand = function (player, card) {
   return result;
 };
 
+// Same reasoning as discardFromHand above, for "place the top N cards of your deck into your trash"
+// effects (e.g. Gundam Exia Repair GD05-050's own [Destroyed] ability) -- without this patch, milling
+// straight from deck to trash is invisible to the trace, which reads in the replay viewer as "this
+// card isn't sending anything to the trash" even though real game state is correct.
+const origMillToTrash = management.millToTrash;
+management.millToTrash = function (player, count) {
+  const isReal = !!realState && realState.players.includes(player);
+  const playerIdx = isReal ? realState.players.indexOf(player) : null;
+  const result = origMillToTrash.call(this, player, count);
+  if (isReal) {
+    for (const card of result) {
+      events.push({ type: 'mill', turn: realState.turnNumber, player: playerIdx, card: cardRef(card.def) });
+    }
+  }
+  return result;
+};
+
 const phases = require('../rules/phases');
 
 const origDrawCard = phases.drawCard;
@@ -217,6 +234,18 @@ actions.becomeBase = function (state, player, instance) {
     events.push({ type: 'deployBase', turn: state.turnNumber, player: state.players.indexOf(player), card: cardRef(instance.def), unit: instanceRef(instance) });
   }
   return origBecomeBase.call(this, state, player, instance);
+};
+
+// Master Asia's own becomeUnit (see its comment in actions.js) is the Unit-side sibling of becomeBase
+// just above -- same reasoning, reusing the 'deploy' event shape instead of 'deployBase' since this
+// lands in the battle area, not the Base slot.
+const origBecomeUnit = actions.becomeUnit;
+actions.becomeUnit = function (state, player, instance) {
+  const isReal = state === realState;
+  if (isReal) {
+    events.push({ type: 'deploy', turn: state.turnNumber, player: state.players.indexOf(player), card: cardRef(instance.def), unit: instanceRef(instance) });
+  }
+  return origBecomeUnit.call(this, state, player, instance);
 };
 
 const origPlayCommand = actions.playCommand;
@@ -298,6 +327,168 @@ cost.payCost = function (player, def, opts = {}) {
     if (restedIds.length || removedIds.length) {
       events.push({ type: 'payResources', turn: realState.turnNumber, player: playerIdx, restedIds, removedIds });
     }
+  }
+  return result;
+};
+
+// Same reasoning as discardFromHand/millToTrash above, for the rest of management.js's
+// tracing-pulled-out helpers -- each is a registry.js effect's "move a specific card between zones"
+// step that used to splice the zones directly, leaving nothing here to patch. Positioned here, before
+// the cards/index.js require below (not after it, alongside the burst-effects loop this comment used
+// to sit next to) -- that require is what pulls in registry.js, whose own `const { shieldToHand, ... }
+// = require('../rules/management')` destructuring would otherwise capture these functions unpatched,
+// same ordering hazard this file's own header comment warns about for every other patch here.
+const origShieldToHand = management.shieldToHand;
+management.shieldToHand = function (player) {
+  const isReal = !!realState && realState.players.includes(player);
+  const playerIdx = isReal ? realState.players.indexOf(player) : null;
+  const result = origShieldToHand.call(this, player);
+  if (isReal && result) {
+    events.push({ type: 'shieldToHand', turn: realState.turnNumber, player: playerIdx, card: cardRef(result.def) });
+  }
+  return result;
+};
+
+const origRecurFromTrash = management.recurFromTrash;
+management.recurFromTrash = function (player, card) {
+  const isReal = !!realState && realState.players.includes(player);
+  const playerIdx = isReal ? realState.players.indexOf(player) : null;
+  const cardRefForEvent = isReal ? cardRef(card.def) : null;
+  const result = origRecurFromTrash.call(this, player, card);
+  if (isReal) {
+    events.push({ type: 'recurFromTrash', turn: realState.turnNumber, player: playerIdx, card: cardRefForEvent });
+  }
+  return result;
+};
+
+// Reuses the 'draw' event shape (isPhaseDraw: false, same as an effect-driven drawCard) -- the deck
+// itself is never a rendered zone in the replay viewer (only Shields/trash/hand/board are), so from
+// the replay's perspective "a card pulled from a deck scan lands in hand" is observably identical to
+// an effect draw: nothing else needs to change.
+const origAddToHand = management.addToHand;
+management.addToHand = function (player, card) {
+  const isReal = !!realState && realState.players.includes(player);
+  const playerIdx = isReal ? realState.players.indexOf(player) : null;
+  const cardRefForEvent = isReal ? cardRef(card.def) : null;
+  const result = origAddToHand.call(this, player, card);
+  if (isReal) {
+    events.push({ type: 'draw', turn: realState.turnNumber, player: playerIdx, card: cardRefForEvent, isPhaseDraw: false });
+  }
+  return result;
+};
+
+const origUnpairPilot = management.unpairPilot;
+management.unpairPilot = function (player, unit) {
+  const isReal = !!realState && realState.players.includes(player);
+  const playerIdx = isReal ? realState.players.indexOf(player) : null;
+  const unitRef = isReal ? instanceRef(unit) : null;
+  const result = origUnpairPilot.call(this, player, unit);
+  if (isReal && result) {
+    events.push({ type: 'unpair', turn: realState.turnNumber, player: playerIdx, unit: unitRef, pilot: instanceRef(result) });
+  }
+  return result;
+};
+
+// "Destroy 1 enemy Pilot" (e.g. Eliminate Target GD03-110) -- unlike unpairPilot above, the Pilot
+// doesn't just detach, it actually lands in trash, so this needs its own event/trash-count bump
+// rather than reusing 'unpair'.
+const origDestroyPilot = management.destroyPilot;
+management.destroyPilot = function (player, unit) {
+  const isReal = !!realState && realState.players.includes(player);
+  const playerIdx = isReal ? realState.players.indexOf(player) : null;
+  const unitRef = isReal ? instanceRef(unit) : null;
+  const result = origDestroyPilot.call(this, player, unit);
+  if (isReal && result) {
+    events.push({ type: 'destroyPilot', turn: realState.turnNumber, player: playerIdx, unit: unitRef, pilot: instanceRef(result) });
+  }
+  return result;
+};
+
+// By far the most common bounce text in the card pool ("return this enemy Unit to its owner's
+// hand") -- captures the unit/pilot refs BEFORE the call (removeFromField nulls unit.pilot and pulls
+// it off the board), then checks whether the pilot actually ended up in hand afterward (a token pilot
+// wouldn't -- sendToZone excludes tokens, same isToken exclusion Burst-to-hand already accounts for).
+const origReturnUnitToHand = management.returnUnitToHand;
+management.returnUnitToHand = function (player, unit) {
+  const isReal = !!realState && realState.players.includes(player);
+  const playerIdx = isReal ? realState.players.indexOf(player) : null;
+  const unitRef = isReal ? instanceRef(unit) : null;
+  const pilotBefore = unit.pilot;
+  const result = origReturnUnitToHand.call(this, player, unit);
+  if (isReal) {
+    const pilotEndedUpInHand = pilotBefore && player.hand.includes(pilotBefore);
+    events.push({
+      type: 'returnToHand',
+      turn: realState.turnNumber,
+      player: playerIdx,
+      unit: unitRef,
+      pilot: pilotEndedUpInHand ? instanceRef(pilotBefore) : null
+    });
+  }
+  return result;
+};
+
+// Trash-count-only bookkeeping (see management.js's own comment on removeFromTrash) -- the
+// destination is traced separately (or isn't a rendered zone at all), so this only ever needs to
+// decrement the count in the replay viewer, not name a card arriving anywhere.
+const origRemoveFromTrash = management.removeFromTrash;
+management.removeFromTrash = function (player, card) {
+  const isReal = !!realState && realState.players.includes(player);
+  const playerIdx = isReal ? realState.players.indexOf(player) : null;
+  const result = origRemoveFromTrash.call(this, player, card);
+  if (isReal && result) {
+    events.push({ type: 'trashRemoved', turn: realState.turnNumber, player: playerIdx, card: cardRef(result.def) });
+  }
+  return result;
+};
+
+// The deck itself isn't rendered, so this only ever needs to say the Unit left the board -- no
+// arrival, and (unlike 'destroy') no trash-count bump.
+const origReturnUnitToDeck = management.returnUnitToDeck;
+management.returnUnitToDeck = function (player, unit) {
+  const isReal = !!realState && realState.players.includes(player);
+  const playerIdx = isReal ? realState.players.indexOf(player) : null;
+  const unitRef = isReal ? instanceRef(unit) : null;
+  const result = origReturnUnitToDeck.call(this, player, unit);
+  if (isReal) {
+    events.push({ type: 'returnToDeck', turn: realState.turnNumber, player: playerIdx, unit: unitRef });
+  }
+  return result;
+};
+
+const origPlaceRestedResource = management.placeRestedResource;
+management.placeRestedResource = function (player) {
+  const isReal = !!realState && realState.players.includes(player);
+  const playerIdx = isReal ? realState.players.indexOf(player) : null;
+  const result = origPlaceRestedResource.call(this, player);
+  if (isReal && result) {
+    events.push({ type: 'restedResource', turn: realState.turnNumber, player: playerIdx, resource: instanceRef(result) });
+  }
+  return result;
+};
+
+// Effect-granted Resources (e.g. Nu Gundam GD01-020's own [Deploy]: "place an EX Resource") go
+// through this shared effects.js helper -- unlike the once-per-turn resource action (captured via the
+// before/after diff in traceGame()'s own turn loop below), nothing observes this mid-effect
+// resourceArea.push, so it needs the same kind of patch as everything else here. Reuses the 'resource'
+// event shape (electron/renderer's board replay only cares that a new Resource instance landed in the
+// area, not why) -- must be patched before requiring cards/index.js below, which is what causes
+// registry.js's own `const { ..., placeExResource } = require('../rules/effects')` to run and cache
+// whatever's here at that moment, same ordering hazard as every other patch in this file.
+const effects = require('../rules/effects');
+const origPlaceExResource = effects.placeExResource;
+effects.placeExResource = function (state, player) {
+  const isReal = state === realState;
+  const playerIdx = isReal ? realState.players.indexOf(player) : null;
+  const result = origPlaceExResource.call(this, state, player);
+  if (isReal) {
+    const resourceArea = player.resourceArea;
+    events.push({
+      type: 'resource',
+      turn: realState.turnNumber,
+      player: playerIdx,
+      resource: instanceRef(resourceArea[resourceArea.length - 1])
+    });
   }
   return result;
 };

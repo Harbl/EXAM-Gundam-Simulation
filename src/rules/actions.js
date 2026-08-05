@@ -77,6 +77,19 @@ function becomeBase(state, player, instance) {
 }
 
 /**
+ * Master Asia (King of Hearts) GD05-089: once 3+ (MF) cards sit in trash, its own Burst deploys it
+ * straight into the battle area as a Unit instead of going to hand -- reuses the same card instance,
+ * coming from the Shield area rather than hand, same "shield transforms directly into a board
+ * presence" shape as becomeBase above (just battleArea instead of the Base slot). Pulled out purely so
+ * the replay trace has something to patch -- without it, the Unit would just vanish from the game
+ * entirely in the replay viewer instead of appearing on the board.
+ */
+function becomeUnit(state, player, instance) {
+  player.battleArea.push(instance);
+  return instance;
+}
+
+/**
  * "Mode Change" family (e.g. Unicorn Gundam (Destroy Mode) GD01-002): "you may destroy 1 of your
  * Link Units with [nameIncludes] in its card name that is Lv.[level]. If you do, play this card as
  * if it has 0 Lv. and cost." A genuinely optional alternate deploy method, not a cost reduction --
@@ -166,6 +179,7 @@ module.exports = {
   deployUnit,
   deployBase,
   becomeBase,
+  becomeUnit,
   playCommand,
   pairPilot,
   pairPilotFromTrash,

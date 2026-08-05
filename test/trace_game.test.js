@@ -305,6 +305,80 @@ test('a command event precedes the draw/discard events its own [Main] effect cau
   assert.deepEqual(nextThree, ['draw', 'draw', 'discard']);
 });
 
+// Regression test for a third, related gap: Gundam Exia Repair's own "[Destroyed] Place the top 2
+// cards of your deck into your trash" (GD05-050) went through registry.js's own inline
+// deck.splice/trash.push, same as Overflowing Affection's discard above -- so the mill genuinely
+// happened in game state (jake's report: "GD05-050 doesn't seem to be sending cards to the trash when
+// it's destroyed"), but never emitted a trace event, making it look like nothing happened. Fixed the
+// same way: routed through management.js's new millToTrash, patched here identically to
+// discardFromHand. A fragile (hp:1) 50-copy deck reliably dies in combat organically, same synthetic-
+// deck technique as the discard/blocker decks above.
+function exiaRepairDeck() {
+  const unitDef = lookupCard('GD05-050');
+  const resourceDef = { number: 'X-RES', name: 'Test Resource', type: 'resource', color: 'purple', cost: 0, level: 0 };
+  return { main: Array.from({ length: 50 }, () => unitDef), resource: Array.from({ length: 10 }, () => resourceDef) };
+}
+
+test("Gundam Exia Repair's own [Destroyed] mill (GD05-050) emits mill events, not just the destroy event", () => {
+  const deck = exiaRepairDeck();
+  const events = traceGame(deck, deck, 1);
+  const destroyEvents = events.filter((e) => e.type === 'destroy' && e.unit.number === 'GD05-050');
+  assert.ok(destroyEvents.length > 0, 'a fragile (hp:1) 50-copy deck should die in combat organically');
+  const millEvents = events.filter((e) => e.type === 'mill');
+  assert.ok(millEvents.length > 0, 'each destruction should mill 2 cards from deck into trash, and it must be traced');
+  assert.equal(millEvents.length, destroyEvents.length * 2, 'exactly 2 milled cards traced per destruction');
+});
+
+// Broader regression test, prompted by "do a sweep for any other hidden traces like that": the same
+// splice-zones-directly pattern GD05-050 had turned out to be pervasive (Base cards' "[Deploy] Add 1
+// of your Shields to your hand" alone is ~20 cards). Fixed the same way -- management.js's new
+// shieldToHand, patched here identically to millToTrash/discardFromHand -- but the first version of
+// this patch was itself silently broken: it (and 7 sibling patches added in the same pass) were
+// placed AFTER this file's own `require('../cards/index')` line, which is what causes registry.js to
+// destructure these functions off management.js -- so registry.js captured the *unpatched* originals
+// regardless of what ran afterward, the exact hazard this file's own header comment warns about. This
+// test (and the one below) exist specifically to catch that class of regression happening again, not
+// just to prove the feature works once.
+function jaburoDeck() {
+  const baseDef = lookupCard('GD04-122');
+  const resourceDef = { number: 'X-RES', name: 'Test Resource', type: 'resource', color: 'blue', cost: 0, level: 0 };
+  return { main: Array.from({ length: 50 }, () => baseDef), resource: Array.from({ length: 10 }, () => resourceDef) };
+}
+
+test("Jaburo's own [Deploy] (\"Add 1 of your Shields to your hand\") emits a shieldToHand event", () => {
+  const deck = jaburoDeck();
+  const events = traceGame(deck, deck, 1);
+  const deployBaseEvents = events.filter((e) => e.type === 'deployBase' && e.card.number === 'GD04-122');
+  assert.ok(deployBaseEvents.length > 0, 'a 50-copy Base deck should deploy Jaburo organically');
+  const shieldToHandEvents = events.filter((e) => e.type === 'shieldToHand');
+  assert.equal(shieldToHandEvents.length, deployBaseEvents.length, 'one shieldToHand event per Jaburo deploy (6 Shields never run out in a game this short)');
+});
+
+// Same regression-guard reasoning as shieldToHand above, for the single highest-volume new helper
+// (returnUnitToHand, ~30 registry.js call sites -- "return this enemy Unit to its owner's hand" is
+// the single most common bounce text in the whole card pool). A synthetic 1-HP unit is mixed in as
+// bounce fodder alongside the real bouncer card so Perfect Strike Gundam's exact-1-HP condition is
+// reliably satisfiable without needing several turns of combat damage first.
+function perfectStrikeBounceDeck() {
+  const bouncer = lookupCard('GD01-068');
+  const fodder = { number: 'FODDER-1HP', name: 'Fodder', type: 'unit', color: 'white', level: 1, cost: 1, ap: 0, hp: 1 };
+  const resourceDef = { number: 'X-RES', name: 'Test Resource', type: 'resource', color: 'white', cost: 0, level: 0 };
+  return {
+    main: [...Array(25).fill(bouncer), ...Array(25).fill(fodder)],
+    resource: Array.from({ length: 10 }, () => resourceDef)
+  };
+}
+
+test("Perfect Strike Gundam's own [Deploy] (\"Return 1 enemy Unit with 1 HP to hand\") emits a returnToHand event", () => {
+  const deck = perfectStrikeBounceDeck();
+  const events = traceGame(deck, deck, 1);
+  const bounceEvents = events.filter((e) => e.type === 'returnToHand');
+  assert.ok(bounceEvents.length > 0, 'a deck full of 1-HP fodder should give Perfect Strike Gundam a legal target organically');
+  for (const e of bounceEvents) {
+    assert.ok(e.unit && e.unit.number, 'the bounced Unit must be identified, not just a bare count');
+  }
+});
+
 // Jake's own real deck produced zero organic Blocker interceptions across 60 seeds -- it simply has
 // no Blocker-keyword units. Same synthetic-deck technique as the discard test above: a deck of one
 // real Blocker card (EB01-011 Beginning Gundam, a genuine keyword-bearing card, not a made-up def)
@@ -314,6 +388,35 @@ function blockerDeck() {
   const resourceDef = { number: 'X-RES', name: 'Test Resource', type: 'resource', color: 'blue', cost: 0, level: 0 };
   return { main: Array.from({ length: 50 }, () => blockerDef), resource: Array.from({ length: 10 }, () => resourceDef) };
 }
+
+// Eliminate Target GD03-110 ("[Main] Destroy 1 enemy Pilot") was the one explicitly-accepted gap left
+// over from the sweep above: the Pilot's badge cleared correctly (via the pre-existing 'unpair' event)
+// but its arrival in trash was never traced, so the replay's trash count silently undercounted by one.
+// Fixed with a new destroyPilot primitive (management.js) rather than special-casing this one card,
+// since Jake noted the "destroy a paired Pilot alone, Unit stays" shape is likely to recur. Synthetic
+// pilot+unit fodder (no trait requirements) mixed in with the real card so pairing -- a prerequisite
+// for this effect to have a legal target -- happens organically and reliably.
+function eliminateTargetDeck() {
+  const commandDef = lookupCard('GD03-110');
+  const pilotDef = { number: 'FODDER-PILOT', name: 'Fodder Pilot', type: 'pilot', color: 'red', level: 1, cost: 1, apBonus: 1, hpBonus: 1 };
+  const unitDef = { number: 'FODDER-UNIT', name: 'Fodder Unit', type: 'unit', color: 'red', level: 1, cost: 1, ap: 1, hp: 2 };
+  const resourceDef = { number: 'X-RES', name: 'Test Resource', type: 'resource', color: 'red', cost: 0, level: 0 };
+  return {
+    main: [...Array(20).fill(commandDef), ...Array(15).fill(pilotDef), ...Array(15).fill(unitDef)],
+    resource: Array.from({ length: 10 }, () => resourceDef)
+  };
+}
+
+test("Eliminate Target's own [Main] (\"Destroy 1 enemy Pilot\") emits a destroyPilot event", () => {
+  const deck = eliminateTargetDeck();
+  const events = traceGame(deck, deck, 1);
+  const destroyPilotEvents = events.filter((e) => e.type === 'destroyPilot');
+  assert.ok(destroyPilotEvents.length > 0, 'a deck full of pairable fodder should give Eliminate Target a legal target organically');
+  for (const e of destroyPilotEvents) {
+    assert.ok(e.unit && e.unit.number, 'the unpaired Unit must be identified');
+    assert.ok(e.pilot && e.pilot.number, 'the destroyed Pilot must be identified, not just a bare count');
+  }
+});
 
 test('block events name the intercepting Blocker and the attacker it stopped', () => {
   const deck = blockerDeck();

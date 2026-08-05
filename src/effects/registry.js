@@ -1,10 +1,10 @@
-const { dealDamage, getAP, getHP, getRemainingHP, getKeywords, isImmuneToEffectDestroy, recoverHP, removeFromField, restBaseOrRedirect, destroyCard, sendToZone, destroyTopShield, discardFromHand } = require('../rules/management');
-const { deployUnit, deployBase, becomeBase, pairPilotFromTrash, pairPilot } = require('../rules/actions');
+const { dealDamage, getAP, getHP, getRemainingHP, getKeywords, isImmuneToEffectDestroy, recoverHP, removeFromField, restBaseOrRedirect, destroyCard, sendToZone, destroyTopShield, discardFromHand, millToTrash, shieldToHand, recurFromTrash, addToHand, unpairPilot, destroyPilot, returnUnitToHand, returnUnitToDeck, removeFromTrash, placeRestedResource } = require('../rules/management');
+const { deployUnit, deployBase, becomeBase, becomeUnit, pairPilotFromTrash, pairPilot } = require('../rules/actions');
 const { drawCard } = require('../rules/phases');
 const { resolveUnitBattleDamage, applyBreach, destroyAndFireEffect, destroyOutrightAndFireEffect, resolveBurst } = require('../rules/combat');
 const { fireCardEffect, dealEffectDamage, reduceEnemyAP, placeExResource, setActiveByEffect, restEnemyByEffect, payAbilityCost } = require('../rules/effects');
 const { createInstance, shuffle } = require('../rules/state');
-const { EX_RESOURCE_DEF, EX_BASE_DEF } = require('../rules/setup');
+const { EX_BASE_DEF } = require('../rules/setup');
 const { canAfford, payCost } = require('../rules/cost');
 
 function opponentOf(state, player) {
@@ -15,8 +15,7 @@ function opponentOf(state, player) {
 // the enemy's hand and flags the turn for Gaia Gundam (MA Mode) GD05-041's "your opponent discarded
 // due to one of your effects" hand cost reduction (src/rules/cost.js) to read.
 function forceEnemyDiscard(player, opponent, card) {
-  opponent.hand.splice(opponent.hand.indexOf(card), 1);
-  opponent.trash.push(card);
+  discardFromHand(opponent, card);
   player.enemyDiscardedByEffectThisTurn = true;
 }
 
@@ -89,7 +88,7 @@ function charsZakuST03006Destroyed(state, player) {
   );
   if (matchIdx !== -1) {
     const [chosen] = top3.splice(matchIdx, 1);
-    player.hand.push(chosen);
+    addToHand(player, chosen);
   }
   player.deck.push(...shuffle(top3));
 }
@@ -140,8 +139,7 @@ function jaburoBurst(state, player, instance) {
 }
 function jaburoDeploy(state, player, instance) {
   if (player.shields.length === 0) return;
-  const shield = player.shields.shift();
-  player.hand.push(shield);
+  shieldToHand(player);
 }
 function jaburoActivateMain(state, player, instance, context) {
   if (instance.activationsUsed.restEnemy) return false;
@@ -213,7 +211,7 @@ function regzDestroyed(state, player) {
   const matchIdx = top3.findIndex((c) => c.def.type === 'unit' && (c.def.traits || []).includes('Londo Bell'));
   if (matchIdx !== -1) {
     const [chosen] = top3.splice(matchIdx, 1);
-    player.hand.push(chosen);
+    addToHand(player, chosen);
   }
   player.deck.push(...shuffle(top3));
 }
@@ -227,8 +225,7 @@ function gundamAge2Destroyed(state, player) {
   );
   if (candidates.length === 0) return;
   const chosen = candidates[0];
-  player.trash.splice(player.trash.indexOf(chosen), 1);
-  player.hand.push(chosen);
+  recurFromTrash(player, chosen);
 
   const toDiscard = [...player.hand].sort((a, b) => (b.def.cost || 0) - (a.def.cost || 0))[0];
   discardFromHand(player, toDiscard);
@@ -240,7 +237,7 @@ function gundamAge2Destroyed(state, player) {
 function nuGundam020Deploy(state, player) {
   const londoBellInTrash = player.trash.filter((c) => (c.def.traits || []).includes('Londo Bell')).length;
   if (londoBellInTrash < 2) return;
-  player.resourceArea.push(createInstance(EX_RESOURCE_DEF, player.id));
+  placeExResource(state, player);
 }
 
 // --- Nu Gundam GD05-017 -------------------------------------------------------
@@ -263,8 +260,7 @@ function nuGundam017WhenPaired(state, player, unit, context) {
   if (!target) return;
 
   for (const card of londoBellCards.slice(0, 3)) {
-    player.trash.splice(player.trash.indexOf(card), 1);
-    player.removal.push(card);
+    player.removal.push(removeFromTrash(player, card));
   }
   resolveUnitBattleDamage(state, player, opponent, unit, target, {});
 }
@@ -289,7 +285,7 @@ function raCailumBurst(state, player, instance) {
 }
 function raCailumDeploy(state, player) {
   if (player.shields.length === 0) return;
-  player.hand.push(player.shields.shift());
+  shieldToHand(player);
 }
 function raCailumActivateMain(state, player, instance, context) {
   if (instance.rested) return false;
@@ -330,7 +326,7 @@ function corsicaBaseBurst(state, player, instance) {
   becomeBase(state, player, instance);
 }
 function corsicaBaseDeploy(state, player) {
-  if (player.shields.length > 0) player.hand.push(player.shields.shift());
+  if (player.shields.length > 0) shieldToHand(player);
 
   const isOwnTurn = state.players[state.activePlayerIdx] === player;
   if (!isOwnTurn) return;
@@ -365,8 +361,7 @@ function aileStrikeGundamWhenPaired(state, player, unit, context) {
   const candidates = opponent.battleArea.filter((u) => getRemainingHP(u) <= 4);
   if (candidates.length === 0) return;
   const target = candidates.sort((a, b) => getAP(b) - getAP(a))[0];
-  removeFromField(opponent, target, opponent.hand);
-  sendToZone(opponent.hand, target);
+  returnUnitToHand(opponent, target);
 }
 
 // --- Strike Freedom Gundam GD05-002 ---
@@ -383,12 +378,8 @@ function strikeFreedomAttack(state, player, unit) {
   const target = [...opponent.battleArea].sort((a, b) => (a.def.level || 0) - (b.def.level || 0))[0];
   if (!target) return;
   const discards = [...player.hand].sort((a, b) => (b.def.cost || 0) - (a.def.cost || 0)).slice(0, 2);
-  for (const c of discards) {
-    player.hand.splice(player.hand.indexOf(c), 1);
-    player.trash.push(c);
-  }
-  removeFromField(opponent, target, opponent.deck);
-  sendToZone(opponent.deck, target);
+  for (const c of discards) discardFromHand(player, c);
+  returnUnitToDeck(opponent, target);
 }
 
 // --- Kira Yamato ST04-010 (Pilot) ---
@@ -461,7 +452,7 @@ function reineforceJrBurst(state, player, instance) {
   becomeBase(state, player, instance);
 }
 function reineforceJrDeploy(state, player) {
-  if (player.shields.length > 0) player.hand.push(player.shields.shift());
+  if (player.shields.length > 0) shieldToHand(player);
   const isOwnTurn = state.players[state.activePlayerIdx] === player;
   if (!isOwnTurn) return;
   const hasLeagueMilitaire = player.battleArea.some((u) => (u.def.traits || []).includes('League Militaire'));
@@ -506,7 +497,7 @@ function gundamMaxterDestroysEnemy(state, player) {
   const matchIdx = top4.findIndex((c) => c.def.type === 'command' && (c.def.traits || []).includes('Special Move'));
   if (matchIdx !== -1) {
     const [chosen] = top4.splice(matchIdx, 1);
-    player.hand.push(chosen);
+    addToHand(player, chosen);
   }
   player.deck.push(...shuffle(top4));
 }
@@ -540,11 +531,9 @@ function shiningGundam066Deploy(state, player, instance) {
   );
   if (!specialMoveCommand) return;
   for (const card of mfUnits.slice(0, 2)) {
-    player.trash.splice(player.trash.indexOf(card), 1);
-    player.removal.push(card);
+    player.removal.push(removeFromTrash(player, card));
   }
-  player.trash.splice(player.trash.indexOf(specialMoveCommand), 1);
-  player.hand.push(specialMoveCommand);
+  recurFromTrash(player, specialMoveCommand);
 }
 function shiningGundam066Attack(state, player, unit) {
   if (unit.activationsUsed.untapResource) return;
@@ -563,8 +552,7 @@ function masterGundamAttack(state, player, unit, context) {
   );
   if (specialMoveCards.length < 2) return;
   for (const card of specialMoveCards.slice(0, 2)) {
-    player.trash.splice(player.trash.indexOf(card), 1);
-    player.removal.push(card);
+    player.removal.push(removeFromTrash(player, card));
   }
   applyBreach(state, opponentOf(state, player), 5, context.hooks || {}, unit);
 }
@@ -631,7 +619,7 @@ function masterAsiaBurst(state, player, instance) {
   }
   instance.def = Object.assign({}, instance.def, { type: 'unit', ap: 3, hp: 3 });
   instance.turnDeployed = state.turnNumber;
-  player.battleArea.push(instance);
+  becomeUnit(state, player, instance);
 }
 function masterAsiaAttack(state, player, unit, context) {
   if (!unit.isLinkUnit || !player.specialMoveActivatedThisTurn) return;
@@ -681,7 +669,7 @@ function gundamFightBurst(state, player, instance) {
   becomeBase(state, player, instance);
 }
 function gundamFightDeploy(state, player) {
-  if (player.shields.length > 0) player.hand.push(player.shields.shift());
+  if (player.shields.length > 0) shieldToHand(player);
 }
 function gundamFightActivateMain(state, player, instance, context) {
   if (instance.rested) return false;
@@ -706,7 +694,7 @@ function gundamExiaRepairDealsBattleDamage(state, player, unit, context) {
   defender.damage = getHP(defender);
 }
 function gundamExiaRepairDestroyed(state, player) {
-  player.trash.push(...player.deck.splice(0, 2));
+  millToTrash(player, 2);
 }
 
 // --- Gundam Barbatos 1st Form GD02-054 ---
@@ -771,8 +759,7 @@ function swordStrikeGundamAttack(state, player, unit, context) {
     ? context.hooks.chooseUnit(candidates)
     : candidates.sort((a, b) => getAP(b) - getAP(a))[0];
   if (!target) return;
-  removeFromField(opponent, target, opponent.hand);
-  sendToZone(opponent.hand, target);
+  returnUnitToHand(opponent, target);
 }
 
 // --- Underground Desert Base GD01-126 & Mining Asteroid Palau GD01-128 (Base) ---
@@ -783,7 +770,7 @@ function simpleBurstBase(state, player, instance) {
   becomeBase(state, player, instance);
 }
 function simpleBaseDeployAddShield(state, player) {
-  if (player.shields.length > 0) player.hand.push(player.shields.shift());
+  if (player.shields.length > 0) shieldToHand(player);
 }
 
 // --- Gundam Gusion Rebake GD02-055 ---
@@ -835,8 +822,7 @@ function gracefulDemeanorCommand(state, player, instance, context) {
     ? context.hooks.chooseUnits(candidates)
     : candidates.sort((a, b) => getAP(b) - getAP(a)).slice(0, 2);
   for (const t of targets) {
-    removeFromField(opponent, t, opponent.hand);
-    sendToZone(opponent.hand, t);
+    returnUnitToHand(opponent, t);
   }
 }
 function gracefulDemeanorBurst(state, player, instance, context) {
@@ -995,7 +981,7 @@ function charAznableGD05093WhenLinked(state, player, unit, context) {
   const candidates = player.trash.filter((c) => c.def.type === 'base' && (c.def.traits || []).includes('Neo Zeon'));
   if (candidates.length === 0) return;
   const chosen = context.hooks && context.hooks.chooseCard ? context.hooks.chooseCard(candidates) : candidates[0];
-  player.trash.splice(player.trash.indexOf(chosen), 1);
+  removeFromTrash(player, chosen);
   becomeBase(state, player, chosen);
 }
 
@@ -1030,8 +1016,7 @@ function gundamBarbatosLupusActivateMain(state, player, instance, context) {
     : null);
   if (!target) return false;
   for (const c of candidates.slice(0, 3)) {
-    player.trash.splice(player.trash.indexOf(c), 1);
-    player.removal.push(c);
+    player.removal.push(removeFromTrash(player, c));
   }
   dealDamage(target, 2);
   return true;
@@ -1061,8 +1046,7 @@ function unicornBansheeDestroyModeAttack(state, player, unit, context) {
     ? context.hooks.chooseCards(player.trash, 12)
     : player.trash.slice(0, 12);
   for (const c of chosen) {
-    player.trash.splice(player.trash.indexOf(c), 1);
-    player.deck.push(c);
+    player.deck.push(removeFromTrash(player, c));
   }
   shuffle(player.deck);
   unit.rested = false;
@@ -1108,7 +1092,7 @@ function closeCombatBurst(state, player, instance, context) {
 // --- Wing Gundam (Bird Mode) ST02-002 ---
 // [Deploy] Place 1 EX Resource (same one-liner as Nu Gundam GD05-020's Deploy, just unconditional).
 function wingGundamBirdModeDeploy(state, player) {
-  player.resourceArea.push(createInstance(EX_RESOURCE_DEF, player.id));
+  placeExResource(state, player);
 }
 
 // --- Wing Gundam Zero GD01-024 ---
@@ -1432,8 +1416,7 @@ function akihiroAltlandDestroysEnemy(state, player, unit, context) {
     ? context.hooks.chooseCard(candidates)
     : candidates.sort((a, b) => getAP(b) - getAP(a))[0];
   if (!target) return;
-  player.trash.splice(player.trash.indexOf(target), 1);
-  player.hand.push(target);
+  recurFromTrash(player, target);
 }
 
 // --- Shenlong Gundam GD01-029 ---
@@ -1479,7 +1462,7 @@ function unicornBansheeNormActivateMain(state, player, instance) {
   if (!instance.isLinkUnit || !instance.rested) return false;
   const blueCards = player.trash.filter((c) => c.def.color === 'blue').slice(0, 3);
   if (blueCards.length < 3) return false;
-  for (const c of blueCards) player.trash.splice(player.trash.indexOf(c), 1);
+  for (const c of blueCards) removeFromTrash(player, c);
   instance.rested = false;
   instance.buffs.push({ cannotAttackPlayer: true, scope: 'turn' });
   return true;
@@ -1493,13 +1476,12 @@ function unicornBansheeNormAttack(state, player) {
 // [Destroyed] You may exile this card from your trash. If you do, deploy 1 Base card with
 // "Presidential Office" in its card name from your hand.
 function presidentialOfficeDestroyed(state, player, instance) {
-  const idx = player.trash.indexOf(instance);
-  if (idx === -1) return;
+  if (!player.trash.includes(instance)) return;
   const replacement = player.hand.find(
     (c) => c.def.type === 'base' && (c.def.name || '').includes('Presidential Office')
   );
   if (!replacement) return;
-  player.trash.splice(idx, 1);
+  removeFromTrash(player, instance);
   player.hand.splice(player.hand.indexOf(replacement), 1);
   deployBase(state, player, replacement.def);
 }
@@ -1581,7 +1563,7 @@ function gfredActivateMain(state, player, instance, context) {
   const pilotCard = context.exilePilot;
   if (!pilotCard || pilotCard.def.type !== 'pilot' || !player.trash.includes(pilotCard)) return false;
   activeResources[0].rested = true;
-  player.trash.splice(player.trash.indexOf(pilotCard), 1);
+  removeFromTrash(player, pilotCard);
   for (const u of opponentOf(state, player).battleArea) dealDamage(u, 1);
   instance.activationsUsed.trashDamage = true;
   return true;
@@ -1638,8 +1620,7 @@ function nyaanBurst(state, player, instance) {
 }
 function nyaanWhenLinked(state, player, unit, context) {
   if (player.deck.length === 0) return;
-  const milled = player.deck.shift();
-  player.trash.push(milled);
+  const [milled] = millToTrash(player, 1);
   const traits = milled.def.traits || [];
   if (!traits.includes('Zeon') && !traits.includes('Clan')) return;
   const opponent = opponentOf(state, player);
@@ -1677,8 +1658,7 @@ function kampferBurst(state, player, instance, context) {
   const candidates = player.trash.filter((c) => c.def.type === 'pilot' && (c.def.traits || []).includes('Cyclops Team'));
   const target = context.hooks && context.hooks.chooseCard ? context.hooks.chooseCard(candidates) : candidates[0];
   if (!target) return;
-  player.trash.splice(player.trash.indexOf(target), 1);
-  player.hand.push(target);
+  recurFromTrash(player, target);
 }
 function kampferWhenPaired(state, player, unit, context) {
   const pilot = context.pilot;
@@ -1723,9 +1703,8 @@ function impulseGundamActivateMain(state, player, instance, context) {
   activeResources[0].rested = true;
   activeResources[1].rested = true;
   // 3-3-6: a paired Pilot follows this Unit to the deck rather than being silently dropped.
-  removeFromField(player, instance, player.deck);
-  sendToZone(player.deck, instance);
-  player.trash.splice(player.trash.indexOf(target), 1);
+  returnUnitToDeck(player, instance);
+  removeFromTrash(player, target);
   deployUnit(state, player, target.def, undefined, { fromTrash: true });
   return true;
 }
@@ -1754,8 +1733,7 @@ function forceImpulseGundamDestroyed(state, player, instance, context) {
   );
   const target = context.hooks && context.hooks.chooseCard ? context.hooks.chooseCard(candidates) : candidates[0];
   if (!target) return;
-  player.trash.splice(player.trash.indexOf(target), 1);
-  player.hand.push(target);
+  recurFromTrash(player, target);
 }
 
 // --- Destiny Gundam GD04-050 ---
@@ -1771,7 +1749,7 @@ function destinyGundamGD04050Attack(state, player, instance, context) {
     : candidates.sort((a, b) => getAP(b) - getAP(a))[0];
   if (!target) return;
   payCost(player, target.def, { fromTrash: true, state });
-  player.trash.splice(player.trash.indexOf(target), 1);
+  removeFromTrash(player, target);
   deployUnit(state, player, target.def, undefined, { fromTrash: true });
 }
 
@@ -1800,8 +1778,7 @@ function zeheartGaletteBurst(state, player, instance) {
   player.hand.push(instance);
 }
 function zeheartGaletteWhenPaired(state, player, unit, context) {
-  const milled = player.deck.splice(0, 2);
-  for (const c of milled) player.trash.push(c);
+  const milled = millToTrash(player, 2);
   if (!milled.some((c) => (c.def.traits || []).includes('Vagan'))) return;
   const opponent = opponentOf(state, player);
   const target = context.hooks && context.hooks.chooseUnit
@@ -1821,7 +1798,7 @@ function awakenedPowerCommand(state, player, instance, context) {
     : candidates.sort((a, b) => getAP(b) - getAP(a))[0];
   if (!target) return;
   payCost(player, target.def, { fromTrash: true, state });
-  player.trash.splice(player.trash.indexOf(target), 1);
+  removeFromTrash(player, target);
   deployUnit(state, player, target.def, undefined, { fromTrash: true });
 }
 
@@ -1836,11 +1813,19 @@ function minervaDeploy(state, player) {
   simpleBaseDeployAddShield(state, player);
   const isOwnTurn = state.players[state.activePlayerIdx] === player;
   if (!isOwnTurn || player.deck.length === 0) return;
-  const top2 = player.deck.splice(0, 2);
-  const keepIdx = top2.findIndex((c) => c.def.type === 'unit' || c.def.type === 'base');
-  const keep = top2.splice(keepIdx === -1 ? 0 : keepIdx, 1)[0];
-  player.deck.unshift(keep);
-  for (const c of top2) player.trash.push(c);
+  const peek = player.deck.slice(0, 2);
+  if (peek.length < 2) return; // only 1 card in deck -- it's the one kept on top, nothing to trash
+  const keepIdx = peek.findIndex((c) => c.def.type === 'unit' || c.def.type === 'base');
+  if (keepIdx === -1 || keepIdx === 0) {
+    // The kept card is (or defaults to) the current top -- pull it aside so millToTrash only
+    // touches the other one, then restore it to the top.
+    const keep = player.deck.shift();
+    millToTrash(player, 1);
+    player.deck.unshift(keep);
+  } else {
+    // The kept card is already second -- milling the front card leaves it on top for free.
+    millToTrash(player, 1);
+  }
 }
 
 // --- Gundam Exia ST07-001 ---
@@ -1848,8 +1833,7 @@ function minervaDeploy(state, player) {
 // this effect, draw 1. [End of turn] If there are 7+ (CB) cards in your trash, untap 1 of your
 // Resources.
 function gundamExiaST07001WhenPaired(state, player) {
-  const milled = player.deck.splice(0, 2);
-  for (const c of milled) player.trash.push(c);
+  const milled = millToTrash(player, 2);
   if (milled.some((c) => (c.def.traits || []).includes('CB'))) drawCard(state, player);
 }
 function gundamExiaST07001EndOfTurn(state, player) {
@@ -1941,7 +1925,7 @@ function hallelujahHaptismDestroysEnemy(state, player, unit) {
   unit.activationsUsed.hallelujahDeckPeek = true;
   const top = player.deck.shift();
   if (!top) return;
-  if ((top.def.traits || []).includes('CB')) player.hand.push(top);
+  if ((top.def.traits || []).includes('CB')) addToHand(player, top);
   else player.deck.push(top);
 }
 
@@ -2035,7 +2019,7 @@ function amateYuzurihaMachuBurst(state, player, instance) {
 function amateYuzurihaMachuWhenLinked(state, player) {
   const top = player.deck.shift();
   if (!top) return;
-  if ((top.def.traits || []).includes('Clan')) player.hand.push(top);
+  if ((top.def.traits || []).includes('Clan')) addToHand(player, top);
   else player.deck.push(top);
 }
 
@@ -2069,7 +2053,7 @@ function schoolgirlAndSmugglerCommand(state, player) {
   const idx = top3.findIndex((c) => (c.def.type === 'unit' || c.def.type === 'pilot') && (c.def.traits || []).includes('Clan'));
   if (idx !== -1) {
     const [chosen] = top3.splice(idx, 1);
-    player.hand.push(chosen);
+    addToHand(player, chosen);
   }
   player.deck.push(...shuffle(top3));
 }
@@ -2153,9 +2137,7 @@ function guncannonGD01004WhenPaired(state, player, unit, context) {
 // site's convention.)
 function unicornGundamUnicornModeDestroyed(state, player, unit, context) {
   if (!unit.isLinkUnit || !context.pilot) return;
-  const idx = player.trash.indexOf(context.pilot);
-  if (idx !== -1) player.trash.splice(idx, 1);
-  sendToZone(player.hand, context.pilot);
+  recurFromTrash(player, context.pilot);
   const toDiscard = [...player.hand].sort((a, b) => (b.def.cost || 0) - (a.def.cost || 0))[0];
   if (toDiscard) {
     discardFromHand(player, toDiscard);
@@ -2267,11 +2249,7 @@ function charsGelgoogActivateMain(state, player, instance, context) {
 function gundamDeathscytheGD01025WhenPaired(state, player, unit, context) {
   const pilot = context.pilot;
   if (!pilot || !(pilot.def.traits || []).includes('Operation Meteor')) return;
-  if (player.resourceDeck.length) {
-    const resource = player.resourceDeck.shift();
-    resource.rested = true;
-    player.resourceArea.push(resource);
-  }
+  placeRestedResource(player);
   unit.buffs.push({ keyword: 'firstStrike', scope: 'turn' });
 }
 
@@ -2384,7 +2362,7 @@ function zakuISniperGD01048Deploy(state, player) {
   if (player.deck.length === 0) return;
   const top = player.deck.shift();
   const isZeonUnit = top.def.type === 'unit' && ((top.def.traits || []).includes('Zeon') || (top.def.traits || []).includes('Neo Zeon'));
-  if (isZeonUnit) player.hand.push(top);
+  if (isZeonUnit) addToHand(player, top);
   else player.deck.push(top);
 }
 
@@ -2513,8 +2491,7 @@ function gundamAerialRebuildWhenPaired(state, player) {
   const candidates = player.trash.filter((c) => c.def.type === 'command' && (c.def.level || 0) <= 5);
   if (candidates.length === 0) return;
   const chosen = [...candidates].sort((a, b) => (b.def.cost || 0) - (a.def.cost || 0))[0];
-  player.trash.splice(player.trash.indexOf(chosen), 1);
-  player.hand.push(chosen);
+  recurFromTrash(player, chosen);
 }
 
 // --- Perfect Strike Gundam GD01-068 / Darilbalde GD01-075 ---
@@ -2527,8 +2504,7 @@ function perfectStrikeGundamDeploy(state, player, instance, context) {
     ? context.hooks.chooseUnit(candidates)
     : candidates.sort((a, b) => getAP(b) - getAP(a))[0];
   if (!target) return;
-  removeFromField(opponent, target, opponent.hand);
-  sendToZone(opponent.hand, target);
+  returnUnitToHand(opponent, target);
 }
 
 // --- Strike Rouge GD01-069 ---
@@ -2601,8 +2577,7 @@ function cagallisSkygrasperDestroyed(state, player, instance, context) {
     ? context.hooks.chooseUnit(candidates)
     : candidates.sort((a, b) => getAP(b) - getAP(a))[0];
   if (!target) return;
-  removeFromField(opponent, target, opponent.hand);
-  sendToZone(opponent.hand, target);
+  returnUnitToHand(opponent, target);
 }
 
 // --- M1 Astray GD01-081 ---
@@ -2836,13 +2811,10 @@ function fortressDefenseCommand(state, player) {
 // --- First Contact GD01-107 (Command) ---
 // [Burst] Place 1 EX Resource. [Main] Place 1 rested Resource.
 function firstContactBurst(state, player) {
-  player.resourceArea.push(createInstance(EX_RESOURCE_DEF, player.id));
+  placeExResource(state, player);
 }
 function firstContactCommand(state, player) {
-  if (player.resourceDeck.length === 0) return;
-  const resource = player.resourceDeck.shift();
-  resource.rested = true;
-  player.resourceArea.push(resource);
+  placeRestedResource(player);
 }
 
 // --- Strategic Arms GD01-108 (Command) ---
@@ -2876,7 +2848,7 @@ function thePathToVictoryOrDefeatCommand(state, player, instance, context) {
     : null;
   if (chosen) {
     top5.splice(top5.indexOf(chosen), 1);
-    player.hand.push(chosen);
+    addToHand(player, chosen);
   }
   player.deck.push(...shuffle(top5));
 }
@@ -2970,8 +2942,7 @@ function theWitchAndTheBrideCommand(state, player, instance, context) {
     ? context.hooks.chooseUnit(candidates)
     : candidates.sort((a, b) => getAP(b) - getAP(a))[0];
   if (!target) return;
-  removeFromField(opponent, target, opponent.hand);
-  sendToZone(opponent.hand, target);
+  returnUnitToHand(opponent, target);
 }
 
 // --- Iron-Fisted Discipline GD01-119 (Command, pilotMode: Chuatury Panlunch) ---
@@ -3015,15 +2986,14 @@ function covertOperativeCommand(state, player, instance, context) {
     ? context.hooks.chooseUnit(candidates)
     : candidates.sort((a, b) => getAP(b) - getAP(a))[0];
   if (!target) return;
-  removeFromField(opponent, target, opponent.hand);
-  sendToZone(opponent.hand, target);
+  returnUnitToHand(opponent, target);
 }
 
 // --- Nahel Argama GD01-123 (Base) ---
 // [Burst] Deploy this card. [Deploy] Add 1 of your Shields to your hand. Then, choose 1 enemy Unit
 // with 3 or less HP. Rest it.
 function nahelArgamaDeploy(state, player, instance, context) {
-  if (player.shields.length > 0) player.hand.push(player.shields.shift());
+  if (player.shields.length > 0) shieldToHand(player);
   const candidates = opponentOf(state, player).battleArea.filter((u) => getRemainingHP(u) <= 3);
   const target = context.hooks && context.hooks.chooseUnit
     ? context.hooks.chooseUnit(candidates)
@@ -3051,7 +3021,7 @@ function side7ActivateMain(state, player, instance, context) {
 // [Burst] Deploy this card. [Deploy] Add 1 of your Shields to your hand. Then, if it is your turn,
 // you may deploy 1 (Zeon) Unit card that is Lv.4 or lower from your hand.
 function zanzibarDeploy(state, player, instance, context) {
-  if (player.shields.length > 0) player.hand.push(player.shields.shift());
+  if (player.shields.length > 0) shieldToHand(player);
   if (state.players[state.activePlayerIdx] !== player) return;
   const candidates = player.hand.filter(
     (c) => c.def.type === 'unit' && (c.def.traits || []).includes('Zeon') && (c.def.level || 0) <= 4
@@ -3084,15 +3054,14 @@ function gamowActivateAction(state, player, instance, context) {
 // [Burst] Deploy this card. [Deploy] Add 1 of your Shields to your hand. Then, choose 1 enemy Unit
 // with 3 or less HP. Return it to its owner's hand.
 function kusanagiDeploy(state, player, instance, context) {
-  if (player.shields.length > 0) player.hand.push(player.shields.shift());
+  if (player.shields.length > 0) shieldToHand(player);
   const opponent = opponentOf(state, player);
   const candidates = opponent.battleArea.filter((u) => getRemainingHP(u) <= 3);
   const target = context.hooks && context.hooks.chooseUnit
     ? context.hooks.chooseUnit(candidates)
     : candidates.sort((a, b) => getAP(b) - getAP(a))[0];
   if (!target) return;
-  removeFromField(opponent, target, opponent.hand);
-  sendToZone(opponent.hand, target);
+  returnUnitToHand(opponent, target);
 }
 
 // --- 13th Tactical Testing Sector GD01-130 (Base) ---
@@ -3140,11 +3109,8 @@ function gundamMk2TitansGD02003Destroyed(state, player, instance, context) {
   const candidates = player.hand.filter((c) => c.def.type === 'unit').sort((a, b) => (b.def.cost || 0) - (a.def.cost || 0));
   const discard = candidates[0];
   if (!discard) return;
-  player.hand.splice(player.hand.indexOf(discard), 1);
-  player.trash.push(discard);
-  const trashIdx = player.trash.indexOf(context.pilot);
-  if (trashIdx !== -1) player.trash.splice(trashIdx, 1);
-  player.hand.push(context.pilot);
+  discardFromHand(player, discard);
+  recurFromTrash(player, context.pilot);
 }
 
 // --- Byarlant GD02-004 ---
@@ -3239,7 +3205,7 @@ function elmethGD02020Deploy(state, player) {
   const chosen = candidates.length ? [...candidates].sort((a, b) => (b.def.cost || 0) - (a.def.cost || 0))[0] : null;
   if (chosen) {
     top5.splice(top5.indexOf(chosen), 1);
-    player.hand.push(chosen);
+    addToHand(player, chosen);
   }
   player.deck.push(...shuffle(top5));
 }
@@ -3449,8 +3415,7 @@ function gundamXGD02056Destroyed(state, player, instance, context) {
   );
   if (candidates.length === 0) return;
   const chosen = candidates[0];
-  player.trash.splice(player.trash.indexOf(chosen), 1);
-  player.hand.push(chosen);
+  recurFromTrash(player, chosen);
 }
 
 // --- Zedas GD02-057 ---
@@ -3538,10 +3503,7 @@ function gundamKimarisLRPlusDeploy(state, player) {
   drawCard(state, player);
   drawCard(state, player);
   const discards = [...player.hand].sort((a, b) => (b.def.cost || 0) - (a.def.cost || 0)).slice(0, 2);
-  for (const c of discards) {
-    player.hand.splice(player.hand.indexOf(c), 1);
-    player.trash.push(c);
-  }
+  for (const c of discards) discardFromHand(player, c);
 }
 
 // --- Gundam Mk-II (AEUG) GD02-071 ---
@@ -3683,7 +3645,7 @@ function flitAsunoWhenLinked(state, player) {
   );
   if (idx !== -1) {
     const [chosen] = top3.splice(idx, 1);
-    player.hand.push(chosen);
+    addToHand(player, chosen);
   }
   player.deck.push(...shuffle(top3));
 }
@@ -3771,13 +3733,12 @@ function garrodTiffaBurst(state, player, instance) {
 function garrodTiffaWhenPaired(state, player) {
   const discard = [...player.hand].sort((a, b) => (a.def.cost || 0) - (b.def.cost || 0))[0];
   if (!discard) return;
-  player.hand.splice(player.hand.indexOf(discard), 1);
-  player.trash.push(discard);
+  discardFromHand(player, discard);
   const top3 = player.deck.splice(0, 3);
   const idx = top3.findIndex((c) => c.def.type === 'unit' && (c.def.traits || []).includes('Vulture'));
   if (idx !== -1) {
     const [chosen] = top3.splice(idx, 1);
-    player.hand.push(chosen);
+    addToHand(player, chosen);
   }
   player.deck.push(...shuffle(top3));
 }
@@ -3810,7 +3771,7 @@ function desilGaletteWhenLinked(state, player, unit, context) {
     : candidates.sort((a, b) => getAP(b) - getAP(a))[0];
   if (!target) return;
   payCost(player, target.def, { fromTrash: true, state });
-  player.trash.splice(player.trash.indexOf(target), 1);
+  removeFromTrash(player, target);
   deployUnit(state, player, target.def, undefined, { fromTrash: true });
 }
 
@@ -3904,8 +3865,7 @@ function ageDeviceRPlusBurst(state, player, instance, context) {
   const candidates = player.trash.filter((c) => c.def.type === 'pilot' && (c.def.traits || []).includes('Asuno Family'));
   const target = context.hooks && context.hooks.chooseCard ? context.hooks.chooseCard(candidates) : candidates[0];
   if (!target) return;
-  player.trash.splice(player.trash.indexOf(target), 1);
-  player.hand.push(target);
+  recurFromTrash(player, target);
 }
 function ageDeviceRPlusCommand(state, player) {
   if (!player.battleArea.some((u) => (u.def.traits || []).includes('AGE System'))) return;
@@ -3997,8 +3957,7 @@ function decisiveLastResortCommand(state, player, instance, context) {
   const purpleUnits = player.trash.filter((c) => c.def.type === 'unit' && c.def.color === 'purple');
   if (purpleUnits.length < 6) return;
   for (const card of purpleUnits.slice(0, 6)) {
-    player.trash.splice(player.trash.indexOf(card), 1);
-    player.removal.push(card);
+    player.removal.push(removeFromTrash(player, card));
   }
   const opponent = opponentOf(state, player);
   const target = context.hooks && context.hooks.chooseUnit
@@ -4016,8 +3975,7 @@ function momentaryRespiteBurst(state, player) {
 function momentaryRespiteCommand(state, player) {
   const chosen = player.trash.find((c) => c.def.type === 'pilot' && c.def.color === 'purple');
   if (!chosen) return;
-  player.trash.splice(player.trash.indexOf(chosen), 1);
-  player.hand.push(chosen);
+  recurFromTrash(player, chosen);
 }
 
 // Shared by Sisterly Care GD02-113 and Hammerhead GD02-128: "If a friendly (Teiwaz) Link Unit is in
@@ -4079,8 +4037,7 @@ function comradesComeFirstCommand(state, player, instance, context) {
 function aNewSignBurst(state, player) {
   const chosen = player.trash.find((c) => c.def.type === 'base' && (c.def.traits || []).includes('AEUG'));
   if (!chosen) return;
-  player.trash.splice(player.trash.indexOf(chosen), 1);
-  player.hand.push(chosen);
+  recurFromTrash(player, chosen);
 }
 function aNewSignCommand(state, player) {
   drawCard(state, player);
@@ -4106,8 +4063,7 @@ function heartSetOnRevengeCommand(state, player, instance, context) {
   if (getRemainingHP(attacker) > 4) return;
   if (!getKeywords(blocker).blocker) return;
   const opponent = opponentOf(state, player);
-  removeFromField(opponent, attacker, opponent.hand);
-  sendToZone(opponent.hand, attacker);
+  returnUnitToHand(opponent, attacker);
 }
 
 // --- Persistent and Fortitudinous GD02-119 (Command; pairable as Pilot [Carta Issue]) ---
@@ -4197,8 +4153,7 @@ function gwadanDeploy(state, player) {
 // [Burst] Deploy this card. [Deploy] Add 1 of your Shields to your hand.
 // [Destroyed] Place the top 2 cards of your deck into your trash.
 function freedenDestroyed(state, player) {
-  const milled = player.deck.splice(0, 2);
-  for (const c of milled) player.trash.push(c);
+  millToTrash(player, 2);
 }
 
 // --- Hammerhead GD02-128 (Base) ---
@@ -4284,8 +4239,7 @@ function palaceAtheneDeploy(state, player, instance, context) {
   const titansCards = player.trash.filter((c) => (c.def.traits || []).includes('Titans'));
   if (titansCards.length < 2) return;
   for (const card of titansCards.slice(0, 2)) {
-    player.trash.splice(player.trash.indexOf(card), 1);
-    player.removal.push(card);
+    player.removal.push(removeFromTrash(player, card));
   }
   const candidates = opponentOf(state, player).battleArea.filter((u) => (u.def.level || 0) <= 4);
   const target = context.hooks && context.hooks.chooseUnit
@@ -4311,8 +4265,7 @@ function baundDocActivateMain(state, player, instance) {
   const titansCards = player.trash.filter((c) => (c.def.traits || []).includes('Titans'));
   if (titansCards.length < 3) return false;
   for (const card of titansCards.slice(0, 3)) {
-    player.trash.splice(player.trash.indexOf(card), 1);
-    player.removal.push(card);
+    player.removal.push(removeFromTrash(player, card));
   }
   instance.buffs.push({ breach: 4, scope: 'turn' });
   instance.activationsUsed.breach = true;
@@ -4516,7 +4469,7 @@ function gundamXDividerWhenLinked(state, player, instance, context) {
     : candidates.sort((a, b) => getAP(b) - getAP(a))[0];
   if (!target) return;
   payCost(player, target.def, { fromTrash: true, state });
-  player.trash.splice(player.trash.indexOf(target), 1);
+  removeFromTrash(player, target);
   deployUnit(state, player, target.def, undefined, { fromTrash: true });
 }
 
@@ -4566,8 +4519,7 @@ function zeydraWhenPaired(state, player, unit, context) {
     ? context.hooks.chooseCards(vaganCards, 4)
     : vaganCards.slice(0, 4);
   for (const c of chosen) {
-    player.trash.splice(player.trash.indexOf(c), 1);
-    player.removal.push(c);
+    player.removal.push(removeFromTrash(player, c));
   }
   const opponent = opponentOf(state, player);
   const candidates = opponent.battleArea.filter((u) => (u.def.level || 0) <= 4 && !isImmuneToEffectDestroy(u));
@@ -4604,8 +4556,7 @@ function zedasRAttack(state, player, unit, context) {
   const exiled = context.hooks && context.hooks.chooseCard
     ? context.hooks.chooseCard(vaganCards)
     : vaganCards[0];
-  player.trash.splice(player.trash.indexOf(exiled), 1);
-  player.removal.push(exiled);
+  player.removal.push(removeFromTrash(player, exiled));
   const candidates = player.battleArea.filter((u) => (u.def.traits || []).includes('Vagan'));
   const target = context.hooks && context.hooks.chooseUnit
     ? context.hooks.chooseUnit(candidates)
@@ -4654,15 +4605,11 @@ function defurseDeploy(state, player, instance, context) {
   const fetched = context.hooks && context.hooks.chooseCard
     ? context.hooks.chooseCard(candidates)
     : candidates[0];
-  player.trash.splice(player.trash.indexOf(fetched), 1);
-  player.hand.push(fetched);
+  recurFromTrash(player, fetched);
   const discard = context.hooks && context.hooks.chooseDiscard
     ? context.hooks.chooseDiscard(player.hand)
     : player.hand[0];
-  if (discard) {
-    player.hand.splice(player.hand.indexOf(discard), 1);
-    player.trash.push(discard);
-  }
+  if (discard) discardFromHand(player, discard);
 }
 
 // --- Gundam Hajiroboshi GD03-068 ---
@@ -4762,8 +4709,7 @@ function freedomGundamMeteorFriendlyUnitDealsBattleDamage(state, player, instanc
   const target = context.defender;
   if (!target) return;
   const opponent = opponentOf(state, player);
-  removeFromField(opponent, target, opponent.hand);
-  sendToZone(opponent.hand, target);
+  returnUnitToHand(opponent, target);
   instance.activationsUsed.returnEnemy = true;
 }
 
@@ -4777,8 +4723,7 @@ function justiceGundamMeteorWhenLinked(state, player, unit, context) {
     ? context.hooks.chooseUnits(candidates)
     : candidates.sort((a, b) => getAP(b) - getAP(a)).slice(0, 3);
   for (const t of targets) {
-    removeFromField(opponent, t, opponent.hand);
-    sendToZone(opponent.hand, t);
+    returnUnitToHand(opponent, t);
   }
 }
 
@@ -4787,9 +4732,7 @@ function justiceGundamMeteorWhenLinked(state, player, unit, context) {
 // Unicorn Gundam (Unicorn Mode) GD01-005's unicornGundamUnicornModeDestroyed, minus the discard.
 function tierenHighMobilityDestroyed(state, player, unit, context) {
   if (!unit.isLinkUnit || !context.pilot) return;
-  const idx = player.trash.indexOf(context.pilot);
-  if (idx !== -1) player.trash.splice(idx, 1);
-  sendToZone(player.hand, context.pilot);
+  recurFromTrash(player, context.pilot);
 }
 
 // --- G-Defenser GD03-079 ---
@@ -4804,8 +4747,7 @@ function gundamKimarisTrooperWhenLinked(state, player, unit, context) {
   const target = context.hooks && context.hooks.chooseCard
     ? context.hooks.chooseCard(candidates)
     : candidates[0];
-  player.trash.splice(player.trash.indexOf(target), 1);
-  player.hand.push(target);
+  recurFromTrash(player, target);
 }
 
 // --- AEU Enact Demonstration Color GD03-081 ---
@@ -4910,8 +4852,7 @@ function rauLeCreusetRPlusWhenLinked(state, player, unit, context) {
   const candidates = player.trash.filter((c) => c.def.type === 'base' && (c.def.traits || []).includes('ZAFT'));
   if (candidates.length === 0) return;
   const target = context.hooks && context.hooks.chooseCard ? context.hooks.chooseCard(candidates) : candidates[0];
-  player.trash.splice(player.trash.indexOf(target), 1);
-  player.hand.push(target);
+  recurFromTrash(player, target);
 }
 
 // --- Carris Nautilus GD03-093 (Pilot) ---
@@ -4951,8 +4892,7 @@ function jamilNeateAttack(state, player, unit) {
   if (!unit.isLinkUnit) return;
   const discard = [...player.hand].sort((a, b) => (a.def.cost || 0) - (b.def.cost || 0))[0];
   if (!discard) return;
-  player.hand.splice(player.hand.indexOf(discard), 1);
-  player.trash.push(discard);
+  discardFromHand(player, discard);
   drawCard(state, player);
 }
 
@@ -4970,11 +4910,16 @@ function wistarioAfamDestroysEnemy(state, player, unit) {
   if (unit.activationsUsed.wistarioAfamPeek) return;
   unit.activationsUsed.wistarioAfamPeek = true;
   if (player.deck.length === 0) return;
-  const top2 = player.deck.splice(0, 2);
-  const keepIdx = top2.findIndex((c) => c.def.type === 'unit' || c.def.type === 'base');
-  const keep = top2.splice(keepIdx === -1 ? 0 : keepIdx, 1)[0];
-  player.deck.unshift(keep);
-  for (const c of top2) player.trash.push(c);
+  const peek = player.deck.slice(0, 2);
+  if (peek.length < 2) return;
+  const keepIdx = peek.findIndex((c) => c.def.type === 'unit' || c.def.type === 'base');
+  if (keepIdx === -1 || keepIdx === 0) {
+    const keep = player.deck.shift();
+    millToTrash(player, 1);
+    player.deck.unshift(keep);
+  } else {
+    millToTrash(player, 1);
+  }
 }
 
 // --- Graham Aker (R+) GD03-098 (Pilot) ---
@@ -4991,8 +4936,7 @@ function grahamAkerRPlusSetActiveByEffect(state, player, unit, context) {
     ? context.hooks.chooseUnit(candidates)
     : candidates.sort((a, b) => getAP(b) - getAP(a))[0];
   if (!target) return;
-  removeFromField(opponent, target, opponent.hand);
-  sendToZone(opponent.hand, target);
+  returnUnitToHand(opponent, target);
 }
 
 // --- Emma Sheen GD03-099 (Pilot) ---
@@ -5009,8 +4953,7 @@ function emmaSheenDestroyed(state, player, unit) {
   const candidates = opponent.battleArea.filter((u) => (u.def.level || 0) <= (unit.def.level || 0));
   const target = candidates.sort((a, b) => getAP(b) - getAP(a))[0];
   if (!target) return;
-  removeFromField(opponent, target, opponent.hand);
-  sendToZone(opponent.hand, target);
+  returnUnitToHand(opponent, target);
 }
 
 // --- Soma Peries GD03-100 (Pilot) ---
@@ -5148,9 +5091,7 @@ function eliminateTargetCommand(state, player) {
   const candidates = opponent.battleArea.filter((u) => u.pilot && (u.def.level || 0) <= 5);
   const target = candidates.sort((a, b) => getAP(b) - getAP(a))[0];
   if (!target) return;
-  const pilot = target.pilot;
-  target.pilot = null;
-  sendToZone(opponent.trash, pilot);
+  destroyPilot(opponent, target);
 }
 
 // --- Infiltrator Present GD03-111 (Command; pairable as Pilot [Emeralda Zubin]) ---
@@ -5261,8 +5202,7 @@ function awakenedPotentialRPlusCommand(state, player) {
   const candidates = opponent.battleArea.filter((u) => u.rested && (u.def.level || 0) <= 4);
   const target = candidates.sort((a, b) => getAP(b) - getAP(a))[0];
   if (!target) return;
-  removeFromField(opponent, target, opponent.hand);
-  sendToZone(opponent.hand, target);
+  returnUnitToHand(opponent, target);
   const copiesInTrash = player.trash.filter((c) => (c.def.name || '').includes('Awakened Potential')).length;
   if (copiesInTrash < 2) return;
   const blockerTarget = player.battleArea.sort((a, b) => getAP(b) - getAP(a))[0];
@@ -5308,8 +5248,7 @@ function veteranTacticsCommand(state, player) {
   const candidates = opponent.battleArea.filter((u) => (u.def.level || 0) <= 3);
   const target = candidates.sort((a, b) => getAP(b) - getAP(a))[0];
   if (!target) return;
-  removeFromField(opponent, target, opponent.hand);
-  sendToZone(opponent.hand, target);
+  returnUnitToHand(opponent, target);
 }
 
 // --- Jupitris GD03-123 (Base) ---
@@ -5319,7 +5258,7 @@ function jupitrisBurst(state, player, instance) {
   becomeBase(state, player, instance);
 }
 function jupitrisDeploy(state, player, instance) {
-  if (player.shields.length > 0) player.hand.push(player.shields.shift());
+  if (player.shields.length > 0) shieldToHand(player);
   if (!player.battleArea.some((u) => (u.def.traits || []).includes('Jupitris'))) return;
   const opponent = opponentOf(state, player);
   const candidates = opponent.battleArea.filter((u) => (u.def.level || 0) <= 3);
@@ -5335,7 +5274,7 @@ function riboColonyBurst(state, player, instance) {
   becomeBase(state, player, instance);
 }
 function riboColonyDeploy(state, player, instance) {
-  if (player.shields.length > 0) player.hand.push(player.shields.shift());
+  if (player.shields.length > 0) shieldToHand(player);
 }
 function riboColonyAllyPaired(state, player, instance, context) {
   if (instance.activationsUsed.restEnemy) return;
@@ -5356,7 +5295,7 @@ function cyclopsTeamBurst(state, player, instance) {
   becomeBase(state, player, instance);
 }
 function cyclopsTeamDeploy(state, player, instance) {
-  if (player.shields.length > 0) player.hand.push(player.shields.shift());
+  if (player.shields.length > 0) shieldToHand(player);
 }
 function cyclopsTeamStartOfTurn(state, player) {
   const isOpponentTurn = state.players[state.activePlayerIdx] !== player;
@@ -5373,7 +5312,7 @@ function jachinDueBurst(state, player, instance) {
   becomeBase(state, player, instance);
 }
 function jachinDueDeploy(state, player, instance) {
-  if (player.shields.length > 0) player.hand.push(player.shields.shift());
+  if (player.shields.length > 0) shieldToHand(player);
   const target = player.battleArea.filter((u) => (u.def.traits || []).includes('ZAFT')).sort((a, b) => getAP(b) - getAP(a))[0];
   if (target) target.buffs.push({ ap: 3, scope: 'turn' });
 }
@@ -5387,7 +5326,7 @@ function doriteaBurst(state, player, instance) {
   becomeBase(state, player, instance);
 }
 function doriteaDeploy(state, player, instance) {
-  if (player.shields.length > 0) player.hand.push(player.shields.shift());
+  if (player.shields.length > 0) shieldToHand(player);
 }
 function doriteaFriendlyUnitRestedByEnemyEffect(state, player, instance) {
   if (instance.activationsUsed.pingEnemy) return;
@@ -5411,7 +5350,7 @@ function hotarubiBurst(state, player, instance) {
   becomeBase(state, player, instance);
 }
 function hotarubiDeploy(state, player, instance) {
-  if (player.shields.length > 0) player.hand.push(player.shields.shift());
+  if (player.shields.length > 0) shieldToHand(player);
 }
 function hotarubiFriendlyUnitReceivesEffectDamage(state, player, instance, context) {
   if (instance.rested) return;
@@ -5419,7 +5358,7 @@ function hotarubiFriendlyUnitReceivesEffectDamage(state, player, instance, conte
   const traits = context.target.def.traits || [];
   if (!traits.includes('Tekkadan') && !traits.includes('Teiwaz')) return;
   instance.rested = true;
-  if (player.deck.length > 0) player.trash.push(player.deck.shift());
+  if (player.deck.length > 0) millToTrash(player, 1);
 }
 
 // --- Downes GD03-130 (Base) ---
@@ -5430,7 +5369,7 @@ function downesBurst(state, player, instance) {
   becomeBase(state, player, instance);
 }
 function downesDeploy(state, player, instance) {
-  if (player.shields.length > 0) player.hand.push(player.shields.shift());
+  if (player.shields.length > 0) shieldToHand(player);
   if (state.players[state.activePlayerIdx] !== player) return;
   const candidates = player.trash.filter(
     (c) => c.def.type === 'unit' && (c.def.traits || []).includes('Vagan') && (c.def.level || 0) <= 4
@@ -5439,7 +5378,7 @@ function downesDeploy(state, player, instance) {
   const target = candidates.sort((a, b) => getAP(b) - getAP(a))[0];
   if (!target) return;
   payCost(player, target.def, { fromTrash: true, state });
-  player.trash.splice(player.trash.indexOf(target), 1);
+  removeFromTrash(player, target);
   deployUnit(state, player, target.def, undefined, { fromTrash: true });
 }
 
@@ -5451,15 +5390,14 @@ function eternalBurst(state, player, instance) {
   becomeBase(state, player, instance);
 }
 function eternalDeploy(state, player, instance) {
-  if (player.shields.length > 0) player.hand.push(player.shields.shift());
+  if (player.shields.length > 0) shieldToHand(player);
   const tripleShipCount = player.battleArea.filter((u) => (u.def.traits || []).includes('Triple Ship Alliance')).length;
   if (tripleShipCount < 2) return;
   const opponent = opponentOf(state, player);
   const candidates = opponent.battleArea.filter((u) => (u.def.level || 0) <= 4);
   const target = candidates.sort((a, b) => getAP(b) - getAP(a))[0];
   if (!target) return;
-  removeFromField(opponent, target, opponent.hand);
-  sendToZone(opponent.hand, target);
+  returnUnitToHand(opponent, target);
 }
 
 // --- Radish GD03-132 (Base) ---
@@ -5469,7 +5407,7 @@ function radishBurst(state, player, instance) {
   becomeBase(state, player, instance);
 }
 function radishDeploy(state, player, instance) {
-  if (player.shields.length > 0) player.hand.push(player.shields.shift());
+  if (player.shields.length > 0) shieldToHand(player);
 }
 function radishDestroyed(state, player, instance) {
   if (!player.battleArea.some((u) => u.isLinkUnit && (u.def.traits || []).includes('AEUG'))) return;
@@ -5492,9 +5430,7 @@ function gundamGD04001Attack(state, player, unit, context) {
   if (!context.target || context.target.type !== 'unit') return;
   const shouldBounce = false;
   if (!shouldBounce) return;
-  const pilot = unit.pilot;
-  unit.pilot = null;
-  sendToZone(player.hand, pilot);
+  addToHand(player, unpairPilot(player, unit));
 }
 
 // --- GD04 batch 1 (GD04-004 through GD04-023, excl. GD04-002/003/005/006/008/010/011/012/014/016/017 which are vanilla or data-only) ---
@@ -5563,7 +5499,7 @@ function gnArmorTypeDTransAmDestroyed(state, player) {
   );
   if (matchIdx !== -1) {
     const [chosen] = top3.splice(matchIdx, 1);
-    player.hand.push(chosen);
+    addToHand(player, chosen);
   }
   player.deck.push(...shuffle(top3));
 }
@@ -5628,7 +5564,7 @@ function gundamAerialRebuildDeploy(state, player) {
   const idx = top3.findIndex((c) => (c.def.type === 'unit' || c.def.type === 'command') && (c.def.traits || []).includes('Academy'));
   if (idx !== -1) {
     const [chosen] = top3.splice(idx, 1);
-    player.hand.push(chosen);
+    addToHand(player, chosen);
   }
   player.deck.push(...shuffle(top3));
 }
@@ -5651,8 +5587,7 @@ function garmasDoppDeploy(state, player) {
   const top = player.deck[0];
   const worthKeeping = top.def.type === 'unit' || top.def.type === 'base';
   if (!worthKeeping) {
-    player.deck.shift();
-    player.trash.push(top);
+    millToTrash(player, 1);
   }
 }
 
@@ -5870,8 +5805,7 @@ function gundamDXLRPlusAttack(state, player, unit, context) {
     ? context.hooks.chooseCards(vultureCards, 7)
     : vultureCards.slice(0, 7);
   for (const c of toExile) {
-    player.trash.splice(player.trash.indexOf(c), 1);
-    player.removal.push(c);
+    player.removal.push(removeFromTrash(player, c));
   }
   const opponent = opponentOf(state, player);
   const candidates = [...opponent.battleArea, opponent.base].filter(Boolean).filter((u) => (u.def.level || 0) <= 8);
@@ -5945,9 +5879,7 @@ function jamilsGundamXDestroyed(state, player, instance, context) {
   const pilot = context.pilot;
   if (!pilot || !(pilot.def.traits || []).includes('Vulture')) return;
   if (state.players[state.activePlayerIdx] !== player) return;
-  const idx = player.trash.indexOf(pilot);
-  if (idx !== -1) player.trash.splice(idx, 1);
-  sendToZone(player.hand, pilot);
+  recurFromTrash(player, pilot);
 }
 
 // --- Esperansa GD04-060 ---
@@ -6066,10 +5998,8 @@ function grahamsUnionFlagGNFlagRPlusActivateMain(state, player, instance) {
   const superpower = superpowerCandidates[0];
   const un = unCandidates.find((c) => c !== superpower) || unCandidates[0];
   if (superpower === un) return false;
-  player.trash.splice(player.trash.indexOf(superpower), 1);
-  player.removal.push(superpower);
-  player.trash.splice(player.trash.indexOf(un), 1);
-  player.removal.push(un);
+  player.removal.push(removeFromTrash(player, superpower));
+  player.removal.push(removeFromTrash(player, un));
   setActiveByEffect(state, player, instance);
   instance.buffs.push({ cannotAttack: true, scope: 'turn' });
   return true;
@@ -6085,8 +6015,7 @@ function unicornGundam02BansheeNornWhenLinked(state, player, instance, context) 
   const target = context.hooks && context.hooks.chooseUnit
     ? context.hooks.chooseUnit(candidates)
     : candidates.sort((a, b) => getAP(b) - getAP(a))[0];
-  removeFromField(opponent, target, opponent.hand);
-  sendToZone(opponent.hand, target);
+  returnUnitToHand(opponent, target);
 }
 
 // --- GD04 batch 5 --------------------------------------------------------
@@ -6117,10 +6046,7 @@ function kapoolAttack(state, player, unit, context) {
   const discard = context.hooks && context.hooks.chooseDiscard
     ? context.hooks.chooseDiscard(player.hand)
     : player.hand[0];
-  if (discard) {
-    player.hand.splice(player.hand.indexOf(discard), 1);
-    player.trash.push(discard);
-  }
+  if (discard) discardFromHand(player, discard);
 }
 
 // --- GN-X GD04-075 ---
@@ -6308,8 +6234,7 @@ function palaSysWhenLinked(state, player) {
   );
   if (candidates.length === 0) return;
   const target = candidates.sort((a, b) => (b.def.cost || 0) - (a.def.cost || 0))[0];
-  player.trash.splice(player.trash.indexOf(target), 1);
-  player.hand.push(target);
+  recurFromTrash(player, target);
 }
 
 // --- Lunamaria Hawke (U+) GD04-095 (Pilot) ---
@@ -6357,8 +6282,7 @@ function loranCehackRPlusWhenLinked(state, player) {
   const candidates = opponent.battleArea.filter((u) => getRemainingHP(u) <= 3);
   if (candidates.length === 0) return;
   const target = candidates.sort((a, b) => getAP(b) - getAP(a))[0];
-  removeFromField(opponent, target, opponent.hand);
-  sendToZone(opponent.hand, target);
+  returnUnitToHand(opponent, target);
 }
 
 // --- Ali al-Saachez GD04-099 (Pilot) ---
@@ -6374,9 +6298,7 @@ function aliAlSaachezAttack(state, player, unit) {
   const candidates = opponent.battleArea.filter((u) => u.pilot);
   if (candidates.length === 0) return;
   const target = candidates.sort((a, b) => getAP(b) - getAP(a))[0];
-  const pilot = target.pilot;
-  target.pilot = null;
-  sendToZone(opponent.hand, pilot);
+  addToHand(opponent, unpairPilot(opponent, target));
 }
 
 // --- Sochie Heim GD04-100 (Pilot) ---
@@ -6440,7 +6362,7 @@ function encounterRPlusCommand(state, player) {
   const matchIdx = top5.findIndex((c) => c.def.type === 'pilot');
   if (matchIdx !== -1) {
     const [chosen] = top5.splice(matchIdx, 1);
-    player.hand.push(chosen);
+    addToHand(player, chosen);
   }
   player.deck.push(...shuffle(top5));
 }
@@ -6541,8 +6463,7 @@ function reformationistUPlusBurst(state, player) {
   const candidates = player.trash.filter((c) => c.def.type === 'unit' && (c.def.name || '').includes('Trans-Am'));
   if (candidates.length === 0) return;
   const chosen = candidates.sort((a, b) => (b.def.cost || 0) - (a.def.cost || 0))[0];
-  player.trash.splice(player.trash.indexOf(chosen), 1);
-  player.hand.push(chosen);
+  recurFromTrash(player, chosen);
 }
 function reformationistUPlusCommand(state, player, instance, context) {
   const opponent = opponentOf(state, player);
@@ -6580,8 +6501,7 @@ function backupCommand(state, player) {
 // effect to that enemy Unit.
 function reliableBigBrotherCommand(state, player) {
   const opponent = opponentOf(state, player);
-  const milled = player.deck.splice(0, 2);
-  player.trash.push(...milled);
+  const milled = millToTrash(player, 2);
   const minervaCount = milled.filter((c) => (c.def.traits || []).includes('Minerva Squad')).length;
   if (minervaCount === 0) return;
   const candidates = opponent.battleArea.filter((u) => getAP(u) <= 4);
@@ -6601,8 +6521,7 @@ function worldDistortionCommand(state, player) {
   const candidates = opponent.battleArea.filter((u) => getRemainingHP(u) <= 5);
   if (candidates.length === 0) return;
   const target = candidates.sort((a, b) => getAP(b) - getAP(a))[0];
-  removeFromField(opponent, target, opponent.hand);
-  sendToZone(opponent.hand, target);
+  returnUnitToHand(opponent, target);
 }
 
 // --- Fighting Alone GD04-119 (Command; pairable as Pilot [Gael Chan]) ---
@@ -6683,7 +6602,7 @@ function izumaColonyReceivesBattleDamageFromEnemy(state, player, instance, conte
 // [Deploy] Add 1 of your Shields to your hand. Then, if there are 7 or more (Vulture) cards in your
 // trash, choose 1 enemy Unit with 2 or less AP. Destroy it.
 function freedenIIDeploy(state, player) {
-  if (player.shields.length > 0) player.hand.push(player.shields.shift());
+  if (player.shields.length > 0) shieldToHand(player);
   const vultureInTrash = player.trash.filter((c) => (c.def.traits || []).includes('Vulture')).length;
   if (vultureInTrash < 7) return;
   const opponent = opponentOf(state, player);
@@ -6707,7 +6626,7 @@ function armoryOneDestroyed(state) {
 // recovers 2 HP -- friendlyPaysAbilityCost broadcast (src/rules/effects.js), now generalized to
 // include player.base as a consumer.
 function willgemDeploy(state, player, instance) {
-  if (player.shields.length > 0) player.hand.push(player.shields.shift());
+  if (player.shields.length > 0) shieldToHand(player);
   dealDamage(instance, 3);
 }
 function willgemFriendlyPaysAbilityCost(state, player, instance, context) {
@@ -6730,8 +6649,7 @@ function industrial7ActivateMain(state, player, instance, context) {
   const opponent = opponentOf(state, player);
   if (!target || !opponent.battleArea.includes(target)) return false;
   const toExile = context.hooks && context.hooks.chooseCard ? context.hooks.chooseCard(commandsInTrash) : commandsInTrash[0];
-  player.trash.splice(player.trash.indexOf(toExile), 1);
-  player.removal.push(toExile);
+  player.removal.push(removeFromTrash(player, toExile));
   instance.activationsUsed.debuffFromExile = true;
   reduceEnemyAP(state, player, opponent, target, 1);
   return true;
@@ -6749,8 +6667,7 @@ function akatsukiOowashiWhenLinked(state, player, instance, context) {
     ? context.hooks.chooseUnit(candidates)
     : candidates.sort((a, b) => getAP(b) - getAP(a))[0];
   if (!target) return;
-  removeFromField(opponent, target, opponent.hand);
-  sendToZone(opponent.hand, target);
+  returnUnitToHand(opponent, target);
 }
 
 // --- Calamity Gundam & Raider Gundam GD05-011 (Unit) ---
@@ -6783,8 +6700,7 @@ function forbiddenGundamWhenLinked(state, player, instance, context) {
     ? context.hooks.chooseUnit(candidates)
     : candidates.sort((a, b) => getAP(b) - getAP(a))[0];
   if (!target) return;
-  removeFromField(opponent, target, opponent.hand);
-  sendToZone(opponent.hand, target);
+  returnUnitToHand(opponent, target);
 }
 
 // --- Murasame GD05-016 (Unit) ---
@@ -6840,8 +6756,7 @@ function gundamSchwarzetteActivateAction(state, player, instance) {
   if (commandsInTrash.length < 2) return false;
   const toExile = commandsInTrash.slice(0, 2);
   for (const c of toExile) {
-    player.trash.splice(player.trash.indexOf(c), 1);
-    player.removal.push(c);
+    player.removal.push(removeFromTrash(player, c));
   }
   instance.activationsUsed.damageReduction = true;
   instance.buffs.push({ damageReduction: 2, scope: 'battle' });
@@ -6864,7 +6779,7 @@ function demiBardingDeploy(state, player) {
   const idx = top3.findIndex((c) => c.def.type === 'command');
   if (idx !== -1) {
     const [chosen] = top3.splice(idx, 1);
-    player.hand.push(chosen);
+    addToHand(player, chosen);
   }
   player.deck.push(...shuffle(top3));
 }
@@ -7010,13 +6925,9 @@ function sazabiRPlusDeploy(state, player, instance, context) {
     : candidates.sort((a, b) => getAP(a) - getAP(b))[0];
   if (!target) return;
   destroyFriendlyByEffect(state, player, instance, target);
-  const top3 = player.deck.splice(0, 3);
-  const idx = top3.findIndex((c) => c.def.type === 'unit' && (c.def.traits || []).includes('Neo Zeon'));
-  if (idx !== -1) {
-    const [chosen] = top3.splice(idx, 1);
-    player.hand.push(chosen);
-  }
-  player.trash.push(...top3);
+  const milled = millToTrash(player, 3);
+  const chosen = milled.find((c) => c.def.type === 'unit' && (c.def.traits || []).includes('Neo Zeon'));
+  if (chosen) recurFromTrash(player, chosen);
 }
 
 // --- Quess's Jagd Doga (R+) (Link Rare) GD05-053 (Unit) ---
@@ -7024,10 +6935,8 @@ function sazabiRPlusDeploy(state, player, instance, context) {
 // trash to your hand.
 function quessJagdDogaRPlusDestroyed(state, player, instance) {
   if (!player.neoZeonSelfDestroyThisTurn) return;
-  const idx = player.trash.indexOf(instance);
-  if (idx === -1) return;
-  player.trash.splice(idx, 1);
-  player.hand.push(instance);
+  if (!player.trash.includes(instance)) return;
+  recurFromTrash(player, instance);
 }
 
 // --- Alpha Azieru GD05-054 (Unit) ---
@@ -7094,8 +7003,7 @@ function forceImpulseGundamGD05064Deploy(state, player, instance, context) {
   const candidates = player.trash.filter((c) => c.def.type === 'pilot' && (c.def.name || '').includes('Shinn Asuka'));
   const chosen = context.hooks && context.hooks.chooseCard ? context.hooks.chooseCard(candidates) : candidates[0];
   if (!chosen) return;
-  player.trash.splice(player.trash.indexOf(chosen), 1);
-  player.hand.push(chosen);
+  recurFromTrash(player, chosen);
 }
 
 // --- Landman Rodi GD05-065 (Unit) ---
@@ -7209,8 +7117,7 @@ function cagalliYulaAthhaGD05WhenPaired(state, player, instance, context) {
     ? context.hooks.chooseUnit(candidates)
     : candidates.sort((a, b) => getAP(b) - getAP(a))[0];
   if (!target) return;
-  removeFromField(opponent, target, opponent.hand);
-  sendToZone(opponent.hand, target);
+  returnUnitToHand(opponent, target);
 }
 
 // --- Odelo Henrik GD05-084 (Pilot) ---
@@ -7246,7 +7153,7 @@ function prosperaMercuryStartOfTurn(state, player, instance) {
 function stellarLoussierRPlusDestroyed(state, player) {
   const top = player.deck.shift();
   if (!top) return;
-  if ((top.def.traits || []).includes('Phantom Pain')) player.hand.push(top);
+  if ((top.def.traits || []).includes('Phantom Pain')) addToHand(player, top);
   else player.deck.push(top);
 }
 
@@ -7344,8 +7251,7 @@ function wingsOfLightRPlusCommand(state, player, instance, context) {
     const target = context.hooks && context.hooks.chooseUnit
       ? context.hooks.chooseUnit(bounceCandidates)
       : bounceCandidates.sort((a, b) => getAP(b) - getAP(a))[0];
-    removeFromField(opponent, target, opponent.hand);
-    sendToZone(opponent.hand, target);
+    returnUnitToHand(opponent, target);
     return;
   }
   const healCandidates = [...player.battleArea, player.base].filter(Boolean);
@@ -7394,8 +7300,7 @@ function exclusivelyDefenseOrientedPolicyCommand(state, player, instance, contex
     ? context.hooks.chooseUnit(candidates)
     : candidates.sort((a, b) => getAP(b) - getAP(a))[0];
   if (!target) return;
-  removeFromField(opponent, target, opponent.hand);
-  sendToZone(opponent.hand, target);
+  returnUnitToHand(opponent, target);
 }
 function exclusivelyDefenseOrientedPolicyBurst(state, player, instance) {
   exclusivelyDefenseOrientedPolicyCommand(state, player, instance, {});
@@ -7410,15 +7315,10 @@ function mutualAttractionRPlusCommand(state, player, instance, context) {
     const chosen = context.hooks && context.hooks.chooseCard
       ? context.hooks.chooseCard(pilotCandidates)
       : pilotCandidates.sort((a, b) => (b.def.apBonus || 0) - (a.def.apBonus || 0))[0];
-    player.trash.splice(player.trash.indexOf(chosen), 1);
-    player.hand.push(chosen);
+    recurFromTrash(player, chosen);
     return;
   }
-  if (player.resourceDeck.length > 0) {
-    const resource = player.resourceDeck.shift();
-    resource.rested = true;
-    player.resourceArea.push(resource);
-  }
+  placeRestedResource(player);
 }
 
 // --- Interwoven Blessings GD05-107 (Command) ---
@@ -7492,8 +7392,7 @@ function newtypeLabsDirectorCommand(state, player, instance, context) {
     ? context.hooks.chooseCard(candidates)
     : candidates.sort((a, b) => (b.def.apBonus || 0) - (a.def.apBonus || 0))[0];
   if (!chosen) return;
-  player.trash.splice(player.trash.indexOf(chosen), 1);
-  player.hand.push(chosen);
+  recurFromTrash(player, chosen);
 }
 
 // --- Veteran's Pride GD05-116 (Command, pilotMode: Rezin Schnyder) ---
@@ -7604,7 +7503,7 @@ function gundamAstrayRedFrameCustomEXActivateMain(state, player, instance) {
   const opponent = opponentOf(state, player);
   const candidates = opponent.battleArea.filter((u) => u.damage > 0 && (u.def.level || 0) <= 7);
   if (candidates.length === 0) return;
-  for (const c of commands.slice(0, 2)) player.trash.splice(player.trash.indexOf(c), 1);
+  for (const c of commands.slice(0, 2)) removeFromTrash(player, c);
   instance.activationsUsed.exileCommandsRest = true;
   const target = candidates.sort((a, b) => getAP(b) - getAP(a))[0];
   restEnemyByEffect(state, player, opponent, target);
@@ -7701,7 +7600,7 @@ function gundamDeltaKaiDeploy(state, player) {
   if (damaged.length === 0) return;
   const ggenCards = player.trash.filter((c) => (c.def.traits || []).includes('G Generation'));
   if (ggenCards.length === 0) return;
-  player.trash.splice(player.trash.indexOf(ggenCards[0]), 1);
+  removeFromTrash(player, ggenCards[0]);
   const target = damaged.sort((a, b) => getRemainingHP(a) - getRemainingHP(b))[0];
   recoverHP(target, 2);
 }
@@ -7725,7 +7624,7 @@ function gundamBarbatos6thFormDeploy(state, player) {
   if (candidates.length === 0) return;
   const ggenCards = player.trash.filter((c) => (c.def.traits || []).includes('G Generation'));
   if (ggenCards.length < 3) return;
-  for (const c of ggenCards.slice(0, 3)) player.trash.splice(player.trash.indexOf(c), 1);
+  for (const c of ggenCards.slice(0, 3)) removeFromTrash(player, c);
   const target = candidates.sort((a, b) => getAP(b) - getAP(a))[0];
   dealEffectDamage(state, player, opponent, target, 2);
 }
@@ -7806,11 +7705,7 @@ function buildStrikeGundamFullPackageEXWhenPaired(state, player, unit, context) 
   if (!pilot || !(pilot.def.traits || []).includes('G Generation')) return;
   const ggenInTrash = player.trash.filter((c) => c.def.type === 'unit' && (c.def.traits || []).includes('G Generation')).length;
   if (ggenInTrash < 2) return;
-  if (player.resourceDeck.length) {
-    const resource = player.resourceDeck.shift();
-    resource.rested = true;
-    player.resourceArea.push(resource);
-  }
+  placeRestedResource(player);
 }
 
 // --- Gundam Exia (EX) EB01-022 ---
@@ -7845,7 +7740,7 @@ function leCygneEXAttack(state, player) {
     const top = p.deck[0];
     if ((top.def.level || 0) >= 5) {
       p.deck.shift();
-      p.hand.push(top);
+      addToHand(p, top);
     }
   }
 }
@@ -7870,7 +7765,7 @@ function gQuuuuuuXOmegaPsycommuAttack(state, player) {
 function tallgeeseIIDeploy(state, player) {
   const ggenCards = player.trash.filter((c) => (c.def.traits || []).includes('G Generation'));
   if (ggenCards.length < 2) return;
-  for (const c of ggenCards.slice(0, 2)) player.trash.splice(player.trash.indexOf(c), 1);
+  for (const c of ggenCards.slice(0, 2)) removeFromTrash(player, c);
   placeExResource(state, player);
   placeExResource(state, opponentOf(state, player));
 }
@@ -7884,7 +7779,7 @@ function tallgeeseDeploy(state, player) {
   if (candidates.length === 0) return;
   const ggenCards = player.trash.filter((c) => (c.def.traits || []).includes('G Generation'));
   if (ggenCards.length < 2) return;
-  for (const c of ggenCards.slice(0, 2)) player.trash.splice(player.trash.indexOf(c), 1);
+  for (const c of ggenCards.slice(0, 2)) removeFromTrash(player, c);
   const target = candidates.sort((a, b) => getAP(b) - getAP(a))[0];
   target.buffs.push({ breach: 1, scope: 'turn' });
 }
@@ -7927,7 +7822,7 @@ function lookTop3RevealGGenerationLv3(state, player) {
   );
   if (matchIdx !== -1) {
     const [chosen] = top3.splice(matchIdx, 1);
-    player.hand.push(chosen);
+    addToHand(player, chosen);
   }
   player.deck.push(...shuffle(top3));
 }
@@ -8004,8 +7899,7 @@ function strikeFreedomGundamEXDeploy(state, player) {
   const candidates = opponent.battleArea.filter((u) => getRemainingHP(u) <= 4);
   if (candidates.length === 0) return;
   const target = candidates.sort((a, b) => getAP(b) - getAP(a))[0];
-  removeFromField(opponent, target, opponent.hand);
-  sendToZone(opponent.hand, target);
+  returnUnitToHand(opponent, target);
 }
 
 // --- Psycho Haro (EX) EB01-042 ---
@@ -8044,8 +7938,7 @@ function psychoZakuEXWhenPaired(state, player) {
   const candidates = opponent.battleArea.filter((u) => getKeywords(u).repair);
   if (candidates.length === 0) return;
   const target = candidates.sort((a, b) => getAP(b) - getAP(a))[0];
-  removeFromField(opponent, target, opponent.hand);
-  sendToZone(opponent.hand, target);
+  returnUnitToHand(opponent, target);
 }
 
 // --- Striker Custom (EX) EB01-046 ---
@@ -8065,7 +7958,7 @@ function strikerCustomEXAttack(state, player, unit) {
 function casvalsGundamWhenPaired(state, player, unit) {
   const ggenCards = player.trash.filter((c) => (c.def.traits || []).includes('G Generation'));
   if (ggenCards.length === 0) return;
-  player.trash.splice(player.trash.indexOf(ggenCards[0]), 1);
+  removeFromTrash(player, ggenCards[0]);
   unit.buffs.push({ keyword: 'highManeuver', scope: 'turn' });
 }
 
@@ -8084,8 +7977,7 @@ function paleRiderGroundHeavyEquipmentTypeStartOfTurn(state, player, instance) {
 // higher with this effect, choose 1 enemy Unit. It gets AP-2 during this battle.
 function saikoroGundamAttack(state, player) {
   if (player.deck.length === 0) return;
-  const card = player.deck.shift();
-  player.trash.push(card);
+  const [card] = millToTrash(player, 1);
   if ((card.def.level || 0) < 3) return;
   const opponent = opponentOf(state, player);
   if (opponent.battleArea.length === 0) return;
@@ -8102,8 +7994,7 @@ function hildolfrDeploy(state, player) {
   const candidates = opponent.battleArea.filter((u) => getRemainingHP(u) <= 2);
   if (candidates.length === 0) return;
   const target = candidates.sort((a, b) => getAP(b) - getAP(a))[0];
-  removeFromField(opponent, target, opponent.hand);
-  sendToZone(opponent.hand, target);
+  returnUnitToHand(opponent, target);
 }
 
 // --- Dom Gross Beil EB01-055 ---
@@ -8122,8 +8013,7 @@ function gundamGeminass02Deploy(state, player) {
   if (restCandidates.length === 0) return;
   restCandidates[0].rested = true;
   const target = enemyCandidates.sort((a, b) => getAP(b) - getAP(a))[0];
-  removeFromField(opponent, target, opponent.hand);
-  sendToZone(opponent.hand, target);
+  returnUnitToHand(opponent, target);
 }
 
 // --- Extreme Gundam EB01-058 ---
@@ -8154,10 +8044,9 @@ function gundamAquariusWhenPaired(state, player) {
   if (candidates.length === 0) return;
   const ggenCards = player.trash.filter((c) => (c.def.traits || []).includes('G Generation'));
   if (ggenCards.length < 3) return;
-  for (const c of ggenCards.slice(0, 3)) player.trash.splice(player.trash.indexOf(c), 1);
+  for (const c of ggenCards.slice(0, 3)) removeFromTrash(player, c);
   const target = candidates.sort((a, b) => getAP(b) - getAP(a))[0];
-  removeFromField(opponent, target, opponent.hand);
-  sendToZone(opponent.hand, target);
+  returnUnitToHand(opponent, target);
 }
 
 // === EB01 batch 4 (EB01-061 to EB01-072, pilots, sourced from tcgcsv.com rules text) ===
@@ -8249,10 +8138,8 @@ function asunaElmaritWhenPaired(state, player) {
 // reading context.pilot.)
 function challAcusticaDestroyed(state, player, instance, context) {
   if (!instance.isLinkUnit || !context.pilot) return;
-  const idx = player.trash.indexOf(context.pilot);
-  if (idx === -1) return;
-  player.trash.splice(idx, 1);
-  player.deck.unshift(context.pilot);
+  if (!player.trash.includes(context.pilot)) return;
+  player.deck.unshift(removeFromTrash(player, context.pilot));
 }
 
 // --- Beside Pain EB01-069 ---
@@ -8381,7 +8268,7 @@ function premiumUnitAssemblyCommand(state, player) {
     const top = p.deck[0];
     if (top.def.type === 'unit') {
       p.deck.shift();
-      p.hand.push(top);
+      addToHand(p, top);
     }
   }
 }
@@ -8420,8 +8307,7 @@ function mapWeaponCommand(state, player) {
   const opponent = opponentOf(state, player);
   const candidates = opponent.battleArea.filter((u) => getRemainingHP(u) <= 2).sort((a, b) => getAP(b) - getAP(a));
   for (const target of candidates.slice(0, 2)) {
-    removeFromField(opponent, target, opponent.hand);
-    sendToZone(opponent.hand, target);
+    returnUnitToHand(opponent, target);
   }
 }
 
@@ -8434,8 +8320,7 @@ function warshipCruiseCommand(state, player) {
   const candidates = opponent.battleArea.filter((u) => (u.def.level || 0) <= 3);
   if (candidates.length === 0) return;
   const target = candidates.sort((a, b) => getAP(b) - getAP(a))[0];
-  removeFromField(opponent, target, opponent.hand);
-  sendToZone(opponent.hand, target);
+  returnUnitToHand(opponent, target);
 }
 function warshipCruiseBurst(state, player, instance, context) {
   warshipCruiseCommand(state, player, instance, context);
@@ -8552,8 +8437,7 @@ function tiffaAdillFreedenDeploy(state, player) {
   const candidates = opponent.battleArea.filter((u) => getRemainingHP(u) <= 2);
   if (candidates.length === 0) return;
   const target = candidates.sort((a, b) => getAP(b) - getAP(a))[0];
-  removeFromField(opponent, target, opponent.hand);
-  sendToZone(opponent.hand, target);
+  returnUnitToHand(opponent, target);
 }
 
 // === ST01 batch ===
@@ -8810,8 +8694,7 @@ function hawkOfEndymionCommand(state, player, instance, context) {
     ? context.hooks.chooseUnit(candidates)
     : candidates.sort((a, b) => getAP(b) - getAP(a))[0];
   if (!target) return;
-  removeFromField(opponent, target, opponent.hand);
-  sendToZone(opponent.hand, target);
+  returnUnitToHand(opponent, target);
 }
 
 // --- The Magic Bullet of Dusk ST04-014 (Command, pilotMode: Miguel Ayman) ---
@@ -9056,7 +8939,7 @@ function tacticalVisionaryCommand(state, player) {
   );
   if (matchIdx !== -1) {
     const [chosen] = top3.splice(matchIdx, 1);
-    player.hand.push(chosen);
+    addToHand(player, chosen);
   }
   player.deck.push(...shuffle(top3));
 }
@@ -9238,7 +9121,7 @@ function zetaGundamST10002Deploy(state, player) {
   if (candidates.length === 0) return;
   const ggenCards = player.trash.filter((c) => (c.def.traits || []).includes('G Generation'));
   if (ggenCards.length < 2) return;
-  for (const c of ggenCards.slice(0, 2)) player.trash.splice(player.trash.indexOf(c), 1);
+  for (const c of ggenCards.slice(0, 2)) removeFromTrash(player, c);
   const target = candidates.sort((a, b) => getAP(b) - getAP(a))[0];
   restEnemyByEffect(state, player, opponent, target);
 }
@@ -9253,8 +9136,7 @@ function phoenixGundamPowerUnleashedEXDestroysEnemy(state, player, instance) {
   const candidates = opponent.battleArea.filter((u) => getRemainingHP(u) <= 3);
   const target = candidates.sort((a, b) => getAP(b) - getAP(a))[0];
   if (!target) return;
-  removeFromField(opponent, target, opponent.hand);
-  sendToZone(opponent.hand, target);
+  returnUnitToHand(opponent, target);
 }
 
 // --- Gundam Barbatos 4th Form ST10-007 --- Link Condition (G Generation) Trait. [When Linked •
@@ -9265,13 +9147,9 @@ function gundamBarbatos4thFormST10007WhenLinked(state, player) {
   if (commandCandidates.length === 0) return;
   const ggenCards = player.trash.filter((c) => (c.def.traits || []).includes('G Generation'));
   if (ggenCards.length < 2) return;
-  for (const c of ggenCards.slice(0, 2)) {
-    const idx = player.trash.indexOf(c);
-    if (idx !== -1) player.trash.splice(idx, 1);
-  }
+  for (const c of ggenCards.slice(0, 2)) removeFromTrash(player, c);
   const chosen = [...commandCandidates].sort((a, b) => (b.def.cost || 0) - (a.def.cost || 0))[0];
-  player.trash.splice(player.trash.indexOf(chosen), 1);
-  player.hand.push(chosen);
+  recurFromTrash(player, chosen);
 }
 
 // --- Gundam Barbatos 1st Form ST10-008 --- Link Condition (G Generation) Trait. [Deploy •
@@ -9282,7 +9160,7 @@ function gundamBarbatos4thFormST10007WhenLinked(state, player) {
 function gundamBarbatos1stFormST10008Deploy(state, player) {
   const ggenCards = player.trash.filter((c) => (c.def.traits || []).includes('G Generation'));
   if (ggenCards.length < 2) return;
-  for (const c of ggenCards.slice(0, 2)) player.trash.splice(player.trash.indexOf(c), 1);
+  for (const c of ggenCards.slice(0, 2)) removeFromTrash(player, c);
   drawCard(state, player);
   const toDiscard = [...player.hand].sort((a, b) => (b.def.cost || 0) - (a.def.cost || 0))[0];
   if (toDiscard) {
