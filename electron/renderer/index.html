@@ -348,7 +348,7 @@
      that view's own scrollable region gets 100% of the space between the toggle buttons above and the
      panel's bottom edge -- no separate fixed height to keep in sync with window resizes. */
   .replayPanel { display: flex; flex-direction: column; }
-  .replayPanel > h2, .replayPanel > #replayHint { flex: none; }
+  .replayPanel > h2, .replayPanel > #replayHint, .replayPanel > #batchSummarySection { flex: none; }
   #replaySection { display: none; flex-direction: column; flex: 1; min-height: 0; }
   #replayTimeline { flex: 1; min-height: 0; overflow-y: auto; }
   #replayBoard { display: none; flex-direction: column; flex: 1; min-height: 0; }
@@ -602,7 +602,15 @@
   </div>
   <div class="panel replayPanel" style="flex: 2.2">
     <h2>Replay a Game</h2>
-    <p id="replayHint" class="hint">Expand a saved batch on the left and pick a game to replay.</p>
+    <p id="replayHint" class="hint">Expand a saved batch on the left and pick a game to replay, or hit Summary View on one for its overall stats.</p>
+    <div id="batchSummarySection" style="display:none">
+      <div id="summaryResults"></div>
+      <div id="summaryChartLegend" class="chartLegend">
+        <span><span class="swatch swatchA"></span>Deck A</span>
+        <span><span class="swatch swatchB"></span>Deck B</span>
+      </div>
+      <canvas id="summaryChart" width="620" height="460" style="max-width:100%; margin-top:6px;"></canvas>
+    </div>
     <div id="replaySection">
       <div class="viewToggle">
         <button id="logViewBtn" class="smallBtn active" type="button">Log View</button>
@@ -656,6 +664,9 @@
   const replaySection = document.getElementById('replaySection');
   const replayTimeline = document.getElementById('replayTimeline');
   const replayHintEl = document.getElementById('replayHint');
+  const batchSummarySection = document.getElementById('batchSummarySection');
+  const summaryResultsEl = document.getElementById('summaryResults');
+  const summaryChart = document.getElementById('summaryChart');
   const saveBatchRow = document.getElementById('saveBatchRow');
   const batchNameInput = document.getElementById('batchNameInput');
   const saveBatchStatusEl = document.getElementById('saveBatchStatus');
@@ -952,6 +963,19 @@
     }
   }
 
+  // Reuses the exact same renderResultsHtml/CHART_GROUPS/drawBarChart the Simulate screen draws its
+  // own just-finished results with (see window.sim.onResult above) -- a saved batch already carries
+  // its full stats object (src/sim/resultsStore.js), so this is just re-pointing that same rendering
+  // at a different stats object and a different pair of DOM nodes, not a second implementation of it.
+  function showBatchSummary(batch) {
+    stopPlayback();
+    replayHintEl.style.display = 'none';
+    replaySection.style.display = 'none';
+    batchSummarySection.style.display = 'block';
+    summaryResultsEl.innerHTML = renderResultsHtml(batch.stats);
+    drawBarChart(summaryChart, CHART_GROUPS(batch.stats), 13);
+  }
+
   function renderBatchList(batches) {
     batchListEl.innerHTML = '';
     if (!batches.length) {
@@ -972,12 +996,16 @@
         `A ${pct(b.stats.deckA.winRate)} / B ${pct(b.stats.deckB.winRate)}`;
       label.appendChild(meta);
       rowLeft.appendChild(label);
+      const summaryBtn = document.createElement('button');
+      summaryBtn.type = 'button';
+      summaryBtn.className = 'smallBtn';
+      summaryBtn.textContent = 'Summary View';
       const delBtn = document.createElement('button');
       delBtn.type = 'button';
       delBtn.className = 'deleteDeckBtn';
       delBtn.title = 'Delete this batch';
       delBtn.textContent = '×';
-      row.append(rowLeft, delBtn);
+      row.append(rowLeft, summaryBtn, delBtn);
 
       // Game rows are built lazily on first expand, not up front for every saved batch -- a batch can
       // carry up to MAX_RENDERED_GAMES worth of DOM nodes, no need to pay that for every collapsed row.
@@ -991,6 +1019,10 @@
           buildGameRows(gamesList, b);
           gamesList.dataset.built = '1';
         }
+      });
+      summaryBtn.addEventListener('click', (ev) => {
+        ev.stopPropagation();
+        showBatchSummary(b);
       });
       delBtn.addEventListener('click', async (ev) => {
         ev.stopPropagation();
@@ -1702,6 +1734,7 @@
   async function viewReplay(seed, context) {
     replaySection.style.display = 'flex';
     replayHintEl.style.display = 'none';
+    batchSummarySection.style.display = 'none';
     stopPlayback();
     currentReplayEvents = null;
     replayTimeline.innerHTML = 'Loading replay...';
