@@ -121,11 +121,11 @@ ipcMain.handle('cancel-batch', () => {
 // Same activeWorker slot / cancel-batch channel as a batch run -- only one of either can usefully run
 // at a time anyway (both are CPU-bound simulation work), so reusing the single-worker-slot cancellation
 // path needs no new IPC channel.
-ipcMain.handle('run-tournament', (event, { entrants, bestOf, skill }) => {
+ipcMain.handle('run-tournament', (event, { entrants, bestOf, skill, format }) => {
   if (activeWorker) activeWorker.terminate();
 
   activeWorker = new Worker(path.join(__dirname, 'worker', 'tournamentWorker.js'), {
-    workerData: { entrants, bestOf, skill }
+    workerData: { entrants, bestOf, skill, format }
   });
 
   activeWorker.on('message', (msg) => {

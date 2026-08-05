@@ -684,9 +684,16 @@
 <div class="screen hidden" id="tournamentScreen">
   <div class="panel">
     <h2>Entrants</h2>
-    <p class="hint">Pick at least 2 saved decks to randomly seed into a single-elimination bracket.</p>
+    <p class="hint">Pick at least 2 saved decks to randomly seed into a bracket.</p>
     <div id="tourneyDeckList" class="savedDeckList"></div>
     <div class="skillRow">
+      <div>
+        <label for="tourneyFormat">Bracket format</label>
+        <select id="tourneyFormat">
+          <option value="single" selected>Single Elimination</option>
+          <option value="double">Double Elimination</option>
+        </select>
+      </div>
       <div>
         <label for="tourneyBestOf">Match format</label>
         <select id="tourneyBestOf">
@@ -2593,8 +2600,9 @@
     errorEl.textContent = 'Saved decks failed to load: ' + err.message;
   }
 
-  // --- Tournament: random single-elimination bracket across N saved decks, best-of-1/3/5/7 ---
+  // --- Tournament: random single- or double-elimination bracket across N saved decks, best-of-1/3/5/7 ---
   const tourneyDeckListEl = document.getElementById('tourneyDeckList');
+  const tourneyFormatSelect = document.getElementById('tourneyFormat');
   const tourneyBestOfSelect = document.getElementById('tourneyBestOf');
   const tourneyRunBtn = document.getElementById('tourneyRunBtn');
   const tourneyCancelBtn = document.getElementById('tourneyCancelBtn');
@@ -2785,7 +2793,62 @@
     });
   }
 
-  function renderTourneyDeckStats(entrants, rounds) {
+  // --- Double-elimination rendering: the exact same per-round-column primitives above
+  // (buildBracketSkeleton/updateBracketFromSnapshot/enableGameReplayClicks) already operate on an
+  // arbitrary `rounds` array, so a double-elim bracket just calls them 3x (Winners/Losers/Grand Final
+  // sections) instead of once -- these 4 helpers are the only double-elim-aware code in the renderer,
+  // everything else (champion banner, stats, replay clicks) is shared with single elimination as-is.
+  function renderBracketSection(container, title, rounds) {
+    const heading = document.createElement('h3');
+    heading.textContent = title;
+    container.appendChild(heading);
+    const sectionEl = document.createElement('div');
+    container.appendChild(sectionEl);
+    return buildBracketSkeleton(sectionEl, rounds);
+  }
+
+  function renderTournamentBracket(container, result) {
+    container.innerHTML = '';
+    if (result.format === 'double') {
+      return {
+        format: 'double',
+        winners: renderBracketSection(container, 'Winners Bracket', result.winners),
+        losers: renderBracketSection(container, 'Losers Bracket', result.losers),
+        grandFinal: renderBracketSection(container, 'Grand Final', result.grandFinal)
+      };
+    }
+    return { format: 'single', rounds: buildBracketSkeleton(container, result.rounds) };
+  }
+
+  function updateTournamentBracket(matchElsWrap, result) {
+    if (matchElsWrap.format === 'double') {
+      updateBracketFromSnapshot(matchElsWrap.winners, result.winners);
+      updateBracketFromSnapshot(matchElsWrap.losers, result.losers);
+      updateBracketFromSnapshot(matchElsWrap.grandFinal, result.grandFinal);
+    } else {
+      updateBracketFromSnapshot(matchElsWrap.rounds, result.rounds);
+    }
+  }
+
+  function enableTournamentReplayClicks(matchElsWrap, result, replayCtx) {
+    if (matchElsWrap.format === 'double') {
+      enableGameReplayClicks(matchElsWrap.winners, result.winners, replayCtx);
+      enableGameReplayClicks(matchElsWrap.losers, result.losers, replayCtx);
+      enableGameReplayClicks(matchElsWrap.grandFinal, result.grandFinal, replayCtx);
+    } else {
+      enableGameReplayClicks(matchElsWrap.rounds, result.rounds, replayCtx);
+    }
+  }
+
+  // deckStats/tourneyDeckStats just scan whatever flat list of rounds they're handed, so a double-elim
+  // entrant's full record (across both brackets + the Grand Final) is simply every round concatenated.
+  function tournamentAllRounds(result) {
+    return result.format === 'double' ? [...result.winners, ...result.losers, ...result.grandFinal] : result.rounds;
+  }
+
+  function renderTourneyDeckStats(entrants, result) {
+    const rounds = tournamentAllRounds(result);
+    const isDouble = result.format === 'double';
     tourneyDeckStatsEl.innerHTML = '';
     for (const entrant of entrants) {
       const stats = tourneyDeckStats(entrant.id, rounds);
@@ -2795,11 +2858,18 @@
       summary.textContent = `${entrant.name} — ${record} matches, ${pct(stats.winRate)} game win rate`;
       const body = document.createElement('div');
       body.className = 'statsBody callouts secondary';
+      // Single elimination: which round a loss happened in is meaningful ("R2"). Double elimination
+      // needs 2 losses to be out, and "eliminatedRound" is just an index into the concatenated
+      // winners+losers+grandFinal list with no clean "Round N" meaning -- so it's shown as a plain
+      // eliminated/still-in flag there instead (2 total losses = out, same rule for everyone).
+      const eliminatedLabel = isDouble
+        ? (stats.matchesPlayed - stats.matchesWon >= 2 ? 'Eliminated' : '—')
+        : (stats.eliminatedRound === null ? '—' : 'R' + (stats.eliminatedRound + 1));
       body.innerHTML = `
         <div class="callout"><div class="num">${stats.gamesWon}/${stats.gamesPlayed}</div><div class="lbl">Games won</div></div>
         <div class="callout"><div class="num">${pct(stats.mulliganRate)}</div><div class="lbl">Mulligan rate</div></div>
         <div class="callout"><div class="num">${stats.avgTurns.toFixed(1)}</div><div class="lbl">Avg turns</div></div>
-        <div class="callout"><div class="num">${stats.eliminatedRound === null ? '—' : 'R' + (stats.eliminatedRound + 1)}</div><div class="lbl">Eliminated</div></div>
+        <div class="callout"><div class="num">${eliminatedLabel}</div><div class="lbl">${isDouble ? 'Status' : 'Eliminated'}</div></div>
       `;
       details.append(summary, body);
       tourneyDeckStatsEl.appendChild(details);
@@ -2832,7 +2902,7 @@
         const deck = tourneySavedDecks.find((d) => d.name === cb.value);
         return { id: i, name: cb.value, deckText: deck.decklistText };
       });
-      window.tournament.run(currentTourneyEntrants, Number(tourneyBestOfSelect.value), tourneySkillSelect.value);
+      window.tournament.run(currentTourneyEntrants, Number(tourneyBestOfSelect.value), tourneySkillSelect.value, tourneyFormatSelect.value);
     });
 
     tourneyCancelBtn.addEventListener('click', () => {
@@ -2843,19 +2913,25 @@
       tourneyStatusEl.textContent = 'Cancelled.';
     });
 
+    const TOURNEY_BRACKET_LABELS = { winners: 'Winners Bracket', losers: 'Losers Bracket', grandFinal: 'Grand Final' };
+
     // 'seeded' fires once, immediately, with the whole bracket's shape (round 0 paired for real,
     // every later round a TBD placeholder) -- painting that right away is what makes the bracket
     // visible before a single game has been played. Each 'match' event after that (bye or real) both
     // reveals its winner into the next round's slot and (for a real match) fades its loser -- see
-    // updateEntrantSlot's 'eliminated' class.
+    // updateEntrantSlot's 'eliminated' class. Double elimination's events carry the same shapes, just
+    // {winners,losers,grandFinal} instead of {rounds} -- renderTournamentBracket/updateTournamentBracket
+    // both branch on that automatically, so this handler doesn't need to know which format is running.
     window.tournament.onProgress((msg) => {
       if (msg.phase === 'seeded') {
-        liveBracketMatchEls = buildBracketSkeleton(tourneyBracketEl, msg.rounds);
-        updateBracketFromSnapshot(liveBracketMatchEls, msg.rounds);
+        liveBracketMatchEls = renderTournamentBracket(tourneyBracketEl, msg);
+        updateTournamentBracket(liveBracketMatchEls, msg);
         tourneyProgressTextEl.textContent = 'Bracket seeded — playing matches...';
       } else if (msg.phase === 'match' && liveBracketMatchEls) {
-        updateBracketFromSnapshot(liveBracketMatchEls, msg.rounds);
-        tourneyProgressTextEl.textContent = `Round ${msg.round + 1}, match ${msg.matchIndex + 1} complete`;
+        updateTournamentBracket(liveBracketMatchEls, msg);
+        tourneyProgressTextEl.textContent = msg.bracket
+          ? `${TOURNEY_BRACKET_LABELS[msg.bracket]}, round ${msg.round + 1} complete`
+          : `Round ${msg.round + 1}, match ${msg.matchIndex + 1} complete`;
       }
     });
 
@@ -2876,13 +2952,13 @@
       banner.append(num, lbl);
       tourneyChampionEl.appendChild(banner);
 
-      if (!liveBracketMatchEls) liveBracketMatchEls = buildBracketSkeleton(tourneyBracketEl, result.rounds);
-      updateBracketFromSnapshot(liveBracketMatchEls, result.rounds);
+      if (!liveBracketMatchEls) liveBracketMatchEls = renderTournamentBracket(tourneyBracketEl, result);
+      updateTournamentBracket(liveBracketMatchEls, result);
       const entrantsById = new Map(context.entrants.map((e) => [e.id, e.deckText]));
-      enableGameReplayClicks(liveBracketMatchEls, result.rounds, {
+      enableTournamentReplayClicks(liveBracketMatchEls, result, {
         entrantsById, engine: context.engine, mctsConfig: context.mctsConfig
       });
-      renderTourneyDeckStats(currentTourneyEntrants, result.rounds);
+      renderTourneyDeckStats(currentTourneyEntrants, result);
 
       currentTourneyResult = result;
       currentTourneyContext = context;
@@ -2948,10 +3024,10 @@
         const showing = bracketWrap.style.display !== 'none';
         bracketWrap.style.display = showing ? 'none' : 'block';
         if (!showing && !bracketWrap.dataset.built) {
-          const matchEls = buildBracketSkeleton(bracketWrap, t.result.rounds);
-          updateBracketFromSnapshot(matchEls, t.result.rounds);
+          const matchEls = renderTournamentBracket(bracketWrap, t.result);
+          updateTournamentBracket(matchEls, t.result);
           const entrantsById = new Map(t.context.entrants.map((e) => [e.id, e.deckText]));
-          enableGameReplayClicks(matchEls, t.result.rounds, {
+          enableTournamentReplayClicks(matchEls, t.result, {
             entrantsById, engine: t.context.engine, mctsConfig: t.context.mctsConfig
           });
           bracketWrap.dataset.built = '1';

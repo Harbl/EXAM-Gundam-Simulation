@@ -3,7 +3,7 @@ const { parseDecklistText } = require('../../src/deck/parser');
 const { validateDeck } = require('../../src/deck/validator');
 const { buildGameDeck } = require('../../src/deck/build');
 const { lookupCard } = require('../../src/cards/index');
-const { runTournament } = require('../../src/sim/tournament');
+const { runTournament, runDoubleElimTournament } = require('../../src/sim/tournament');
 const { SKILL_PRESETS } = require('../../src/ai/skillPresets');
 const banlist = require('../../data/banlist.json');
 
@@ -17,11 +17,12 @@ function loadDeck(text, label) {
 }
 
 async function main() {
-  const { entrants, bestOf, skill } = workerData;
+  const { entrants, bestOf, skill, format } = workerData;
   const preset = SKILL_PRESETS[skill] || SKILL_PRESETS.casual;
   const built = entrants.map((e) => ({ id: e.id, name: e.name, deck: loadDeck(e.deckText, e.name) }));
+  const run = format === 'double' ? runDoubleElimTournament : runTournament;
 
-  const result = runTournament(
+  const result = run(
     built,
     bestOf,
     (progress) => parentPort.postMessage({ type: 'progress', ...progress }),

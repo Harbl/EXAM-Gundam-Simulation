@@ -42,7 +42,7 @@ contextBridge.exposeInMainWorld('exporter', {
 });
 
 contextBridge.exposeInMainWorld('tournament', {
-  run: (entrants, bestOf, skill) => ipcRenderer.invoke('run-tournament', { entrants, bestOf, skill }),
+  run: (entrants, bestOf, skill, format) => ipcRenderer.invoke('run-tournament', { entrants, bestOf, skill, format }),
   cancel: () => ipcRenderer.invoke('cancel-batch'), // shares the batch worker's cancel channel, see main.js
   onProgress: (callback) => ipcRenderer.on('tournament-progress', (_event, msg) => callback(msg)),
   // Payload is {result, context} -- context (each entrant's decklist + resolved engine/mctsConfig)

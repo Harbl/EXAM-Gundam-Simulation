@@ -5,7 +5,7 @@ const { parseDecklistText } = require('../src/deck/parser');
 const { validateDeck } = require('../src/deck/validator');
 const { buildGameDeck } = require('../src/deck/build');
 const { lookupCard } = require('../src/cards/index');
-const { buildBracket, playMatch, runTournament, deckStats } = require('../src/sim/tournament');
+const { buildBracket, playMatch, runTournament, runDoubleElimTournament, deckStats } = require('../src/sim/tournament');
 const banlist = require('../data/banlist.json');
 
 const JAKES_DECKLIST = `
@@ -161,4 +161,67 @@ test('deckStats records the elimination round for a non-champion who lost', () =
   const stats = deckStats(loserId, rounds);
   assert.ok(stats.matchesPlayed >= 1);
   assert.ok(stats.eliminatedRound === 0 || stats.eliminatedRound === 1);
+});
+
+// Regression guard: entrant counts needing 2+ byes (pad = next-power-of-2 minus entrant count) used to
+// crash runTournament outright -- buildBracket appends all its bye padding contiguously at the end of
+// the slot array, so pad >= 2 always produces at least one round-0 pairing that's *both* slots empty,
+// which the original per-round loop had no branch for (it fell through to `playMatch(a.deck, ...)`
+// with `a` still null). Fixed by unifying round-play onto playSlotRound, which handles all three slot
+// shapes (real match, one-sided bye, empty) explicitly. 5 entrants -> pad 3; 6 -> pad 2.
+for (const n of [5, 6]) {
+  test(`runTournament doesn't crash on ${n} entrants (needs 2+ byes to reach the next power of 2)`, () => {
+    const { champion } = runTournament(makeEntrants(n), 1);
+    assert.ok(champion);
+  });
+}
+
+// Double elimination: every entrant should end up with exactly 2 match losses (eliminated) except the
+// tournament champion, who has 0 or 1 (1 only if they came up through the losers bracket and forced a
+// Grand Final bracket reset) -- this is the defining invariant of double elimination, and true
+// regardless of who actually wins any given (randomized, real-AI) match, so it's what these tests
+// check rather than any specific outcome.
+for (const n of [2, 4, 8]) {
+  test(`double elimination (${n} entrants): every non-champion has exactly 2 losses, the champion has fewer`, () => {
+    const entrants = makeEntrants(n);
+    const result = runDoubleElimTournament(entrants, 1);
+    assert.equal(result.format, 'double');
+    assert.ok(result.champion);
+
+    const allRounds = [...result.winners, ...result.losers, ...result.grandFinal];
+    for (const e of entrants) {
+      const stats = deckStats(e.id, allRounds);
+      const losses = stats.matchesPlayed - stats.matchesWon;
+      if (e.id === result.champion.id) {
+        assert.ok(losses < 2, `champion should have fewer than 2 losses, got ${losses}`);
+      } else {
+        assert.equal(losses, 2, `${e.name} should be eliminated with exactly 2 losses, got ${losses}`);
+      }
+    }
+  });
+}
+
+test('double elimination winners/losers bracket round sizes match the standard shape (8 entrants)', () => {
+  const result = runDoubleElimTournament(makeEntrants(8), 1);
+  assert.deepEqual(result.winners.map((r) => r.length), [4, 2, 1]);
+  assert.deepEqual(result.losers.map((r) => r.length), [2, 2, 1, 1]);
+});
+
+// A Grand Final bracket reset (2nd match) only happens when the losers-bracket champion wins the first
+// Grand Final match -- can't force a specific outcome against the real AI, but across enough seeded
+// runs it should happen sometimes, confirming the reset path is actually reachable, not dead code.
+test('double elimination Grand Final sometimes resets to a second match', () => {
+  let sawReset = false;
+  for (let i = 0; i < 15 && !sawReset; i++) {
+    const result = runDoubleElimTournament(makeEntrants(4), 1);
+    if (result.grandFinal.length === 2) sawReset = true;
+  }
+  assert.ok(sawReset, 'expected at least one bracket reset across 15 tournaments');
+});
+
+test("double elimination doesn't crash on entrant counts needing byes (3, 5, 6)", () => {
+  for (const n of [3, 5, 6]) {
+    const result = runDoubleElimTournament(makeEntrants(n), 1);
+    assert.ok(result.champion);
+  }
 });
