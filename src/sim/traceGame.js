@@ -279,6 +279,29 @@ combat.resolveAttack = function (state, attackerPlayerIdx, attacker, declaredTar
   return result;
 };
 
+// Resources (electron/renderer's board replay) need to know not just that a payment happened, but
+// exactly which physical Resource instances it rested (or, for a spent EX Resource token, removed
+// outright) -- payCost (src/rules/cost.js) itself takes no `state` argument, unlike every other
+// patched function here, so the usual `state === realState` guard reads `opts.state` instead (every
+// real call site already passes `{ state }` through canAfford/payCost's opts for its own
+// board-state-reduction checks, so this is never a special case to add just for tracing).
+const cost = require('../rules/cost');
+const origPayCost = cost.payCost;
+cost.payCost = function (player, def, opts = {}) {
+  const isReal = opts.state === realState;
+  const restedBefore = isReal ? new Map(player.resourceArea.map((r) => [r.id, r.rested])) : null;
+  const playerIdx = isReal ? realState.players.indexOf(player) : null;
+  const result = origPayCost.call(this, player, def, opts);
+  if (isReal) {
+    const restedIds = player.resourceArea.filter((r) => r.rested && restedBefore.get(r.id) === false).map((r) => r.id);
+    const removedIds = [...restedBefore.keys()].filter((id) => !player.resourceArea.some((r) => r.id === id));
+    if (restedIds.length || removedIds.length) {
+      events.push({ type: 'payResources', turn: realState.turnNumber, player: playerIdx, restedIds, removedIds });
+    }
+  }
+  return result;
+};
+
 // Burst effects (e.g. "add this Shield to your hand") are looked up and invoked entirely within
 // combat.js's resolveBurst -- `const burstEffect = shieldInstance.def.effects.burst` is captured
 // BEFORE hooks.chooseBurst is even called, so patching def.effects.burst from inside the chooseBurst
@@ -360,6 +383,16 @@ function traceGame(deckA, deckB, seed, options = {}) {
     events.push({ type: 'baseSetup', player: i, base: instanceRef(state.players[i].base) });
   }
 
+  // 6-2-4: only the second player starts with an EX Resource already in their resource area -- same
+  // "assigned directly in setup.js, so nothing else would ever emit an event for it" gap as the EX
+  // Base above. Iterates rather than indexing player Two specifically so this stays correct even if a
+  // future rules change ever gave both players a starting Resource.
+  for (let i = 0; i < state.players.length; i++) {
+    for (const resource of state.players[i].resourceArea) {
+      events.push({ type: 'resourceSetup', player: i, resource: instanceRef(resource) });
+    }
+  }
+
   if (options.mctsConfigA) state.players[0].mctsConfig = options.mctsConfigA;
   if (options.mctsConfigB) state.players[1].mctsConfig = options.mctsConfigB;
   const engines = [options.engineA || 'mcts', options.engineB || 'mcts'];
@@ -435,8 +468,14 @@ function traceGame(deckA, deckB, seed, options = {}) {
 
     const resourcesBefore = state.players.map((p) => p.resourceArea.length);
     runResourcePhase(state);
-    if (state.players[state.activePlayerIdx].resourceArea.length > resourcesBefore[state.activePlayerIdx]) {
-      events.push({ type: 'resource', turn: state.turnNumber, player: state.activePlayerIdx });
+    const resourceArea = state.players[state.activePlayerIdx].resourceArea;
+    if (resourceArea.length > resourcesBefore[state.activePlayerIdx]) {
+      events.push({
+        type: 'resource',
+        turn: state.turnNumber,
+        player: state.activePlayerIdx,
+        resource: instanceRef(resourceArea[resourceArea.length - 1])
+      });
     }
     if (engines[state.activePlayerIdx] === 'lookahead') runMainPhase(state, state.activePlayerIdx, hooks);
     else runMainPhaseMCTS(state, state.activePlayerIdx, hooks);

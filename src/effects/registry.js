@@ -1770,7 +1770,7 @@ function destinyGundamGD04050Attack(state, player, instance, context) {
     ? context.hooks.chooseCard(candidates)
     : candidates.sort((a, b) => getAP(b) - getAP(a))[0];
   if (!target) return;
-  payCost(player, target.def, { fromTrash: true });
+  payCost(player, target.def, { fromTrash: true, state });
   player.trash.splice(player.trash.indexOf(target), 1);
   deployUnit(state, player, target.def, undefined, { fromTrash: true });
 }
@@ -1820,7 +1820,7 @@ function awakenedPowerCommand(state, player, instance, context) {
     ? context.hooks.chooseCard(candidates)
     : candidates.sort((a, b) => getAP(b) - getAP(a))[0];
   if (!target) return;
-  payCost(player, target.def, { fromTrash: true });
+  payCost(player, target.def, { fromTrash: true, state });
   player.trash.splice(player.trash.indexOf(target), 1);
   deployUnit(state, player, target.def, undefined, { fromTrash: true });
 }
@@ -3809,7 +3809,7 @@ function desilGaletteWhenLinked(state, player, unit, context) {
     ? context.hooks.chooseCard(candidates)
     : candidates.sort((a, b) => getAP(b) - getAP(a))[0];
   if (!target) return;
-  payCost(player, target.def, { fromTrash: true });
+  payCost(player, target.def, { fromTrash: true, state });
   player.trash.splice(player.trash.indexOf(target), 1);
   deployUnit(state, player, target.def, undefined, { fromTrash: true });
 }
@@ -4515,7 +4515,7 @@ function gundamXDividerWhenLinked(state, player, instance, context) {
     ? context.hooks.chooseCard(candidates)
     : candidates.sort((a, b) => getAP(b) - getAP(a))[0];
   if (!target) return;
-  payCost(player, target.def, { fromTrash: true });
+  payCost(player, target.def, { fromTrash: true, state });
   player.trash.splice(player.trash.indexOf(target), 1);
   deployUnit(state, player, target.def, undefined, { fromTrash: true });
 }
@@ -5438,7 +5438,7 @@ function downesDeploy(state, player, instance) {
   );
   const target = candidates.sort((a, b) => getAP(b) - getAP(a))[0];
   if (!target) return;
-  payCost(player, target.def, { fromTrash: true });
+  payCost(player, target.def, { fromTrash: true, state });
   player.trash.splice(player.trash.indexOf(target), 1);
   deployUnit(state, player, target.def, undefined, { fromTrash: true });
 }

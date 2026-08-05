@@ -267,9 +267,16 @@
      is what actually gives the replay panel real room -- flex-basis shrinks to just the toggle
      button's width and the replay panel's own `flex: 2.2` picks up the freed space automatically. */
   #batchListPanel { flex: 1; }
+  #collapseBatchListBtn { margin-left: auto; }
   #batchListPanel.collapsed { flex: 0 0 auto; padding: 16px 10px; overflow: hidden; }
-  #batchListPanel.collapsed h2 { border-bottom: none; padding-bottom: 0; }
-  #batchListPanel.collapsed h2 span, #batchListPanel.collapsed #batchList { display: none; }
+  #batchListPanel.collapsed h2 { border-bottom: none; padding-bottom: 0; flex-direction: column; height: 100%; }
+  /* The label stays visible, rotated to read top-to-bottom in the thin sliver that's left, instead of
+     just disappearing along with the rest of the panel's content -- same idea as a book's spine text.
+     The toggle button is reordered to stay at the top (where it sits in the expanded layout) rather
+     than following the label's now-vertical flow in document order. */
+  #batchListPanel.collapsed h2 span { writing-mode: vertical-rl; margin-top: 10px; }
+  #batchListPanel.collapsed #collapseBatchListBtn { margin-left: 0; order: -1; }
+  #batchListPanel.collapsed #batchList { display: none; }
 
   .savedDeckList { margin-top: 6px; border: 1px solid var(--grey); }
   .savedDeckRow {
@@ -317,7 +324,10 @@
   .buttons.builderActions .smallBtn { flex: 1 !important; }
 
   #replaySection { border-top: 1px solid var(--grey); padding-top: 4px; }
-  .timeline { margin-top: 10px; max-height: 260px; overflow-y: auto; font-family: 'Consolas', monospace; font-size: 11.5px; }
+  /* #replayTimeline (below) already flexes to fill the panel and does the real scrolling -- this used
+     to also cap itself at a fixed max-height, a leftover from before that flex chain existed, which
+     left most of the panel empty below a small inner scrollbar. */
+  .timeline { margin-top: 10px; font-family: 'Consolas', monospace; font-size: 11.5px; }
   .timeline .turn { color: var(--gold); font-family: var(--font-head); letter-spacing: 1px; margin-top: 8px; }
   .timeline .evt { display: flex; align-items: center; gap: 8px; padding: 3px 0 3px 10px; border-left: 2px solid var(--grey); }
   .timeline .evt.p0 { border-left-color: var(--red); }
@@ -356,13 +366,24 @@
   .boardRow { margin-bottom: 9px; }
   .boardRow .rowLabel { font-size: 11px; color: #888; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 4px; }
   .boardTiles, .shieldRow, .handRow { display: flex; flex-wrap: wrap; gap: 7px; }
-  .unitTile { width: 88px; background: #111; border: 1px solid var(--grey); padding: 4px; text-align: center; transition: opacity 300ms; }
-  .unitTile.rested { opacity: 0.5; }
+  .unitTile { width: 88px; background: #111; border: 1px solid var(--grey); padding: 4px; text-align: center; transition: opacity 300ms, transform 300ms; }
+  /* A real "tapped" tilt (not just a dim) -- shared by every rested unitTile (Base, Battle Area,
+     Resources alike), so attacking/blocking/paying a cost all read the same way a rested Resource
+     already does. A full 90deg tabletop-style tap would badly overlap neighboring tiles in a wrapped
+     grid this dense, so this is a smaller tilt that still clearly reads as "rested" without blowing up
+     the tile's footprint. */
+  .unitTile.rested { opacity: 0.55; transform: rotate(18deg); }
   .unitTile img { width: 76px; height: 107px; object-fit: cover; background: #000; display: block; margin: 0 auto 3px; }
   .unitTile .uName { font-size: 11px; line-height: 1.2; height: 26px; overflow: hidden; }
   .unitTile .hpTrack { background: #222; height: 6px; margin-top: 3px; }
   .unitTile .hpFill { background: var(--red-glow); height: 100%; transition: width 420ms ease; }
   .unitTile .pilotBadge { font-size: 10px; color: var(--gold); overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+  /* Resources: same tile shape, just a lot smaller and with no name label -- a row of a dozen-plus
+     "Resource" labels repeated verbatim would be pure noise at this size. */
+  .resourceTiles { gap: 5px; }
+  .resourceTiles .unitTile { width: 40px; padding: 3px; }
+  .resourceTiles .unitTile img { width: 32px; height: 45px; margin-bottom: 0; }
+  .resourceTiles .unitTile .uName { display: none; }
   .miniStat { font-size: 12px; color: #999; }
   .shieldBack { width: 34px; height: 48px; background: linear-gradient(160deg, #3a3a3a, #111); border: 1px solid var(--grey); flex-shrink: 0; }
   .shieldFront { width: 34px; height: 48px; flex-shrink: 0; }
@@ -398,7 +419,12 @@
   .filterRow { display: flex; gap: 8px; margin-bottom: 10px; }
   .filterRow input { flex: 2; }
   .filterRow select { flex: 1; }
-  .cardGrid { display: flex; flex-wrap: wrap; gap: 10px; max-height: 560px; overflow-y: auto; align-content: flex-start; }
+  /* Same flex-column-fills-the-panel shape as .replayPanel below -- .cardGrid used to be capped at a
+     fixed max-height (a leftover from before that pattern existed), leaving the rest of the panel
+     empty below its own internal scrollbar instead of actually using the space. */
+  .browsePanel { display: flex; flex-direction: column; }
+  .browsePanel > h2, .browsePanel > .filterRow { flex: none; }
+  .cardGrid { display: flex; flex-wrap: wrap; gap: 10px; flex: 1; min-height: 0; overflow-y: auto; align-content: flex-start; }
   .cardGrid .hint { color: #777; font-size: 12px; }
   .cardTile { width: 108px; background: #111; border: 1px solid var(--grey); padding: 6px; text-align: center; }
   .cardTile img { width: 96px; height: 134px; object-fit: cover; background: #000; display: block; margin: 0 auto 4px; }
@@ -550,7 +576,7 @@
     <div id="builderStatus" class="smallStatus"></div>
   </div>
 
-  <div class="panel" style="flex: 1">
+  <div class="panel browsePanel" style="flex: 1">
     <h2>Browse Cards</h2>
     <div class="filterRow">
       <input type="text" id="cardSearch" placeholder="Search name or number..." />
@@ -571,7 +597,7 @@
 
 <div class="screen hidden" id="logScreen">
   <div class="panel" id="batchListPanel">
-    <h2><span>Saved Batches</span><button id="collapseBatchListBtn" class="smallBtn" type="button" style="margin-left:auto">◀</button></h2>
+    <h2><span>Saved Batches</span><button id="collapseBatchListBtn" class="smallBtn" type="button">◀</button></h2>
     <div id="batchList" class="savedDeckList"></div>
   </div>
   <div class="panel replayPanel" style="flex: 2.2">
@@ -1114,7 +1140,7 @@
 
   function buildSnapshot(events, uptoIdx) {
     const players = [0, 1].map(() => ({
-      hand: [], shieldCount: 6, base: null, battleArea: [], resourceCount: 0, trashCount: 0, pendingBaseReveal: false
+      hand: [], shieldCount: 6, base: null, battleArea: [], resources: [], resourceCount: 0, trashCount: 0, pendingBaseReveal: false
     }));
     let activePlayer = null;
     for (let i = 0; i <= uptoIdx && i < events.length; i++) {
@@ -1128,16 +1154,32 @@
         // 5-17-3: both players start the game with an EX Base already in play (see traceGame.js's
         // matching comment for why this needs its own event, distinct from 'deployBase').
         case 'baseSetup': p.base = newUnit(e.base); break;
+        // 6-2-4: only the second player starts with an EX Resource already in their resource area.
+        case 'resourceSetup': p.resources.push(newUnit(e.resource)); break;
         case 'turnStart': {
           activePlayer = e.player;
-          // Start-phase active step: only the turn's own player untaps their Units/Base -- this is
-          // also what clears a Blocker's rested state after it intercepted an attack on an earlier turn.
+          // Start-phase active step: only the turn's own player untaps their Units/Base/Resources --
+          // this is also what clears a Blocker's rested state after it intercepted an attack on an
+          // earlier turn.
           for (const u of p.battleArea) u.rested = false;
           if (p.base) p.base.rested = false;
+          for (const r of p.resources) r.rested = false;
           break;
         }
         case 'draw': p.hand.push({ ...e.card, _key: `hand-${e.player}-${i}` }); break;
-        case 'resource': p.resourceCount++; break;
+        case 'resource':
+          p.resourceCount++;
+          p.resources.push(newUnit(e.resource));
+          break;
+        // A cost payment rests specific Resources (or, for a spent EX Resource token, removes it from
+        // the game outright) -- traceGame.js's payCost patch is the one chokepoint that knows exactly
+        // which physical Resources a given payment touched.
+        case 'payResources':
+          for (const r of p.resources) {
+            if (e.restedIds.includes(r.id)) r.rested = true;
+          }
+          p.resources = p.resources.filter((r) => !e.removedIds.includes(r.id));
+          break;
         case 'deploy':
           removeFromHandByNumber(p.hand, e.card.number);
           p.battleArea.push(newUnit(e.unit));
@@ -1228,6 +1270,8 @@
       case 'mulligan': return `P${e.player} ${e.mulliganed ? 'mulligans' : 'keeps their opening hand'}`;
       case 'openingHand': return `P${e.player}'s opening hand is set`;
       case 'baseSetup': return `P${e.player}'s EX Base is placed`;
+      case 'resourceSetup': return `P${e.player}'s EX Resource is placed`;
+      case 'payResources': return `P${e.player} rests Resources to pay a cost`;
       case 'gameStart': return `First player: P${e.firstPlayer}`;
       case 'turnStart': return `Round ${Math.ceil(e.turn / 2)} — P${e.player}'s turn`;
       case 'destroy': return `P${e.player}'s ${e.unit.name} is destroyed`;
@@ -1251,6 +1295,7 @@
         <div class="boardRow"><div class="rowLabel">Shields</div><div class="shieldRow boardTiles" data-zone="shields"></div></div>
         <div class="boardRow"><div class="rowLabel">Base</div><div class="boardTiles" data-zone="base"></div></div>
         <div class="boardRow"><div class="rowLabel">Battle Area</div><div class="boardTiles" data-zone="battle"></div></div>
+        <div class="boardRow"><div class="rowLabel">Resources</div><div class="boardTiles resourceTiles" data-zone="resources"></div></div>
         <div class="boardRow"><div class="rowLabel">Hand</div><div class="handRow boardTiles" data-zone="hand"></div></div>
       </div>`).join('');
     boardZones = [0, 1].map((i) => {
@@ -1261,6 +1306,7 @@
         counts: root.querySelector('.playerCounts'),
         shieldsEl: root.querySelector('[data-zone="shields"]'),
         baseEl: root.querySelector('[data-zone="base"]'),
+        resourcesEl: root.querySelector('[data-zone="resources"]'),
         battleEl: root.querySelector('[data-zone="battle"]'),
         handEl: root.querySelector('[data-zone="hand"]')
       };
@@ -1494,6 +1540,9 @@
       case 'damage':
         flashClass(boardNodeRegistry.get('unit-' + event.instance.id), 'flashHit');
         break;
+      case 'payResources':
+        for (const id of [...event.restedIds, ...event.removedIds]) flashClass(boardNodeRegistry.get('unit-' + id), 'flashAttack');
+        break;
     }
   }
 
@@ -1539,6 +1588,7 @@
       const shieldItems = Array.from({ length: p.shieldCount }, (_, slot) => ({ _key: `shieldback-${i}-${slot}` }));
       for (const k of reconcileZone(zone.shieldsEl, shieldItems, 'shieldBack', null, animate)) seenAll.add(k);
       for (const k of reconcileZone(zone.baseEl, p.base ? [p.base] : [], 'unit', (u) => cardByNumber(u.number), animate)) seenAll.add(k);
+      for (const k of reconcileZone(zone.resourcesEl, p.resources, 'unit', (u) => cardByNumber(u.number), animate)) seenAll.add(k);
       for (const k of reconcileZone(zone.battleEl, p.battleArea, 'unit', (u) => cardByNumber(u.number), animate)) seenAll.add(k);
       for (const k of reconcileZone(zone.handEl, p.hand, 'hand', null, animate)) seenAll.add(k);
     });
@@ -1777,8 +1827,31 @@
 
   // Card art ships inside the app at electron/renderer/assets/cards/{number}.webp (populated by
   // bin/download-images.js). A missing file just hides the <img> instead of showing a broken-image icon.
+  //
+  // Unit•Token/EX Base/EX Resource cards (src/effects/registry.js, src/rules/setup.js) use synthetic
+  // numbers like TOKEN-HYGOGG or EX-BASE as their real, stable game-logic identifiers -- but the art
+  // itself was researched and downloaded under Bandai's own real printed numbers for these (the T-XXX
+  // Unit•Token set, EXB-XXX/EXR-XXX), not the synthetic ones. This maps synthetic -> real art number;
+  // two different synthetic tokens sharing one printed token (e.g. the two independently-defined
+  // "Hy-Gogg" tokens, or "Zaku"/"Zaku II") correctly point at the same file.
+  const TOKEN_ART_NUMBER = {
+    'TOKEN-WB-GUNDAM': 'T-001', 'TOKEN-WB-GUNCANNON': 'T-002', 'TOKEN-WB-GUNTANK': 'T-003',
+    'TOKEN-LEO': 'T-004', 'TOKEN-TALLGEESE': 'T-005', 'TOKEN-CHARS-ZAKU': 'T-006',
+    'TOKEN-ZAKU': 'T-007', 'TOKEN-ZAKU-II': 'T-007',
+    'TOKEN-AILE-STRIKE': 'T-008', 'TOKEN-LAUNCHER-STRIKE': 'T-009', 'TOKEN-SWORD-STRIKE': 'T-010',
+    'TOKEN-FATUM00': 'T-011', 'TOKEN-DAUGHTRESS': 'T-012',
+    'TOKEN-HYGOGG': 'T-013', 'TOKEN-HY-GOGG': 'T-013',
+    'TOKEN-AD-BALLOON': 'T-014', 'TOKEN-CGS': 'T-015', 'TOKEN-GRAZE-CUSTOM': 'T-016',
+    'TOKEN-BARBATOS-4TH-FORM': 'T-017', 'TOKEN-RED-GUNDAM': 'T-018', 'TOKEN-GQUUUUUUX-OMEGA': 'T-019',
+    'TOKEN-GFRED': 'T-020', 'TOKEN-PARTS': 'T-021', 'TOKEN-WIRE-ARM': 'T-022',
+    'TOKEN-ZEONG-HEAD': 'T-023', 'TOKEN-ALVAARON': 'T-024', 'TOKEN-GUNDAM-EXIA': 'T-025',
+    'TOKEN-GUNDNODE': 'T-026', 'TOKEN-PLUMA': 'T-027',
+    'EX-BASE': 'EXB-001', 'EX-RESOURCE': 'EXR-001',
+    // Plain Resources (src/deck/build.js's RESOURCE_DEF) are also a synthetic, non-researched number.
+    'RESOURCE': 'R-002'
+  };
   function imgSrcFor(number) {
-    return 'assets/cards/' + encodeURIComponent(number) + '.webp';
+    return 'assets/cards/' + encodeURIComponent(TOKEN_ART_NUMBER[number] || number) + '.webp';
   }
 
   // Shared hover-zoom: both the Browse Cards grid and Your Deck grid wire their thumbnails to this

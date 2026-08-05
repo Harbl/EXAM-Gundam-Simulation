@@ -16,7 +16,10 @@ guessed, never left as a generic vanilla stat-line.
 ### [⬇ Download EXAM for Windows](https://github.com/Harbl/EXAM-Gundam-Simulation/releases/latest)
 
 Grab the installer from the [latest release](https://github.com/Harbl/EXAM-Gundam-Simulation/releases/latest),
-run it, and pick your install location in the setup wizard.
+run it, and pick your install location in the setup wizard. After that, the app
+checks for a newer version on every launch — when one's out, a small banner
+shows up so you can download and install it with one click, right from inside
+the app.
 
 ![Batch simulation results](docs/screenshots/simulate-results.png)
 
@@ -46,12 +49,21 @@ for editing.
 **Watch any simulated game play out, turn by turn.** Every batch remembers each
 game's seed, so any individual game is exactly reproducible. The replay viewer
 has two modes: a text log, or a full visual board — both players' hands
-revealed, Shields flipping face-up as they're hit, HP bars draining in real
-time, units physically flying from hand to the battle area on deploy and off to
-the trash on destruction. Step through event-by-event or hit play and watch it
-run.
+revealed, Shields flipping face-up as they're hit, Bases and Resources on
+display with real card art (down to Unit Tokens and the EX Base/EX Resource
+every game starts with), Resources tapping as they're spent, HP bars draining
+in real time, units physically flying from hand to the battle area on deploy,
+tapping when they attack or block, and flying off to the trash on destruction.
+Step through event-by-event or hit play and watch it run.
 
 ![Visual board replay, mid-game](docs/screenshots/board-replay.png)
+
+**Every batch you save stays around.** The Log page lists every batch you've
+ever saved — deck names, game count, win rate at a glance — and picking one
+loads its full game-by-game results back in, ready to replay any individual
+game from that run the same way as a batch you just finished.
+
+![Browsing a saved batch's results in the Log page](docs/screenshots/log-view.png)
 
 ## How it's built
 
@@ -64,7 +76,7 @@ run.
 - **MCTS AI** (`src/ai/mcts.js`) searches the real interleaved action space
   (deploy/pair/Command/attack, any order) rather than a fixed pipeline, with a
   board-evaluation heuristic (`src/ai/score.js`) and a tunable playout budget.
-- **860+ tests** (`node --test`) covering rules edge cases, the full card
+- **890+ tests** (`node --test`) covering rules edge cases, the full card
   effect library, AI decision logic, and the replay trace/reducer.
 
 ## Running in dev

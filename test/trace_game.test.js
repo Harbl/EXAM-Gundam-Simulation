@@ -56,7 +56,14 @@ test('traceGame returns a structured event log, mulligan decisions first, gameSt
   assert.deepEqual(baseSetupEvents.map((e) => e.type), ['baseSetup', 'baseSetup']);
   assert.ok(baseSetupEvents.every((e) => e.base && e.base.number === 'EX-BASE'));
 
-  const gameStart = events[6];
+  // resourceSetup (6-2-4: only the second player starts with an EX Resource) follows -- exactly one
+  // event, not one per player, still before gameStart.
+  const resourceSetupEvents = events.filter((e) => e.type === 'resourceSetup');
+  assert.equal(resourceSetupEvents.length, 1, 'only the second player starts with an EX Resource');
+  assert.equal(resourceSetupEvents[0].resource.number, 'EX-RESOURCE');
+  assert.equal(events[6].type, 'resourceSetup');
+
+  const gameStart = events[7];
   assert.equal(gameStart.type, 'gameStart');
   assert.ok(gameStart.firstPlayer === 0 || gameStart.firstPlayer === 1);
 
@@ -79,8 +86,13 @@ test('traceGame returns a structured event log, mulligan decisions first, gameSt
 // the seed -- it's a bookkeeping value that legitimately differs between two separate traceGame()
 // calls in the same process, even though every seed-derived decision (deploys/attacks/targets/
 // outcome) lines up exactly. Stripped out here since it isn't part of the seeded-determinism contract.
+// 'restedIds'/'removedIds' (payResources) carry raw instance ids in an array rather than nested
+// under an 'id' key the way instanceRef's {id, name, number} shape does -- same run-to-run-varying
+// problem as every other id (nextInstanceId, src/rules/state.js, is a module-level counter that never
+// resets between traceGame() calls in the same process), just needing its own stripped key names.
 function stripIds(events) {
-  return JSON.parse(JSON.stringify(events, (key, value) => (key === 'id' ? undefined : value)));
+  const idKeys = new Set(['id', 'restedIds', 'removedIds']);
+  return JSON.parse(JSON.stringify(events, (key, value) => (idKeys.has(key) ? undefined : value)));
 }
 
 test('traceGame with the same seed reproduces the exact same event log', () => {
@@ -110,6 +122,30 @@ test('resource events fire for the active player only, once per turn they place 
   for (const e of events) {
     if (e.type === 'turnStart') lastTurnStart = e;
     if (e.type === 'resource') assert.equal(e.player, lastTurnStart.player);
+  }
+});
+
+test('resource events carry the real placed instance', () => {
+  const deck = buildJakesDeck();
+  const events = traceGame(deck, deck, 999);
+  const resourceEvents = events.filter((e) => e.type === 'resource');
+  for (const e of resourceEvents) assert.equal(e.resource.number, 'RESOURCE');
+  // Every placement is a genuinely distinct instance, not the same object logged repeatedly.
+  const ids = resourceEvents.map((e) => e.resource.id);
+  assert.equal(new Set(ids).size, ids.length);
+});
+
+test('payResources events name real Resource instances that were actually placed (resourceSetup or resource)', () => {
+  const deck = buildJakesDeck();
+  const events = traceGame(deck, deck, 999);
+  const placedIds = new Set(
+    events.filter((e) => e.type === 'resourceSetup' || e.type === 'resource').map((e) => e.resource.id)
+  );
+  const payEvents = events.filter((e) => e.type === 'payResources');
+  assert.ok(payEvents.length > 0, 'a full game reliably pays for at least one deploy/command/pairing');
+  for (const e of payEvents) {
+    assert.ok(e.restedIds.length > 0 || e.removedIds.length > 0, 'never an empty no-op event');
+    for (const id of [...e.restedIds, ...e.removedIds]) assert.ok(placedIds.has(id), `id ${id} was actually placed`);
   }
 });
 
