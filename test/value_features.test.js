@@ -4,18 +4,25 @@ const assert = require('node:assert/strict');
 const { createInstance, createPlayer, createGame } = require('../src/rules/state');
 const { extractFeatures, FEATURE_COUNT } = require('../src/ai/valueFeatures');
 
-// Index layout: [selfShields, selfBaseHP, selfBoardAP, selfBoardHP, selfUnitCount, selfHand,
-// selfNormalResources, selfExResourceHeld, selfActivationPotential, selfTrashSynergy] x2 (self, enemy),
-// then turnNumber -- see extractFeatures's own header comment in src/ai/valueFeatures.js.
-const SELF = { shields: 0, baseHP: 1, boardAP: 2, boardHP: 3, unitCount: 4, hand: 5, normalResources: 6, exResourceHeld: 7, activationPotential: 8, trashSynergy: 9 };
-const ENEMY_OFFSET = 10;
-const TURN_IDX = 20;
+// Index layout: [selfShields, selfBaseHP, selfBoardAP, selfBoardHP, selfUnitCount,
+// selfActiveUnitCount, selfActiveBoardAP, selfBlockerCount, selfHand, selfNormalResources,
+// selfExResourceHeld, selfActivationPotential, selfTrashSynergy] x2 (self, enemy), then turnNumber,
+// then [selfThreatRatio, enemyThreatRatio] -- see extractFeatures's own header comment in
+// src/ai/valueFeatures.js.
+const SELF = {
+  shields: 0, baseHP: 1, boardAP: 2, boardHP: 3, unitCount: 4, activeUnitCount: 5, activeBoardAP: 6,
+  blockerCount: 7, hand: 8, normalResources: 9, exResourceHeld: 10, activationPotential: 11, trashSynergy: 12
+};
+const ENEMY_OFFSET = 13;
+const TURN_IDX = 26;
+const SELF_THREAT_IDX = 27;
+const ENEMY_THREAT_IDX = 28;
 
 test('extractFeatures returns exactly FEATURE_COUNT numbers, all in normalized range', () => {
   const state = createGame(createPlayer(0), createPlayer(1));
   const f = extractFeatures(state, 0);
   assert.equal(f.length, FEATURE_COUNT);
-  assert.equal(FEATURE_COUNT, 21);
+  assert.equal(FEATURE_COUNT, 29);
   for (const x of f) {
     assert.ok(Number.isFinite(x), `expected a finite number, got ${x}`);
     assert.ok(x >= 0 && x <= 1, `expected a value in [0,1], got ${x}`);
@@ -87,4 +94,47 @@ test('turnNumber is normalized by the same 30-turn cap for both players and clam
   assert.equal(extractFeatures(state, 0)[TURN_IDX], 0.5);
   state.turnNumber = 999;
   assert.equal(extractFeatures(state, 0)[TURN_IDX], 1);
+});
+
+test('a rested unit still counts toward the raw board totals but not the active-only ones', () => {
+  const player = createPlayer(0);
+  const unit = createInstance({ number: 'U', type: 'unit', ap: 3, hp: 3 }, 0);
+  unit.rested = true;
+  player.battleArea.push(unit);
+  const state = createGame(player, createPlayer(1));
+  const f = extractFeatures(state, 0);
+
+  assert.equal(f[SELF.boardAP], 3 / 30);
+  assert.equal(f[SELF.unitCount], 1 / 6);
+  assert.equal(f[SELF.activeUnitCount], 0, 'the unit is rested, so it should not count as active');
+  assert.equal(f[SELF.activeBoardAP], 0, 'a rested unit contributes no active AP');
+});
+
+test('blockerCount only counts untapped Blocker-keyword units', () => {
+  const player = createPlayer(0);
+  const activeBlocker = createInstance({ number: 'B1', type: 'unit', ap: 1, hp: 1, keywords: { blocker: true } }, 0);
+  const restedBlocker = createInstance({ number: 'B2', type: 'unit', ap: 1, hp: 1, keywords: { blocker: true } }, 0);
+  restedBlocker.rested = true;
+  const nonBlocker = createInstance({ number: 'N', type: 'unit', ap: 1, hp: 1 }, 0);
+  player.battleArea.push(activeBlocker, restedBlocker, nonBlocker);
+  const state = createGame(player, createPlayer(1));
+  const f = extractFeatures(state, 0);
+
+  assert.equal(f[SELF.blockerCount], 1 / 3, 'only the untapped Blocker should count -- a rested Blocker cannot block (13-1-4)');
+});
+
+test('threatRatio reflects active board AP against the opponent\'s remaining life, not the enemy\'s own', () => {
+  const attacker = createPlayer(0);
+  const unit = createInstance({ number: 'U', type: 'unit', ap: 6, hp: 6 }, 0);
+  attacker.battleArea.push(unit);
+  const defender = createPlayer(1);
+  defender.shields.push(createInstance({ number: 'SH', type: 'unit' }, 1)); // remainingLife = 1 (1 shield, no base)
+
+  const state = createGame(attacker, defender);
+  const f = extractFeatures(state, 0);
+
+  // selfThreatRatio = min(1, activeBoardAP / enemy remainingLife) = min(1, 6 / 1) = 1 (clamped).
+  assert.equal(f[SELF_THREAT_IDX], 1);
+  // enemyThreatRatio = enemy's active board AP (0, empty board) / self's remainingLife = 0.
+  assert.equal(f[ENEMY_THREAT_IDX], 0);
 });

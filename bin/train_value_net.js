@@ -43,12 +43,16 @@ function loadDeck(name) {
   return buildGameDeck({ main: parsed.main }, lookupCard);
 }
 
-// Same 10-deck spread weight_tune.js/weight_coordinate_descent.js used, so this round is directly
-// comparable to those precedents rather than measured against a different sample.
-const DECK_NAMES = [
-  'deck1.txt', 'deck3.txt', 'deck8.txt', 'deck9.txt', 'deck14.txt',
-  'deck17.txt', 'deck22.txt', 'deck24.txt', 'deck29.txt', 'deck34.txt'
-];
+// Was a fixed 10-deck spread (same one weight_tune.js/weight_coordinate_descent.js used). Widened
+// (2026-08-05) to the entire real decklist pool -- same directory value_net_crash_sweep.js already
+// reads in full -- since a value net trained/verified against only 10 decks generalizing to the other
+// ~180 was itself an untested assumption, and the earlier feature-count expansion in valueFeatures.js
+// was motivated by exactly this kind of "is the model actually seeing enough of the real distribution"
+// question. VERIFY_GAMES_PER_DECK/CONFIRM_GAMES_PER_DECK below are recalibrated down proportionally so
+// the total game budget (what actually drives z-score power) stays in the same practical ballpark as
+// the old 10-deck defaults, just spread across far more distinct decks instead of repeating a few.
+const DECKLISTS_DIR = path.join(__dirname, '..', 'scratchpad', 'decklists');
+const DECK_NAMES = fs.readdirSync(DECKLISTS_DIR);
 const decks = DECK_NAMES.map((n) => loadDeck(n));
 
 function zScore(winRate, n) {
@@ -210,8 +214,13 @@ const RESUME = rawArgs.includes('--resume');
 const positional = rawArgs.filter((a) => a !== '--resume');
 const GAMES_PER_ROUND = Number(positional[0] || 2500);
 const MAX_ROUNDS = Number(positional[1] || 5);
-const VERIFY_GAMES_PER_DECK = Number(positional[2] || 60);
-const CONFIRM_GAMES_PER_DECK = Number(positional[3] || 400);
+// verify()/the final confirm both loop *every* deck gamesPerDeck times, so with the deck pool now
+// ~20x bigger than the old fixed 10, a flat 60/400 default would balloon total games (and runtime)
+// by the same ~20x. Scaled down proportionally instead, so the total game budget -- what actually
+// drives z-score statistical power -- lands in the same practical ballpark as the old 10-deck
+// defaults (600/4000 total), just spread across far more distinct decks instead of a few repeated.
+const VERIFY_GAMES_PER_DECK = Number(positional[2] || Math.max(1, Math.round(600 / decks.length)));
+const CONFIRM_GAMES_PER_DECK = Number(positional[3] || Math.max(1, Math.round(4000 / decks.length)));
 const SIGNIFICANCE_Z = 2.5;
 
 const VALUE_NET_PATH = path.join(__dirname, '..', 'data', 'valueNet.json');
