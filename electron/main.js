@@ -5,6 +5,7 @@ const path = require('node:path');
 const fs = require('node:fs');
 const { listDecks, saveDeck, loadDeck, deleteDeck } = require('../src/deck/store');
 const { listBatches, saveBatch, deleteBatch } = require('../src/sim/resultsStore');
+const { listTournaments, saveTournament, deleteTournament } = require('../src/sim/tournamentStore');
 const { listAllCards } = require('../src/cards/index');
 const { parseDecklistText } = require('../src/deck/parser');
 const { validateDeck } = require('../src/deck/validator');
@@ -14,6 +15,7 @@ let mainWindow;
 let activeWorker = null;
 const DECKS_DIR = () => path.join(app.getPath('userData'), 'decks');
 const BATCHES_DIR = () => path.join(app.getPath('userData'), 'batches');
+const TOURNAMENTS_DIR = () => path.join(app.getPath('userData'), 'tournaments');
 
 function createWindow() {
   mainWindow = new BrowserWindow({
@@ -116,6 +118,33 @@ ipcMain.handle('cancel-batch', () => {
   }
 });
 
+// Same activeWorker slot / cancel-batch channel as a batch run -- only one of either can usefully run
+// at a time anyway (both are CPU-bound simulation work), so reusing the single-worker-slot cancellation
+// path needs no new IPC channel.
+ipcMain.handle('run-tournament', (event, { entrants, bestOf, skill }) => {
+  if (activeWorker) activeWorker.terminate();
+
+  activeWorker = new Worker(path.join(__dirname, 'worker', 'tournamentWorker.js'), {
+    workerData: { entrants, bestOf, skill }
+  });
+
+  activeWorker.on('message', (msg) => {
+    if (msg.type === 'progress') mainWindow.webContents.send('tournament-progress', msg);
+    if (msg.type === 'done') {
+      mainWindow.webContents.send('tournament-result', { result: msg.result, context: msg.context });
+      activeWorker = null;
+    }
+    if (msg.type === 'error') {
+      mainWindow.webContents.send('tournament-error', msg.message);
+      activeWorker = null;
+    }
+  });
+  activeWorker.on('error', (err) => {
+    mainWindow.webContents.send('tournament-error', err.message);
+    activeWorker = null;
+  });
+});
+
 // Plain-data fields only -- a card def's `effects` object holds live function references (resolved
 // by cards/index.js from src/effects/registry.js), which the IPC structured-clone boundary can't
 // serialize, so the deck builder's browse screen only ever needs this subset anyway.
@@ -167,9 +196,16 @@ ipcMain.handle('list-batches', () => listBatches(BATCHES_DIR()));
 ipcMain.handle('save-batch', (event, { name, stats, context }) => saveBatch(BATCHES_DIR(), name, stats, context));
 ipcMain.handle('delete-batch', (event, name) => deleteBatch(BATCHES_DIR(), name));
 
-/** Re-simulates one past game (by seed), given the deck/AI context it was originally run with --
- * either the batch just run this session or a saved batch loaded from disk, both are shaped the
- * same (deckAText, deckBText, engineA/B, mctsConfigA/B) -- returning a structured turn-by-turn event
+ipcMain.handle('list-tournaments', () => listTournaments(TOURNAMENTS_DIR()));
+ipcMain.handle('save-tournament', (event, { name, result, context }) =>
+  saveTournament(TOURNAMENTS_DIR(), name, result, context)
+);
+ipcMain.handle('delete-tournament', (event, name) => deleteTournament(TOURNAMENTS_DIR(), name));
+
+/** Re-simulates one past game (by seed), given the deck/AI context it was originally run with -- a
+ * batch (this session's or saved), or one match from a tournament (this session's or saved, with the
+ * matchup's two entrants' decklists substituted in as deckAText/deckBText) -- all shaped the same
+ * (deckAText, deckBText, engineA/B, mctsConfigA/B) -- returning a structured turn-by-turn event
  * log for the replay viewer. Runs in its own fresh worker_thread every time (never reused) --
  * src/sim/traceGame.js's function-patching approach needs a clean module registry, see its header
  * comment. */

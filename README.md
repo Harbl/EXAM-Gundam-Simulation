@@ -64,3 +64,12 @@ loads its full game-by-game results back in, ready to replay any individual
 game from that run the same way as a batch you just finished.
 
 ![Browsing a saved batch's results in the Log page](docs/screenshots/log-view.png)
+
+**Run a single-elimination tournament**, not just a flat batch. Pick any of your
+saved decks as entrants, choose a Best of 1/3/5 match format and AI skill tier,
+and EXAM randomly seeds a bracket and plays it out round by round, revealing
+each winner into the next round as soon as their match resolves. Save the
+finished bracket to the Log page alongside your batches, with per-entrant
+match/game win rates and every individual game still replayable.
+
+![A finished tournament bracket, champion crowned](docs/screenshots/tournament.png)
