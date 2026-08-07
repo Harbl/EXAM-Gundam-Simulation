@@ -27,7 +27,13 @@ Each individual simulated playout inside the search only looks a couple turns ah
 
 Skill tiers trade off playout budget, how many turns the rollout looks ahead, and whether the rollout itself uses a cheap heuristic or the full lookahead AI. Beginner skips the tree search entirely and just uses the older heuristic AI. It scales up from there.
 
-The AI also knows its own decklist, the same way a real player knows theirs. It holds a Pilot back rather than pairing it onto a mediocre body the moment it's playable, if a better Link target for that exact Pilot is still sitting in the deck, and it weighs digging for a combo piece through card draw by the real odds of finding it, never by peeking at what a simulated draw actually turns up. That draw-value weighting applies at every skill tier except Expert, which stays unrestricted. One archetype, Nu Gundam, plays close enough to a search-optimal line that its simulated win rate runs well above what real ladder play sees, so by default it's stepped down to a weaker engine to keep results realistic. A "Newtype Awakening" toggle opts back into full strength for anyone who wants to see it played at its theoretical ceiling instead.
+The AI also knows its own decklist, the same way a real player knows theirs. It holds a Pilot back rather than pairing it onto a mediocre body the moment it's playable, if a better Link target for that exact Pilot is still sitting in the deck, and it weighs digging for a combo piece through card draw by the real odds of finding it, never by peeking at what a simulated draw actually turns up. That draw-value weighting applies at every skill tier except Expert, which stays unrestricted.
+
+### Newtype Awakening
+
+Search-based AI doesn't get tired or misplay a sequence, so it can end up piloting some decks better than any real ladder opponent consistently does. Nu Gundam is the clearest case found so far: its whole plan is precise, repeatable sequencing, exactly what a tree search is best at, and left alone the sim's win rate for it runs well above what real ranked play shows. By default the AI is stepped down to a weaker engine specifically when it's piloting Nu Gundam, so its simulated performance stays closer to how it actually plays out against real opponents rather than reflecting a ceiling no one's hitting.
+
+The "Newtype Awakening" toggle (Simulate and Tournament screens) turns that handicap off. Check it if you'd rather see the deck played at full, unrestrained strength, whether that's out of curiosity about its real ceiling or to stress-test a matchup against the best line the AI can actually find. A warning banner shows up when it's on and the deck you're running is one of the handicapped archetypes, as a reminder that the resulting win rate won't line up with real-world results.
 
 ### Stats and reports
 
