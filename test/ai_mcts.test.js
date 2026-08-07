@@ -4,6 +4,7 @@ const assert = require('node:assert/strict');
 const { lookupCard } = require('../src/cards/index');
 const { createInstance, createPlayer, createGame } = require('../src/rules/state');
 const { deployUnit, becomeBase } = require('../src/rules/actions');
+const { drawCard } = require('../src/rules/phases');
 const {
   getLegalActions,
   applyAction,
@@ -220,4 +221,70 @@ test('runSearch finds a joint deploy+pair combo that scores strictly better than
   }
   assert.equal(best.action.type, 'deploy');
   assert.equal(best.action.cardId, cardB.id, 'search should prefer deploying B (unlocks the pair synergy) over the immediately-stronger-looking A');
+});
+
+// Extends runCommandsLookahead's no-peeking combo-search bonus (test/pairing_hold.test.js) into MCTS,
+// per Jake's 2026-08-07 direction to apply it on every skill tier except the top ('expert'/
+// STRONG_MCTS_CONFIG). Same card defs/deck shape as that test's own proof, so the same "the bonus,
+// not some coincidental scoring effect, is what flips the choice" logic carries over directly.
+function bestRootAction(root) {
+  let best = null;
+  let bestVisits = -1;
+  for (const child of root.children) {
+    if (child.visits > bestVisits) {
+      bestVisits = child.visits;
+      best = child;
+    }
+  }
+  return best.action;
+}
+
+test('runSearch: a config with applyComboSearchBonus prefers a draw-producing Command over a same-cost bigger-raw-stat alternative once a real combo search is open -- and a config without it (the expert/STRONG tier) is unaffected even with the same open search', () => {
+  const buildState = () => {
+    const player = createPlayer(0);
+    const state = createGame(player, createPlayer(1));
+    resource(player, 3); // both commands cost 3 -- only one can ever be played per decision
+    const drawCommand = createInstance(
+      { number: 'DC', type: 'command', level: 1, cost: 3, effects: { command: (s, p) => { drawCard(s, p); drawCard(s, p); } } },
+      0
+    );
+    const buffCommand = createInstance(
+      {
+        number: 'BC',
+        type: 'command',
+        level: 1,
+        cost: 3,
+        effects: { command: (s, p) => { p.battleArea[0].buffs.push({ ap: 5, scope: 'game' }); } }
+      },
+      0
+    );
+    player.hand.push(drawCommand, buffCommand);
+    deployUnit(state, player, { number: 'U', type: 'unit', ap: 1, hp: 3 });
+    for (let i = 0; i < 6; i++) player.deck.push(createInstance({ number: 'F' + i, type: 'unit', ap: 1, hp: 1 }, 0));
+    return { player, state };
+  };
+  const openSearch = (player) => {
+    for (let i = 0; i < 4; i++) player.deck.push(createInstance(lookupCard('GD04-017'), 0)); // Zeong
+    player.hand.push(createInstance(lookupCard('ST03-011'), 0)); // Char Aznable
+  };
+
+  const withBonus = buildState();
+  openSearch(withBonus.player);
+  const rootWithBonus = runSearch(withBonus.state, 0, { playoutBudget: 300, rolloutTurns: 0, rolloutPolicy: 'cheap', applyComboSearchBonus: true });
+  const withBonusBest = bestRootAction(rootWithBonus);
+  assert.equal(withBonusBest.type, 'command');
+  assert.equal(withBonus.player.hand.find((c) => c.id === withBonusBest.cardId).def.number, 'DC', 'the draw Command was chosen once a real combo search was open, on a tier with applyComboSearchBonus');
+
+  const closedSearch = buildState();
+  const rootClosed = runSearch(closedSearch.state, 0, { playoutBudget: 300, rolloutTurns: 0, rolloutPolicy: 'cheap', applyComboSearchBonus: true });
+  const closedBest = bestRootAction(rootClosed);
+  assert.equal(closedBest.type, 'command');
+  assert.equal(closedSearch.player.hand.find((c) => c.id === closedBest.cardId).def.number, 'BC', 'with no open search, the bigger raw stat swing wins on scoreState alone');
+
+  const noBonusTier = buildState();
+  openSearch(noBonusTier.player);
+  const rootNoBonusTier = runSearch(noBonusTier.state, 0, { playoutBudget: 300, rolloutTurns: 0, rolloutPolicy: 'cheap' }); // no applyComboSearchBonus flag -- mirrors STRONG_MCTS_CONFIG
+  const noBonusBest = bestRootAction(rootNoBonusTier);
+  assert.equal(noBonusBest.type, 'command');
+  assert.equal(noBonusTier.player.hand.find((c) => c.id === noBonusBest.cardId).def.number, 'BC', 'a tier without applyComboSearchBonus stays on the raw-stat-swing choice even with the same open search');
 });

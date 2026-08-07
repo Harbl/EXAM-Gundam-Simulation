@@ -99,7 +99,7 @@
     "effectRefs": { "burst": "addSelfToHandBurst", "startOfTurn": "allelujahHaptismStartOfTurn" }
   },
   {
-    "number": "ST07-013", "name": "Armed Intervention", "type": "command", "color": "purple",
+    "number": "ST07-013", "actionTiming": "action", "name": "Armed Intervention", "type": "command", "color": "purple",
     "level": 4, "cost": 1,
     "effectRefs": { "burst": "armedInterventionBurst", "command": "armedInterventionCommand" }
   },

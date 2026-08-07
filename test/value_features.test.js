@@ -7,7 +7,8 @@ const { extractFeatures, FEATURE_COUNT } = require('../src/ai/valueFeatures');
 // Index layout: [selfShields, selfBaseHP, selfBoardAP, selfBoardHP, selfUnitCount,
 // selfActiveUnitCount, selfActiveBoardAP, selfBlockerCount, selfHand, selfNormalResources,
 // selfExResourceHeld, selfActivationPotential, selfTrashSynergy] x2 (self, enemy), then turnNumber,
-// then [selfThreatRatio, enemyThreatRatio] -- see extractFeatures's own header comment in
+// then [selfThreatRatio, enemyThreatRatio], then [selfVulnerableUnitCount, enemyVulnerableUnitCount],
+// then [selfReactiveReserve, enemyReactiveReserve] -- see extractFeatures's own header comment in
 // src/ai/valueFeatures.js.
 const SELF = {
   shields: 0, baseHP: 1, boardAP: 2, boardHP: 3, unitCount: 4, activeUnitCount: 5, activeBoardAP: 6,
@@ -17,12 +18,16 @@ const ENEMY_OFFSET = 13;
 const TURN_IDX = 26;
 const SELF_THREAT_IDX = 27;
 const ENEMY_THREAT_IDX = 28;
+const SELF_VULN_IDX = 29;
+const ENEMY_VULN_IDX = 30;
+const SELF_REACTIVE_RESERVE_IDX = 31;
+const ENEMY_REACTIVE_RESERVE_IDX = 32;
 
 test('extractFeatures returns exactly FEATURE_COUNT numbers, all in normalized range', () => {
   const state = createGame(createPlayer(0), createPlayer(1));
   const f = extractFeatures(state, 0);
   assert.equal(f.length, FEATURE_COUNT);
-  assert.equal(FEATURE_COUNT, 29);
+  assert.equal(FEATURE_COUNT, 33);
   for (const x of f) {
     assert.ok(Number.isFinite(x), `expected a finite number, got ${x}`);
     assert.ok(x >= 0 && x <= 1, `expected a value in [0,1], got ${x}`);
@@ -137,4 +142,42 @@ test('threatRatio reflects active board AP against the opponent\'s remaining lif
   assert.equal(f[SELF_THREAT_IDX], 1);
   // enemyThreatRatio = enemy's active board AP (0, empty board) / self's remainingLife = 0.
   assert.equal(f[ENEMY_THREAT_IDX], 0);
+});
+
+test('vulnerableUnitCount flags a unit the enemy can safely kill (Nu Gundam GD05-017\'s [When Paired] shape), not just any combat', () => {
+  const self = createPlayer(0);
+  // AP2/HP4: the enemy's AP5 unit can one-shot it (HP4 <= 5) and can't be killed back (AP2 < enemy's HP5).
+  const sniped = createInstance({ number: 'V', type: 'unit', ap: 2, hp: 4 }, 0);
+  // AP6/HP4: same HP, but its own AP (6) is NOT less than the enemy's remaining HP (5) -- trading into
+  // it would kill the enemy back too, so Nu Gundam's own ability would never pick it (not "vulnerable").
+  const safe = createInstance({ number: 'S', type: 'unit', ap: 6, hp: 4 }, 0);
+  self.battleArea.push(sniped, safe);
+  const enemy = createPlayer(1);
+  enemy.battleArea.push(createInstance({ number: 'E', type: 'unit', ap: 5, hp: 5 }, 1));
+
+  const state = createGame(self, enemy);
+  const f = extractFeatures(state, 0);
+
+  assert.equal(f[SELF_VULN_IDX], 1 / 6, 'exactly one of self\'s two units is actually exposed to a safe kill');
+  assert.equal(f[ENEMY_VULN_IDX], 0, 'the enemy\'s own unit (AP5/HP5) isn\'t threatened by anything on a board with no attackers capable of it');
+});
+
+test('vulnerableUnitCount is 0 both ways on an empty board (no false positives from vacuous comparisons)', () => {
+  const state = createGame(createPlayer(0), createPlayer(1));
+  const f = extractFeatures(state, 0);
+  assert.equal(f[SELF_VULN_IDX], 0);
+  assert.equal(f[ENEMY_VULN_IDX], 0);
+});
+
+test('reactiveReserve feature reflects Resources actively held open for a real [Action]-timing Command, normalized by REACTIVE_RESERVE_CAP (6)', () => {
+  const self = createPlayer(0);
+  for (let i = 0; i < 3; i++) self.resourceArea.push(createInstance({ number: 'R' + i, type: 'resource' }, 0));
+  self.hand.push(createInstance({ number: 'ACT', type: 'command', actionTiming: 'action', level: 1, cost: 2 }, 0));
+  const enemy = createPlayer(1); // no held Resources/Action Command at all
+
+  const state = createGame(self, enemy);
+  const f = extractFeatures(state, 0);
+
+  assert.equal(f[SELF_REACTIVE_RESERVE_IDX], 2 / 6);
+  assert.equal(f[ENEMY_REACTIVE_RESERVE_IDX], 0);
 });

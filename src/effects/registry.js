@@ -2,7 +2,7 @@ const { dealDamage, getAP, getHP, getRemainingHP, getKeywords, isImmuneToEffectD
 const { deployUnit, deployBase, becomeBase, becomeUnit, pairPilotFromTrash, pairPilot } = require('../rules/actions');
 const { drawCard } = require('../rules/phases');
 const { resolveUnitBattleDamage, applyBreach, destroyAndFireEffect, destroyOutrightAndFireEffect, resolveBurst } = require('../rules/combat');
-const { fireCardEffect, dealEffectDamage, reduceEnemyAP, placeExResource, setActiveByEffect, restEnemyByEffect, payAbilityCost } = require('../rules/effects');
+const { fireCardEffect, dealEffectDamage, reduceEnemyAP, placeExResource, setActiveByEffect, restEnemyByEffect, payAbilityCost, triggerEvent, grantTurnBuff } = require('../rules/effects');
 const { createInstance, shuffle } = require('../rules/state');
 const { EX_BASE_DEF } = require('../rules/setup');
 const { canAfford, payCost } = require('../rules/cost');
@@ -118,9 +118,9 @@ function amuroRayWhenPaired(state, player, unit, context) {
 // --- Gundam ST01-001 ---------------------------------------------------
 // [Repair 2] (keyword, see card data). [During Pair] During your turn, all your Units get AP+1.
 function gundamDuringPairStartOfTurn(state, player, instance) {
-  if (!instance.pilot) return;
-  if (state.players[state.activePlayerIdx] !== player) return;
-  for (const unit of player.battleArea) unit.buffs.push({ ap: 1, scope: 'turn' });
+  const sourceId = `${instance.id}:gundamDuringPair`;
+  const active = !!instance.pilot && state.players[state.activePlayerIdx] === player;
+  for (const unit of player.battleArea) grantTurnBuff(unit, sourceId, active ? { ap: 1 } : null);
 }
 
 // --- A Show of Resolve GD01-100 (Command) ---------------------------------
@@ -925,9 +925,11 @@ function gundamNT1WhenPaired(state, player, unit, context) {
 // than being stamped onto every current Unit, so it still covers Units deployed later the same turn
 // -- combat.js's fireDestroysEnemy checks for it generically.
 function penelopeFlightFormStartOfTurn(state, player, instance) {
-  if (state.players[state.activePlayerIdx] !== player) return;
+  const sourceId = `${instance.id}:penelopeFlightForm`;
+  const isOwnTurn = state.players[state.activePlayerIdx] === player;
   for (const u of player.battleArea) {
-    if ((u.def.traits || []).includes('Earth Federation')) u.buffs.push({ ap: 1, scope: 'turn' });
+    const qualifies = isOwnTurn && (u.def.traits || []).includes('Earth Federation');
+    grantTurnBuff(u, sourceId, qualifies ? { ap: 1 } : null);
   }
 }
 function penelopeFlightFormDeploy(state, player, instance) {
@@ -2184,9 +2186,9 @@ function zechsLeoWhenPaired(state, player, unit, context) {
 }
 
 // --- G-Sky Easy GD01-014 ---
-// [During Link][Activate·Action][Once per Turn] Choose 1 Unit: it recovers 1 HP. (Engine-correct,
-// not wired into the AI -- Activate·Action abilities aren't modeled by runActivations at all yet,
-// same known simplification flagged for every other reactive Action-step ability.)
+// [During Link][Activate·Action][Once per Turn] Choose 1 Unit: it recovers 1 HP. AI-wired
+// (2026-08-05) via activations.js's ACTION_RESOLVERS, read from heuristic.js's actionStep during the
+// defending player's Action Step -- heals the Unit actually under attack, if it's wounded.
 function gSkyEasyActivateAction(state, player, instance, context) {
   if (!instance.isLinkUnit) return false;
   if (instance.activationsUsed.recoverHp) return false;
@@ -2439,8 +2441,8 @@ function gearaDogaGD01056Destroyed(state, player, instance, context) {
 
 // --- Galluss-K GD01-058 ---
 // [Activate·Action][Once per Turn](1) Choose 1 Unit that is Lv.4 or higher. It gets AP+1 during
-// this battle. (Not AI-wired -- same Activate·Action precedent as G-Sky Easy: engine-correct and
-// directly testable, but a reactive Action-step ability the AI doesn't model yet.)
+// this battle. AI-wired (2026-08-05) via activations.js's ACTION_RESOLVERS -- buffs the Unit actually
+// under attack, if it qualifies (Lv.4+).
 function gallussKGD01058ActivateAction(state, player, instance, context) {
   if (instance.activationsUsed.buffLvFour) return false;
   const activeResources = player.resourceArea.filter((r) => !r.rested);
@@ -2593,7 +2595,8 @@ function m1AstrayStartOfTurn(state, player, instance) {
 
 // --- Gundam Aerial GD01-082 ---
 // [During Pair][Activate·Action][Once per Turn](2) Choose 1 enemy Unit. It gets AP-1 during this
-// battle. (Not AI-wired -- Activate·Action precedent, engine-correct and directly testable.)
+// battle. AI-wired (2026-08-05) via activations.js's ACTION_RESOLVERS -- debuffs the enemy Unit
+// actually attacking right now.
 function gundamAerialGD01082ActivateAction(state, player, instance, context) {
   if (!instance.pilot) return false;
   if (instance.activationsUsed.debuffEnemy) return false;
@@ -2695,7 +2698,8 @@ function guelJeturkActivateMain(state, player, unit) {
 
 // --- Elan Ceres GD01-098 (Pilot) ---
 // [Burst] Add this card to your hand. [Activate·Action][Once per Turn] If an enemy Unit with 1 or
-// less AP is in play, this Unit recovers 1 HP. (Not AI-wired -- Activate·Action precedent.)
+// less AP is in play, this Unit recovers 1 HP. AI-wired (2026-08-05) via activations.js's
+// ACTION_RESOLVERS -- no battle-context dependency, so it fires as soon as its own condition holds.
 function elanCeresBurst(state, player, instance) {
   player.hand.push(instance);
 }
@@ -3037,7 +3041,11 @@ function zanzibarDeploy(state, player, instance, context) {
 // --- Gamow GD01-127 (Base) ---
 // [Burst] Deploy this card. [Deploy] Add 1 of your Shields to your hand. [Activate·Action] Rest
 // this Base: choose 1 friendly (ZAFT) Unit with 5 or more AP. It gains <Breach 3> during this
-// battle. (Not AI-wired -- Activate·Action precedent.)
+// battle. Still not AI-wired after the 2026-08-05 Activate·Action pass -- unlike G-Sky Easy/Taurus/
+// etc., this is naturally an *attacker*-side ability (Breach only matters while dealing damage
+// forward into an enemy Base/Shields), and activations.js's ACTION_RESOLVERS is deliberately scoped
+// to heuristic.js's actionStep, which only gives the *defending* player a reactive window. Same
+// residual gap as Moebius Peacemaker GD02-011 below -- see the project gaps doc.
 function gamowActivateAction(state, player, instance, context) {
   if (instance.rested) return false;
   const candidates = player.battleArea.filter((u) => (u.def.traits || []).includes('ZAFT') && getAP(u) >= 5);
@@ -3172,10 +3180,11 @@ function raiderGundamReceivesEnemyEffectDamage(state, player, instance) {
 
 // --- Moebius (Peacemaker Team) GD02-011 ---
 // [Activate: Action] Destroy this Unit: Choose 1 enemy Base/enemy Shield this Unit is battling.
-// Deal 6 damage to it. (Not wired into the AI's mid-battle action-step hook -- see Gamow
-// GD01-127/other Activate abilities for the same "function exists, AI doesn't invoke it yet"
-// precedent. context.target is whatever this Unit is currently battling (8-4); applyBreach's own
-// Base-then-Shield priority already matches "choose 1 enemy Base/enemy Shield" (13-1-2).)
+// Deal 6 damage to it. Still not AI-wired after the 2026-08-05 Activate·Action pass -- naturally an
+// *attacker*-side ability (only relevant while attacking the enemy player, i.e. their Base/Shields),
+// same residual gap as Gamow GD01-127 above; see the project gaps doc. context.target is whatever
+// this Unit is currently battling (8-4); applyBreach's own Base-then-Shield priority already matches
+// "choose 1 enemy Base/enemy Shield" (13-1-2).
 function moebiusPeacemakerActivateAction(state, player, instance, context) {
   if (!context.target || context.target.type !== 'player') return false;
   destroyCard(state, player, instance);
@@ -4125,13 +4134,12 @@ function sodonDeploy(state, player) {
 // [Burst] Deploy this card. [Deploy] Add 1 of your Shields to your hand.
 // [Static] During your turn, while you are Lv.7 or higher, all friendly green (Earth Federation)
 // Units get AP+1 (same turn-refreshed static-aura pattern as Penelope (Flight Form) GD04-002).
-function divaStartOfTurn(state, player) {
-  if (state.players[state.activePlayerIdx] !== player) return;
-  if (player.resourceArea.length < 7) return;
+function divaStartOfTurn(state, player, instance) {
+  const sourceId = `${instance.id}:diva`;
+  const active = state.players[state.activePlayerIdx] === player && player.resourceArea.length >= 7;
   for (const u of player.battleArea) {
-    if (u.def.color === 'green' && (u.def.traits || []).includes('Earth Federation')) {
-      u.buffs.push({ ap: 1, scope: 'turn' });
-    }
+    const qualifies = active && u.def.color === 'green' && (u.def.traits || []).includes('Earth Federation');
+    grantTurnBuff(u, sourceId, qualifies ? { ap: 1 } : null);
   }
 }
 
@@ -4354,10 +4362,14 @@ function gundamHeavyarmsCustomDestroysEnemy(state, player) {
 // [During Pair: (ZAFT) Pilot] During your turn, all your (ZAFT) Units get AP+2. [Attack] Choose 1
 // enemy Unit. Deal 1 damage to it for each 4 AP this Unit has.
 function providenceGundamLRStartOfTurn(state, player, instance) {
-  if (!instance.pilot || !(instance.pilot.def.traits || []).includes('ZAFT')) return;
-  if (state.players[state.activePlayerIdx] !== player) return;
+  const sourceId = `${instance.id}:providenceGundamLR`;
+  const active =
+    !!instance.pilot &&
+    (instance.pilot.def.traits || []).includes('ZAFT') &&
+    state.players[state.activePlayerIdx] === player;
   for (const u of player.battleArea) {
-    if ((u.def.traits || []).includes('ZAFT')) u.buffs.push({ ap: 2, scope: 'turn' });
+    const qualifies = active && (u.def.traits || []).includes('ZAFT');
+    grantTurnBuff(u, sourceId, qualifies ? { ap: 2 } : null);
   }
 }
 function providenceGundamLRAttack(state, player, instance, context) {
@@ -4667,8 +4679,8 @@ function aileStrikeGundamGD03072Deploy(state, player, instance) {
 // --- Graze Ein (R+) GD03-073 ---
 // <Blocker> (data). [During Link][Activate*Action][Once per Turn] If there are 6 or more
 // (Gjallarhorn) cards in your trash, choose 1 enemy Unit battling this Unit. It gets AP-3 during
-// this battle. Same "Engine-correct, not wired into runActivations" scoping as G-Sky Easy GD01-014
-// -- takes context.target as the enemy Unit currently battling it.
+// this battle. AI-wired (2026-08-05) via activations.js's ACTION_RESOLVERS -- only fires while this
+// Unit itself is the one under attack (its text is "battling this Unit"), debuffing the attacker.
 function grazeEinActivateAction(state, player, instance, context) {
   if (!instance.isLinkUnit) return false;
   if (instance.activationsUsed.apDebuff) return false;
@@ -5092,6 +5104,9 @@ function eliminateTargetCommand(state, player) {
   const target = candidates.sort((a, b) => getAP(b) - getAP(a))[0];
   if (!target) return;
   destroyPilot(opponent, target);
+  // A "During Pair"/"During Link" aura this Pilot was granting (its own or a teammate's) needs to
+  // drop immediately, same live-recompute reasoning as pairPilot's own re-broadcast (actions.js).
+  triggerEvent(state, 'startOfTurn', {});
 }
 
 // --- Infiltrator Present GD03-111 (Command; pairable as Pilot [Emeralda Zubin]) ---
@@ -5431,6 +5446,9 @@ function gundamGD04001Attack(state, player, unit, context) {
   const shouldBounce = false;
   if (!shouldBounce) return;
   addToHand(player, unpairPilot(player, unit));
+  // See eliminateTargetCommand's identical comment above -- a dropped "During Pair"/"During Link"
+  // aura needs to deactivate immediately, not linger until this player's next start-of-turn.
+  triggerEvent(state, 'startOfTurn', {});
 }
 
 // --- GD04 batch 1 (GD04-004 through GD04-023, excl. GD04-002/003/005/006/008/010/011/012/014/016/017 which are vanilla or data-only) ---
@@ -6299,6 +6317,9 @@ function aliAlSaachezAttack(state, player, unit) {
   if (candidates.length === 0) return;
   const target = candidates.sort((a, b) => getAP(b) - getAP(a))[0];
   addToHand(opponent, unpairPilot(opponent, target));
+  // See eliminateTargetCommand's identical comment above -- a dropped "During Pair"/"During Link"
+  // aura needs to deactivate immediately, not linger until this player's next start-of-turn.
+  triggerEvent(state, 'startOfTurn', {});
 }
 
 // --- Sochie Heim GD04-100 (Pilot) ---
@@ -6731,10 +6752,12 @@ function gundamCalibarnFriendlyExResourceExiled(state, player, instance, context
 
 // --- Gundam AGE-2 Double Bullet GD05-021 (Unit) ---
 // [Activate·Action][Once per Turn] (1): This Unit gets AP+4 during this battle (same cost-paying
-// buff shape as Turn A Gundam GD04-073's Activate·Main, scope 'battle' instead of 'turn'). The
-// second ability ("[Once per Turn] When this Unit receives enemy damage, if you have an (Earth
-// Federation) Pilot in play, reduce it by 2") is data-only (oncePerTurnEnemyDamageReduction, an
-// existing field read by management.js's dealDamage).
+// buff shape as Turn A Gundam GD04-073's Activate·Main, scope 'battle' instead of 'turn'). AI-wired
+// (2026-08-05) via activations.js's ACTION_RESOLVERS -- only fires while this Unit itself is the one
+// under attack, matching its own "during this battle" text. The second ability ("[Once per Turn]
+// When this Unit receives enemy damage, if you have an (Earth Federation) Pilot in play, reduce it by
+// 2") is data-only (oncePerTurnEnemyDamageReduction, an existing field read by management.js's
+// dealDamage).
 function gundamAge2DoubleBulletActivateAction(state, player, instance) {
   if (instance.activationsUsed.apBoost) return false;
   const activeResources = player.resourceArea.filter((r) => !r.rested);
@@ -6750,6 +6773,8 @@ function gundamAge2DoubleBulletActivateAction(state, player, instance) {
 // <Breach 3> (data). [Activate·Action] Exile 2 Command cards in your trash from the game: during
 // this battle, when this Unit receives enemy damage, reduce it by 2 (exile-2-from-trash cost, same
 // shape as Industrial 7 GD04-130's exile-1 cost, granting a damageReduction buff scope:'battle').
+// AI-wired (2026-08-05) via activations.js's ACTION_RESOLVERS -- same "only while this Unit itself is
+// the one under attack" scoping as AGE-2 Double Bullet above.
 function gundamSchwarzetteActivateAction(state, player, instance) {
   if (instance.activationsUsed.damageReduction) return false;
   const commandsInTrash = player.trash.filter((c) => c.def.type === 'command');
@@ -7012,9 +7037,8 @@ function forceImpulseGundamGD05064Deploy(state, player, instance, context) {
 // distinct from the unconditional-every-turn duringLinkAp field since this only applies on the
 // controller's own turn.
 function landmanRodiStartOfTurn(state, player, instance) {
-  if (!instance.isLinkUnit) return;
-  if (state.players[state.activePlayerIdx] !== player) return;
-  instance.buffs.push({ ap: 2, scope: 'turn' });
+  const active = instance.isLinkUnit && state.players[state.activePlayerIdx] === player;
+  grantTurnBuff(instance, `${instance.id}:landmanRodi`, active ? { ap: 2 } : null);
 }
 
 // --- Tallgeese III (R+) GD05-070 (Unit) ---
@@ -7339,12 +7363,14 @@ function interwovenBlessingsCommand(state, player, instance, context) {
 // --- Overcoming Hardships GD05-108 (Command, pilotMode: Guel Jeturk) ---
 // [Action] Choose 1 friendly rested (Academy) Unit. Change a battling enemy Unit's attack target to
 // it. Implemented via the existing redirectDamageTarget mechanism (Elan Ceres GD04-087/Lunamaria
-// Hawke GD04-095 precedent) onto context.target, the friendly Unit/Base currently under attack.
-// Engine-correct but not AI-wired: this engine has no currentBattle state outside resolveAttack's
-// own local scope, so nothing yet threads context.target in from an ongoing battle when a Command is
-// played (same "not wired into AI" gap as other judgment-timed Activate abilities).
+// Hawke GD04-095 precedent) onto context.underAttack, the friendly Unit/Base currently under attack.
+// AI-wired (2026-08-07): heuristic.js's actionStep computes this (`target.type === 'unit' ?
+// target.instance : defendingPlayer.base`, mirroring the confirmed base-absorbs-player-attacks rule)
+// and threads it through as a dedicated field rather than reusing `context.target` -- that key already
+// means two other distinct things elsewhere in this file (an Attack trigger's own declared target, an
+// Activate ability's pre-chosen target), so overloading it a third way here would be a real landmine.
 function overcomingHardshipsCommand(state, player, instance, context) {
-  const underAttack = context.target;
+  const underAttack = context.underAttack;
   if (!underAttack) return;
   const candidates = player.battleArea.filter((u) => u.rested && (u.def.traits || []).includes('Academy'));
   const target = context.hooks && context.hooks.chooseUnit
@@ -7427,12 +7453,18 @@ function incendiarySparkCommand(state, player, instance, context) {
 
 // --- A Wind Against Fires (R+) GD05-119 (Command, pilotMode: Zechs Merquise) ---
 // [Action] Choose 1 enemy Unit that is battling one of your Units that is Lv.5 or higher. It gets
-// AP-3 during this battle. Engine-correct but not AI-wired for the same reason as Overcoming
-// Hardships GD05-108 above: no currentBattle state outside resolveAttack's local scope for a Command
-// played mid-battle to read which enemy Unit is currently attacking.
+// AP-3 during this battle. AI-wired (2026-08-07): heuristic.js's actionStep threads the attacking
+// enemy Unit through as context.attackingUnit (a dedicated field, not the overloaded context.target --
+// see Overcoming Hardships GD05-108 above for why) alongside context.underAttack (the friendly
+// Unit/Base actually being attacked). Also fixes a latent correctness gap found while wiring this:
+// the handler never actually checked the "battling one of your Units that is Lv.5 or higher" condition
+// at all -- it would have fired against ANY battle, including one where the friendly side is a Base or
+// a sub-Lv.5 Unit.
 function aWindAgainstFiresRPlusCommand(state, player, instance, context) {
-  const target = context.target;
+  const target = context.attackingUnit;
   if (!target) return;
+  const underAttack = context.underAttack;
+  if (!underAttack || underAttack.def.type !== 'unit' || (underAttack.def.level || 0) < 5) return;
   target.buffs.push({ ap: -3, scope: 'battle' });
 }
 
@@ -7691,8 +7723,9 @@ function gundamPixyAttack(state, player, unit) {
 
 // --- Gundam Mk-III EB01-020 ---
 // [During Link][Activate·Action][Once per Turn] Choose 1 Unit. It recovers 1 HP. Byte-identical text
-// to G-Sky Easy GD01-014, so its function (gSkyEasyActivateAction, also engine-correct-but-not-AI-
-// wired) is reused directly rather than duplicated.
+// to G-Sky Easy GD01-014, so its function (gSkyEasyActivateAction, AI-wired since 2026-08-05 via
+// activations.js's ACTION_RESOLVERS -- keyed under both card numbers) is reused directly rather than
+// duplicated.
 
 // === EB01 batch 2 (EB01-021 to EB01-040, sourced from tcgcsv.com rules text) ===
 
@@ -7839,12 +7872,20 @@ function gundamLfrithUrWhenLinked(state, player) {
 
 // --- Taurus (Sanc Kingdom) EB01-033 ---
 // [Activate·Action][Once per Turn] (1): Choose 1 other Unit that is being attacked. It gets AP+1
-// during this battle. (Engine-correct, not wired into the AI -- Activate·Action abilities aren't
-// modeled by runActivations, same known simplification as G-Sky Easy GD01-014.)
+// during this battle. AI-wired via activations.js's ACTION_RESOLVERS (2026-08-05) -- fixed a real
+// gap found while wiring it in: this previously never checked the once-per-turn flag or paid its (1)
+// cost (both dead code paths before this session, since nothing ever called it), which would have let
+// the AI spam it for free every reactive window once it *was* reachable.
 function taurusSancKingdomActivateAction(state, player, instance, context) {
+  if (instance.activationsUsed.buffAttackedUnit) return false;
+  const activeResources = player.resourceArea.filter((r) => !r.rested);
+  if (activeResources.length < 1) return false;
   const target = context.target;
-  if (!target || target === instance) return;
+  if (!target || target === instance) return false;
+  activeResources[0].rested = true;
+  instance.activationsUsed.buffAttackedUnit = true;
   target.buffs.push({ ap: 1, scope: 'battle' });
+  return true;
 }
 
 // --- Gundam Lfrith Thorn EB01-035 ---
@@ -7863,11 +7904,12 @@ function gundamLfrithThornFriendlyUnitDeployed(state, player, instance, context)
 // Jerid Messa GD02-086's grantedStatBonus, but via a plain scope:'turn' AP buff since it targets
 // other Units, not itself).
 function darilbaldeStartOfTurn(state, player, instance) {
-  if (state.players[state.activePlayerIdx] !== player) return;
-  const targets = player.battleArea.filter(
-    (u) => u !== instance && (u.def.traits || []).includes('G Generation') && (u.def.level || 0) === 3
-  );
-  for (const u of targets) u.buffs.push({ ap: 1, scope: 'turn' });
+  const sourceId = `${instance.id}:darilbalde`;
+  const isOwnTurn = state.players[state.activePlayerIdx] === player;
+  for (const u of player.battleArea) {
+    const qualifies = isOwnTurn && u !== instance && (u.def.traits || []).includes('G Generation') && (u.def.level || 0) === 3;
+    grantTurnBuff(u, sourceId, qualifies ? { ap: 1 } : null);
+  }
 }
 
 // --- Zudah Unit 1 EB01-037 ---
@@ -8154,14 +8196,21 @@ function besidePainAttack(state, player) {
 
 // --- Daryl Lorenz EB01-070 ---
 // [Burst] Add this card to your hand. [During Link][Activate·Action][Once per Turn] (1): If it is
-// your opponent's turn, choose 1 Unit. It gets AP+1 during this battle. (Engine-correct, not wired
-// into the AI -- Activate·Action abilities aren't modeled by runActivations, same known
-// simplification as G-Sky Easy GD01-014/Taurus (Sanc Kingdom) EB01-033.)
+// your opponent's turn, choose 1 Unit. It gets AP+1 during this battle. AI-wired via activations.js's
+// ACTION_RESOLVERS (2026-08-05) -- fixed the same class of gap as Taurus (Sanc Kingdom) EB01-033:
+// this previously never checked isLinkUnit, the once-per-turn flag, or paid its (1) cost.
 function darylLorenzActivateAction(state, player, instance, context) {
-  if (state.players[state.activePlayerIdx] === player) return;
+  if (!instance.isLinkUnit) return false;
+  if (state.players[state.activePlayerIdx] === player) return false;
+  if (instance.activationsUsed.buffAnyUnit) return false;
+  const activeResources = player.resourceArea.filter((r) => !r.rested);
+  if (activeResources.length < 1) return false;
   const target = context.target;
-  if (!target) return;
+  if (!target) return false;
+  activeResources[0].rested = true;
+  instance.activationsUsed.buffAnyUnit = true;
   target.buffs.push({ ap: 1, scope: 'battle' });
+  return true;
 }
 
 // --- Ittou Tsurugi EB01-071 ---
@@ -8243,10 +8292,10 @@ function gerberaStraightCommand(state, player) {
 
 // --- Master League Begins EB01-077 ---
 // [Burst] Add this card to your hand. [Action] Choose 1 rested friendly (G Generation) Unit. Change
-// a battling enemy Unit's attack target to it. Engine-correct given a `context.battleTarget`
-// {type,instance} reference, but not AI-wired -- there's no hooks.actionStep plumbing offering the
-// AI a Command-play opportunity mid-battle, same known simplification as every other Action-timing
-// reactive card in this set (SP Conversion Chips EB01-083, Daryl Lorenz EB01-070).
+// a battling enemy Unit's attack target to it. AI-wired (2026-08-05): combat.js's Action Step now
+// passes a real, mutable `battleTarget` reference through hooks.actionStep, and heuristic.js's
+// actionStep hook can pick this card up reactively when facing lethal/a bad trade (see the
+// `actionTiming` card-data field this and every other Action-eligible command now carries).
 function masterLeagueBeginsBurst(state, player, instance) {
   player.hand.push(instance);
 }
@@ -8328,10 +8377,17 @@ function warshipCruiseBurst(state, player, instance, context) {
 
 // --- SP Conversion Chips EB01-083 ---
 // [Action] If it is your opponent's turn, choose 1 Unit. It gets AP+3 during this turn.
-// Engine-correct given a context.target, not AI-wired (see Master League Begins EB01-077 above).
+// AI-wired (2026-08-07): this was never actually blocked by "no currentBattle state" the way
+// Overcoming Hardships/A Wind Against Fires above were -- this effect doesn't reference the current
+// battle at all, it just never got the same context.hooks.chooseUnit-or-default fallback nearly every
+// other targeted command in this file has, so `context.target` (never supplied by anything) always
+// fell through to a silent no-op. Defaults to the controller's own highest-AP Unit, same convention as
+// every other bare-`{}`-args targeted effect here.
 function spConversionChipsCommand(state, player, instance, context) {
   if (state.players[state.activePlayerIdx] === player) return;
-  const target = context.target;
+  const target = context.target || (context.hooks && context.hooks.chooseUnit
+    ? context.hooks.chooseUnit(player.battleArea)
+    : [...player.battleArea].sort((a, b) => getAP(b) - getAP(a))[0]);
   if (!target) return;
   target.buffs.push({ ap: 3, scope: 'turn' });
 }
@@ -8405,11 +8461,12 @@ function marinaIsmailPtolemaios2FriendlyUnitDestroysEnemy(state, player, instanc
 // a turn-scoped buff at the start of each of the OPPONENT's turns (inverse of Darilbalde EB01-036's
 // own-turn version).
 function miorineRembranAcademyShipStartOfTurn(state, player, instance) {
-  if (state.players[state.activePlayerIdx] === player) return;
-  const targets = player.battleArea.filter(
-    (u) => (u.def.traits || []).includes('G Generation') && (u.def.level || 0) === 3
-  );
-  for (const u of targets) u.buffs.push({ ap: 1, scope: 'turn' });
+  const sourceId = `${instance.id}:miorineRembran`;
+  const isOpponentTurn = state.players[state.activePlayerIdx] !== player;
+  for (const u of player.battleArea) {
+    const qualifies = isOpponentTurn && (u.def.traits || []).includes('G Generation') && (u.def.level || 0) === 3;
+    grantTurnBuff(u, sourceId, qualifies ? { ap: 1 } : null);
+  }
 }
 
 // --- Lacus Clyne & Eternal EB01-089 ---
@@ -8881,9 +8938,9 @@ function gundamDynamesLRDestroysEnemy(state, player, instance) {
 // startOfTurn -- the turn-scoped buff auto-expires at end of turn via clearTurnBuffs, so it's
 // naturally off during the opponent's turn.)
 function gundamKyriosST07007StartOfTurn(state, player, instance) {
-  if (state.players[state.activePlayerIdx] !== player) return;
-  const hasCBPilot = player.battleArea.some((u) => u.pilot && (u.pilot.def.traits || []).includes('CB'));
-  if (hasCBPilot) instance.buffs.push({ ap: 2, scope: 'turn' });
+  const isOwnTurn = state.players[state.activePlayerIdx] === player;
+  const hasCBPilot = isOwnTurn && player.battleArea.some((u) => u.pilot && (u.pilot.def.traits || []).includes('CB'));
+  grantTurnBuff(instance, `${instance.id}:gundamKyrios`, hasCBPilot ? { ap: 2 } : null);
 }
 
 // --- Tieria Erde ST07-010 (Pilot) --- [Burst] Add this card to your hand. [Destroyed] If it is
@@ -8909,15 +8966,14 @@ function lockonStratosNeilWhenPaired(state, player, unit) {
 // with 3 or less AP. (Re-granted each of its own startOfTurn, same shape as Gundam Kyrios above;
 // `instance` here is the paired Unit, per fireCardEffect's pilot-forwarding.)
 function allelujahHaptismStartOfTurn(state, player, instance) {
-  if (state.players[state.activePlayerIdx] !== player) return;
-  const hasCBLink = player.battleArea.some((u) => u.isLinkUnit && (u.def.traits || []).includes('CB'));
-  if (hasCBLink) instance.buffs.push({ lowAPEnemyDamageImmuneCap: 3, scope: 'turn' });
+  const isOwnTurn = state.players[state.activePlayerIdx] === player;
+  const hasCBLink = isOwnTurn && player.battleArea.some((u) => u.isLinkUnit && (u.def.traits || []).includes('CB'));
+  grantTurnBuff(instance, `${instance.id}:allelujahHaptism`, hasCBLink ? { lowAPEnemyDamageImmuneCap: 3 } : null);
 }
 
 // --- Armed Intervention ST07-013 --- [Burst] Draw 1. [Action] Choose 1 rested friendly (CB) Unit.
-// Change the attack target of the battling enemy Unit to it. (masterLeagueBeginsCommand EB01-077
-// precedent -- a reactive mid-battle redirect, not AI-wired since no hooks.actionStep producer
-// exists yet, same documented gap.)
+// Change the attack target of the battling enemy Unit to it. Same masterLeagueBeginsCommand EB01-077
+// shape, AI-wired the same way (see that card's comment).
 function armedInterventionBurst(state, player) {
   drawCard(state, player);
 }

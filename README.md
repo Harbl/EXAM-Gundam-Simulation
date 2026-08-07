@@ -9,7 +9,7 @@ Full rules engine with every card released, built against the current banned/res
 
 ### [⬇ Download EXAM for Windows](https://github.com/Harbl/EXAM-Gundam-Simulation/releases/latest)
 
-Grab the installer from the [latest release](https://github.com/Harbl/EXAM-Gundam-Simulation/releases/latest), run it, and pick an install location. The app checks for a newer version on every launch, and a banner pops up when one's available so you can install it in one click.
+Grab the installer from the [latest release](https://github.com/Harbl/EXAM-Gundam-Simulation/releases/latest), run it, and pick an install location. The app checks for a newer version on every launch, and a banner pops up when one's available so you can install it in one click. The first time you open a new version, a quick splash shows what changed.
 
 ![Batch simulation results](docs/screenshots/simulate-results.png)
 
@@ -23,9 +23,11 @@ Both sides of a batch are piloted by [Monte Carlo Tree Search](src/ai/mcts.js), 
 
 Every decision point (deploy this, pair that, attack with this one, or pass) gets modeled as a branch in a search tree. Each branch gets scored based on how it's performed in simulations so far, plus a bonus for branches that haven't been explored much yet (standard UCT, balances "keep testing what's worked" against "make sure nothing promising got ignored"). Search budget naturally flows toward the branches that are scoring well. At the end it doesn't just take the branch with the best average, it takes the one that got visited the most, since that's more stable at low sample sizes than a raw average.
 
-Each individual simulated playout inside the search only looks a couple turns ahead before handing off to a position evaluator (win condition progress, board state, hand quality) instead of finishing the game out. That evaluator is a hand-tuned formula, weighted and checked against thousands of self-play games. There's also a trained neural net version that beat the hand-tuned formula in testing, but it's not wired in as the default yet. The full-game completion behavior comes from running a fresh search like that at every single decision across an entire real game, not from any one playout going the distance.
+Each individual simulated playout inside the search only looks a couple turns ahead before handing off to a position evaluator (win condition progress, board state, hand quality) instead of finishing the game out. That evaluator is a small trained neural net, which replaced the older hand-tuned formula after it beat it decisively in a large-sample self-play test (39,200 games). The full-game completion behavior comes from running a fresh search like that at every single decision across an entire real game, not from any one playout going the distance.
 
 Skill tiers trade off playout budget, how many turns the rollout looks ahead, and whether the rollout itself uses a cheap heuristic or the full lookahead AI. Beginner skips the tree search entirely and just uses the older heuristic AI. It scales up from there.
+
+The AI also knows its own decklist, the same way a real player knows theirs. It holds a Pilot back rather than pairing it onto a mediocre body the moment it's playable, if a better Link target for that exact Pilot is still sitting in the deck, and it weighs digging for a combo piece through card draw by the real odds of finding it, never by peeking at what a simulated draw actually turns up. That draw-value weighting applies at every skill tier except Expert, which stays unrestricted. One archetype, Nu Gundam, plays close enough to a search-optimal line that its simulated win rate runs well above what real ladder play sees, so by default it's stepped down to a weaker engine to keep results realistic. A "Newtype Awakening" toggle opts back into full strength for anyone who wants to see it played at its theoretical ceiling instead.
 
 ### Stats and reports
 
@@ -54,3 +56,7 @@ Every batch you save sticks around here: deck names, game count, win rate at a g
 Runs a bracket, single or double elimination, across any saved decks you pick as entrants. Choose a Best of 1/3/5/7 match format and an AI skill tier, and it seeds a bracket and plays it out round by round, revealing each winner as soon as their match resolves. Double elimination means a loss drops you into a losers bracket instead of knocking you out, and the two bracket champions meet in a Grand Final. Save the finished bracket to the Log page with per-entrant win rates, and every individual game stays replayable.
 
 ![A finished tournament bracket, champion crowned](docs/screenshots/tournament.png)
+
+### Settings
+
+Back up any combination of your saved decks, batch logs, and tournament results into a single zip file, saved wherever you pick.

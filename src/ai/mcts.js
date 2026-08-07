@@ -1,5 +1,5 @@
 const { canAfford, payCost } = require('../rules/cost');
-const { deployUnit, deployBase, playCommand, pairPilot, pairPilotFromTrash, matchesLinkCondition, findEvolveTarget, deployByEvolve } = require('../rules/actions');
+const { deployUnit, deployBase, playCommand, pairPilot, pairPilotFromTrash, matchesLinkCondition, hasBetterLinkTargetInDeck, bestLinkMatch, findEvolveTarget, deployByEvolve, comboSearchOdds } = require('../rules/actions');
 const { effectivePilotDef } = require('../rules/management');
 const { resolveAttack } = require('../rules/combat');
 const { runStartPhase, runDrawPhase, runResourcePhase, runEndPhase, passTurn } = require('../rules/phases');
@@ -15,7 +15,8 @@ const {
   runMainPhaseSimple,
   runMainPhase,
   defaultHooks,
-  lookaheadHooks
+  lookaheadHooks,
+  COMBO_SEARCH_WEIGHT
 } = require('./heuristic');
 const { RESOLVERS, collectActivateCandidates, activateMainSource, REQUIRES_RESTED } = require('./activations');
 
@@ -37,12 +38,16 @@ const { RESOLVERS, collectActivateCandidates, activateMainSource, REQUIRES_RESTE
  * batch/regression use; STRONG_MCTS_CONFIG is the explicit opt-in for a single deliberately
  * higher-quality game, matching Jake's "good AI rollout, but tunable" choice.
  */
-const DEFAULT_MCTS_CONFIG = { playoutBudget: 25, rolloutTurns: 2, rolloutPolicy: 'cheap' };
+// applyComboSearchBonus: true on every tier except STRONG_MCTS_CONFIG -- Jake's call (2026-08-07):
+// the no-peeking combo-search bonus (see runSearch's own comment) should apply everywhere except the
+// top ('expert') tier, since expert is already the deliberately-unrealistic "how good could this deck
+// theoretically be piloted" ceiling and doesn't need to be reined in toward human-shaped play.
+const DEFAULT_MCTS_CONFIG = { playoutBudget: 25, rolloutTurns: 2, rolloutPolicy: 'cheap', applyComboSearchBonus: true };
 const STRONG_MCTS_CONFIG = { playoutBudget: 25, rolloutTurns: 2, rolloutPolicy: 'good' };
 // A middle tier: more playouts under the cheap rollout (still ~180ms/game per playout, so 4x the
 // budget is still well under 1s/game) rather than paying the ~80-90x cost of the 'good' rollout
 // policy -- a deliberately stronger single/small-batch game without STRONG_MCTS_CONFIG's full price.
-const BALANCED_MCTS_CONFIG = { playoutBudget: 100, rolloutTurns: 2, rolloutPolicy: 'cheap' };
+const BALANCED_MCTS_CONFIG = { playoutBudget: 100, rolloutTurns: 2, rolloutPolicy: 'cheap', applyComboSearchBonus: true };
 // A below-default tier, added 2026-08-03 for the skill-slider feature (src/ai/skillPresets.js) --
 // Jake wanted a real step between "the old lookahead AI entirely" (skillPresets.js's 'beginner') and
 // today's default MCTS ('casual'), rather than that being the only two rungs. This exact config was
@@ -50,7 +55,7 @@ const BALANCED_MCTS_CONFIG = { playoutBudget: 100, rolloutTurns: 2, rolloutPolic
 // (44.3% win rate, z=-2.30) -- a genuine weaker tier, not a guess. Verified it still clears the old
 // lookahead AI outright (scratchpad/verify_novice_tier_ordering.js: 62.5% over 120 real games, z~2.7),
 // confirming beginner < weak < fast is a real strength ordering, not assumed from "it's still MCTS".
-const WEAK_MCTS_CONFIG = { playoutBudget: 12, rolloutTurns: 2, rolloutPolicy: 'cheap' };
+const WEAK_MCTS_CONFIG = { playoutBudget: 12, rolloutTurns: 2, rolloutPolicy: 'cheap', applyComboSearchBonus: true };
 
 /** Named tiers for --mcts=<preset> (bin/simulate.js) and any future settings-window UI (Phase 3) to bind to. */
 const MCTS_PRESETS = { weak: WEAK_MCTS_CONFIG, fast: DEFAULT_MCTS_CONFIG, balanced: BALANCED_MCTS_CONFIG, strong: STRONG_MCTS_CONFIG };
@@ -78,6 +83,7 @@ class MCTSNode {
     this.untriedActions = null; // lazily populated, then popped from directly as children are expanded
     this.visits = 0;
     this.totalValue = 0;
+    this.comboBonus = 0; // see runSearch's comment; nonzero only for a 'command' node that drew cards
   }
 }
 
@@ -118,12 +124,29 @@ function selectChild(node, explorationC = EXPLORATION_C) {
   return best;
 }
 
-/** Same candidate filter runPairingsLookahead uses (heuristic.js) -- kept consistent rather than adding refinements it doesn't have. */
+/**
+ * Same candidate filter runPairings uses (heuristic.js), plus one refinement: a Pilot is excluded here
+ * (not offered as a legal 'pair' action at all) whenever its best currently-in-play Link match (if
+ * any -- bestLinkMatch, actions.js) is beaten by something still undrawn in the deck
+ * (hasBetterLinkTargetInDeck). Covers both "no match at all yet" and "a worse match is already in
+ * play, a better one is still coming." Without this, MCTS would happily grab the small guaranteed
+ * value of pairing onto whatever's available right now -- it has no way to see the payoff of waiting
+ * for the intended body a few turns out, since that value only exists in a future the search's playout
+ * budget rarely reaches. Excluding the action outright (rather than trusting search/eval to discover
+ * holding is better) is the same kind of deliberate heuristic judgment call as the "Heuristic default"
+ * choices documented throughout registry.js -- not a searched decision, but a real, targeted fix for a
+ * real reported gap.
+ */
 function collectPairCandidates(state, playerIdx) {
   const player = state.players[playerIdx];
   const targets = player.battleArea.filter((u) => u.def.type === 'unit' && !u.pilot && !u.def.cannotBePaired);
   if (targets.length === 0) return [];
-  return player.hand.filter((c) => (c.def.type === 'pilot' || c.def.pilotMode) && canAfford(player, c.def, { state }));
+  return player.hand.filter((c) => {
+    if (!(c.def.type === 'pilot' || c.def.pilotMode) || !canAfford(player, c.def, { state })) return false;
+    const best = bestLinkMatch(targets, c);
+    const bestLevel = best ? (best.def.level || 0) : -1;
+    return !hasBetterLinkTargetInDeck(player, c, bestLevel);
+  });
 }
 
 /**
@@ -196,8 +219,7 @@ function applyAction(state, playerIdx, action, hooks) {
     const targets = player.battleArea.filter((u) => u.def.type === 'unit' && !u.pilot && !u.def.cannotBePaired);
     const pilot = player.hand.find((c) => c.id === action.cardId);
     if (!pilot || targets.length === 0 || !canAfford(player, pilot.def, { state })) return;
-    let unit = targets.find((u) => matchesLinkCondition(effectivePilotDef(pilot), u.def.linkCondition));
-    if (!unit) unit = targets[0];
+    const unit = bestLinkMatch(targets, pilot) || targets[0];
     payCost(player, pilot.def, { pairUnit: unit, state });
     pairPilot(state, player, unit, pilot);
     return;
@@ -297,9 +319,25 @@ function rollout(state, playerIdx, config, alreadyPassed) {
   }
 }
 
-/** One MCTS search from `rootState` (not mutated) for a single atomic decision, returning the built tree. */
+/**
+ * One MCTS search from `rootState` (not mutated) for a single atomic decision, returning the built tree.
+ *
+ * `applyComboSearchBonus` (per-tier, see MCTS_PRESETS above) extends heuristic.js's no-peeking
+ * combo-search bonus into this search: `comboSearchOdds` is snapshotted ONCE from the real, untouched
+ * `rootState` before any playout runs (never recomputed from a resolved clone -- that would peek at
+ * whether a specific simulated draw happened to hit), then a 'command' node that draws cards gets a
+ * fixed `comboBonus` (a bare drawn-card COUNT times the frozen odds, never card identity) computed once
+ * at its own creation. Backprop adds that node's own comboBonus on every visit through it, on top of the
+ * normal leaf reward -- since it's a constant added once per pass-through, this converges the node's
+ * mean value (totalValue/visits, what uct()'s exploitation term reads) to `mean(leaf reward) +
+ * comboBonus`, i.e. a flat bump to this one decision's estimated value, same effect as
+ * runCommandsLookahead's additive bonus, just expressed per-node instead of per-subset since MCTS
+ * decides one atomic action at a time rather than searching whole subsets.
+ */
 function runSearch(rootState, playerIdx, config) {
   const root = new MCTSNode(cloneState(rootState), null, null);
+  const searchOdds = config.applyComboSearchBonus ? comboSearchOdds(rootState.players[playerIdx]) : 0;
+  const comboWeight = rootState.players[playerIdx].aiWeights?.comboSearch ?? COMBO_SEARCH_WEIGHT;
 
   for (let i = 0; i < config.playoutBudget; i++) {
     let node = root;
@@ -315,6 +353,15 @@ function runSearch(rootState, playerIdx, config) {
       const childState = cloneState(node.state);
       applyAction(childState, playerIdx, action, defaultHooks());
       const child = new MCTSNode(childState, action, node);
+      if (searchOdds > 0 && action.type === 'command') {
+        const before = node.state.players[playerIdx];
+        const after = childState.players[playerIdx];
+        const actuallyPlayed = after.trash.length - before.trash.length;
+        if (actuallyPlayed > 0) {
+          const cardsDrawn = Math.max(0, after.hand.length - (before.hand.length - actuallyPlayed));
+          child.comboBonus = cardsDrawn * searchOdds * comboWeight;
+        }
+      }
       node.children.push(child);
       node = child;
     }
@@ -328,7 +375,7 @@ function runSearch(rootState, playerIdx, config) {
     // Backpropagate
     for (let cur = node; cur; cur = cur.parent) {
       cur.visits += 1;
-      cur.totalValue += reward;
+      cur.totalValue += reward + cur.comboBonus;
     }
   }
 

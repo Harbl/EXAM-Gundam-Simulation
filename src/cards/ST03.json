@@ -100,13 +100,13 @@
     "effectRefs": { "burst": "addSelfToHandBurst", "whenPaired": "fullFrontalWhenPaired" }
   },
   {
-    "number": "ST03-012", "name": "Indignation", "type": "command", "color": "red",
+    "number": "ST03-012", "actionTiming": "both", "name": "Indignation", "type": "command", "color": "red",
     "level": 2, "cost": 1,
     "pilotMode": { "name": "Angelo Sauper", "apBonus": 1, "hpBonus": 0 },
     "effectRefs": { "command": "indignationCommand" }
   },
   {
-    "number": "ST03-014", "name": "The Blue Giant", "type": "command", "color": "green",
+    "number": "ST03-014", "actionTiming": "action", "name": "The Blue Giant", "type": "command", "color": "green",
     "level": 4, "cost": 1,
     "pilotMode": { "name": "Ramba Ral", "apBonus": 1, "hpBonus": 1 },
     "effectRefs": { "command": "theBlueGiantST03014Command" }

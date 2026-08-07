@@ -121,20 +121,28 @@ test('Beside Pain EB01-069: Attack gives a friendly Blocker Unit AP+2 for the tu
   assert.equal(target.buffs.some((b) => b.ap === 2), true);
 });
 
-test('Daryl Lorenz EB01-070: ActivateAction grants AP+1 for the battle only during the opponent\'s turn', () => {
+test('Daryl Lorenz EB01-070: ActivateAction grants AP+1 for the battle only during the opponent\'s turn, During Link, gated on (1) cost + Once per Turn', () => {
   const player = createPlayer(0);
   const opponent = createPlayer(1);
   const state = createGame(player, opponent);
   const instance = deployUnit(state, player, { number: 'U1', type: 'unit', ap: 2, hp: 3 });
   const target = deployUnit(state, player, { number: 'U2', type: 'unit', ap: 1, hp: 1 });
+  player.resourceArea.push(createInstance({ number: 'R1', type: 'resource', color: 'white' }, 0));
 
+  state.activePlayerIdx = 1;
+  assert.equal(registry.darylLorenzActivateAction(state, player, instance, { target }), false, 'not a Link Unit yet -- fails');
+
+  instance.isLinkUnit = true;
   state.activePlayerIdx = 0;
   registry.darylLorenzActivateAction(state, player, instance, { target });
   assert.equal(target.buffs.length, 0, "player's own turn: no effect");
 
   state.activePlayerIdx = 1;
-  registry.darylLorenzActivateAction(state, player, instance, { target });
+  assert.equal(registry.darylLorenzActivateAction(state, player, instance, { target }), true);
   assert.equal(target.buffs.some((b) => b.ap === 1), true);
+  assert.equal(player.resourceArea[0].rested, true, 'paid the (1) cost');
+
+  assert.equal(registry.darylLorenzActivateAction(state, player, instance, { target }), false, 'Once per Turn -- already used');
 });
 
 test('Ittou Tsurugi EB01-071: During Link AP+1 via data field, read by getAP', () => {

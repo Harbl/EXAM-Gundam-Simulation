@@ -17,7 +17,9 @@ const { drawCard } = require('./phases');
  * Resolves one full attack (8-1 through 8-6): attack, block, action, damage, battle-end steps.
  * `declaredTarget` is {type:'player'} or {type:'unit', instance}.
  * `hooks` (all optional): chooseBlocker(defendingPlayer, attacker, target) => blockerInstance|null,
- * actionStep(state, {attacker, target}), chooseBurst(shieldInstance, state) => boolean.
+ * actionStep(state, {attacker, target, battleTarget}) -- battleTarget is `target` itself, mutable in
+ * place for a redirect-style reactive Command to retarget this battle -- chooseBurst(shieldInstance,
+ * state) => boolean.
  */
 function resolveAttack(state, attackerPlayerIdx, attacker, declaredTarget, hooks = {}) {
   const attackingPlayer = state.players[attackerPlayerIdx];
@@ -78,8 +80,12 @@ function resolveFromBlockDecision(state, attackerPlayerIdx, attacker, declaredTa
   }
 
   // --- Action step (8-4) ---
+  // `target` is passed as `battleTarget` too (same object, not a copy) so a redirect-style command
+  // (e.g. Master League Begins EB01-077) can retarget this battle in place by mutating its
+  // type/instance fields -- everything downstream (targetStillIn, resolveDamageStep) reads `target`
+  // by reference, so the mutation takes effect immediately without reassigning this local variable.
   if (attackerStillIn() && targetStillIn() && hooks.actionStep) {
-    hooks.actionStep(state, { attacker, target });
+    hooks.actionStep(state, { attacker, target, battleTarget: target });
   }
 
   // --- Damage step (8-5) ---
@@ -417,12 +423,35 @@ function resolveUnitBattleDamage(state, attackingPlayer, defendingPlayer, attack
   ) {
     dealDamage(getBattleDamageRecipient(attacker), defenderAP, { isBattleDamage: true });
   }
-  const defenderDied = destroyAndFireEffect(state, defendingPlayer, defenderRecipient, { viaBattleDamage: true });
-  destroyAndFireEffect(state, attackingPlayer, getBattleDamageRecipient(attacker), { viaBattleDamage: true });
+  // 10-1-6-6/Q108: simultaneous triggers resolve as the active player's full batch, then the standby
+  // player's -- never interleaved. This only governs when each side's [Destroyed] card-text reaction
+  // *fires*, not when a dead unit leaves the battle area -- removal happens immediately for both units
+  // the instant their HP hits 0 (8-5-3-2), same timing as before, so anything reading board state (e.g.
+  // a "rest 1 other enemy with <=5 HP" effect) still sees a dead unit as already gone. The attacker is
+  // always the active player here (attacks only ever happen on your own turn), so their own [Destroyed],
+  // Breach, and destroysEnemy all belong to the first batch and must resolve before the defender's
+  // (standby player's) [Destroyed].
+  const attackerRecipient = getBattleDamageRecipient(attacker);
+  const attackerPilotBeforeDestroy = attackerRecipient.pilot;
+  const attackerDied = destroyIfDead(state, attackingPlayer, attackerRecipient);
+  const defenderDied = destroyIfDead(state, defendingPlayer, defenderRecipient);
+  if (attackerDied) fireDestroyedTrigger(state, attackingPlayer, attackerRecipient, attackerPilotBeforeDestroy, { viaBattleDamage: true });
   if (defenderDied) {
     if (keywords.breach) applyBreach(state, defendingPlayer, keywords.breach, hooks, attacker);
     fireDestroysEnemy(state, attackingPlayer, attacker, defenderRecipient, defenderPilot);
+    fireDestroyedTrigger(state, defendingPlayer, defenderRecipient, defenderPilot, { viaBattleDamage: true });
   }
+}
+
+/** Fires a destroyed Unit's own [Destroyed] card text plus its paired Pilot's, if it had one -- split
+ * out of destroyAndFireEffect (which bundles this with the destroy itself) so mutual-destruction combat
+ * can destroy both units immediately (8-5-3-2) while still sequencing *which side's reaction fires
+ * first* per 10-1-6-6/Q108 (see resolveUnitBattleDamage above). `pilot` must be captured by the caller
+ * before destroying, since destroyCard already nulls instance.pilot by the time this runs. */
+function fireDestroyedTrigger(state, player, instance, pilot, extraContext = {}) {
+  fireCardEffect(state, player, instance, 'destroyed', { wasPaired: !!pilot, pilot, ...extraContext });
+  const pilotHandler = pilot && pilot.def.effects && pilot.def.effects.destroyed;
+  if (pilotHandler) pilotHandler(state, player, instance, { wasPaired: true, pilot, ...extraContext });
 }
 
 /**

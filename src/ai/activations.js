@@ -383,4 +383,181 @@ function collectActivateCandidates(state, playerIdx) {
   return candidates;
 }
 
-module.exports = { RESOLVERS, collectActivateCandidates, activateMainSource, REQUIRES_RESTED };
+/**
+ * Resolves which card's activateAction handler applies to `instance` -- same own-card-or-paired-Pilot
+ * fallback as activateMainSource above (Daryl Lorenz EB01-070's ability lives on the Pilot, gained by
+ * whatever Unit it's paired to per 2-11-3).
+ */
+function activateActionSource(instance) {
+  if (instance.def.effects && instance.def.effects.activateAction) {
+    return { handler: instance.def.effects.activateAction, number: instance.def.number };
+  }
+  if (instance.pilot && instance.pilot.def.effects && instance.pilot.def.effects.activateAction) {
+    return { handler: instance.pilot.def.effects.activateAction, number: instance.pilot.def.number };
+  }
+  return null;
+}
+
+/**
+ * cardNumber -> resolveArgs(state, player, opponent, source, battleCtx): the [Activate·Action]
+ * counterpart to RESOLVERS above (13-2-1-2), usable reactively during an Action Step (8-4) instead of
+ * only at Main-phase sorcery speed. `battleCtx` = {attacker, target}, where `target` already reflects
+ * a chosen Blocker (see combat.js's resolveFromBlockDecision) -- most of these cards' own text
+ * ("the Unit being attacked," "enemy Unit battling this Unit") only makes sense relative to the
+ * specific battle currently in progress, unlike RESOLVERS' Main-phase abilities which just read
+ * whatever the board looks like.
+ *
+ * Read from heuristic.js's `actionStep`, so scoped like it to the *defending* player's reactive
+ * window only -- two real Activate·Action cards (Gamow GD01-127's Breach grant, Moebius Peacemaker
+ * GD02-011's destroy-for-Breach-damage) are naturally attacker-side abilities instead (Breach only
+ * matters while dealing damage forward into an enemy Base/Shields, which the defending side never
+ * does in this exchange) and aren't covered here -- see the project gaps doc for that residual scope.
+ */
+function gSkyEasyActionResolver(state, player, opponent, source, { target }) {
+  if (!source.isLinkUnit || source.activationsUsed.recoverHp) return null;
+  if (target.type !== 'unit' || getRemainingHP(target.instance) >= (target.instance.def.hp || 0)) return null;
+  return { target: target.instance };
+}
+
+const ACTION_RESOLVERS = {
+  // G-Sky Easy GD01-014 / Gundam Mk-III EB01-020 (byte-identical text, shared handler): heals the
+  // Unit actually under attack right now, if it's actually missing HP.
+  'GD01-014': gSkyEasyActionResolver,
+  'EB01-020': gSkyEasyActionResolver,
+
+  // Taurus (Sanc Kingdom) EB01-033: (1), buffs the other Unit actually being attacked right now.
+  'EB01-033': (state, player, opponent, source, { target }) => {
+    if (source.activationsUsed.buffAttackedUnit) return null;
+    if (!player.resourceArea.some((r) => !r.rested)) return null;
+    if (target.type !== 'unit' || target.instance === source) return null;
+    return { target: target.instance };
+  },
+
+  // Daryl Lorenz EB01-070 (Pilot, During Link): (1), only during the opponent's turn -- buffs the
+  // Unit actually being attacked right now (its own text allows any Unit, but that's the one worth
+  // spending a real resource on mid-battle).
+  'EB01-070': (state, player, opponent, source, { target }) => {
+    if (!source.isLinkUnit || source.activationsUsed.buffAnyUnit) return null;
+    if (state.players[state.activePlayerIdx] === player) return null;
+    if (!player.resourceArea.some((r) => !r.rested)) return null;
+    if (target.type !== 'unit') return null;
+    return { target: target.instance };
+  },
+
+  // Galluss-K GD01-058: (1), buffs the attacked Unit AP+1 if it actually qualifies (Lv.4+).
+  'GD01-058': (state, player, opponent, source, { target }) => {
+    if (source.activationsUsed.buffLvFour) return null;
+    if (!player.resourceArea.some((r) => !r.rested)) return null;
+    if (target.type !== 'unit' || (target.instance.def.level || 0) < 4) return null;
+    return { target: target.instance };
+  },
+
+  // Gundam Aerial GD01-082 (During Pair): (2), debuffs the enemy Unit actually attacking right now.
+  'GD01-082': (state, player, opponent, source, { attacker }) => {
+    if (!source.pilot || source.activationsUsed.debuffEnemy) return null;
+    if (player.resourceArea.filter((r) => !r.rested).length < 2) return null;
+    return { target: attacker };
+  },
+
+  // Elan Ceres GD01-098 (Pilot): no battle-context dependency at all -- fires whenever an enemy Unit
+  // with 1 or less AP is already in play, same condition its own handler checks.
+  'GD01-098': (state, player, opponent, source) => {
+    if (source.activationsUsed.elanHeal) return null;
+    return opponent.battleArea.some((u) => getAP(u) <= 1) ? {} : null;
+  },
+
+  // Graze Ein (R+) GD03-073 (During Link): AP-3 to the enemy Unit actually battling it -- only
+  // applies while this Unit itself is the one under attack (its text is "battling this Unit").
+  'GD03-073': (state, player, opponent, source, { attacker, target }) => {
+    if (!source.isLinkUnit || source.activationsUsed.apDebuff) return null;
+    if (target.type !== 'unit' || target.instance !== source) return null;
+    const gjallarhornInTrash = player.trash.filter((c) => (c.def.traits || []).includes('Gjallarhorn')).length;
+    if (gjallarhornInTrash < 6) return null;
+    return { target: attacker };
+  },
+
+  // Gundam AGE-2 Double Bullet GD05-021: (1), AP+4 during this battle -- only matches "during this
+  // battle" (and is only worth it) while this Unit itself is the one under attack.
+  'GD05-021': (state, player, opponent, source, { target }) => {
+    if (source.activationsUsed.apBoost) return null;
+    if (!player.resourceArea.some((r) => !r.rested)) return null;
+    if (target.type !== 'unit' || target.instance !== source) return null;
+    return {};
+  },
+
+  // Gundam Schwarzette GD05-022: exile 2 Commands from trash for damage reduction 2 during this
+  // battle -- same "only while this Unit is the one under attack" scoping as AGE-2 Double Bullet.
+  'GD05-022': (state, player, opponent, source, { target }) => {
+    if (source.activationsUsed.damageReduction) return null;
+    if (player.trash.filter((c) => c.def.type === 'command').length < 2) return null;
+    if (target.type !== 'unit' || target.instance !== source) return null;
+    return {};
+  }
+};
+
+/**
+ * The [Activate·Action] counterpart to ACTION_RESOLVERS above for the *attacking* side, not the
+ * defending one -- Gamow GD01-127 (rest self: grant a friendly (ZAFT) 5+AP Unit <Breach 3> this battle)
+ * and Moebius (Peacemaker Team) GD02-011 (destroy self: 6 damage to the enemy Base/Shield this Unit is
+ * battling) only ever matter while actually attacking (Breach/damage forward into the enemy player),
+ * which the defending side in this exchange never is. Kept as a genuinely separate table rather than
+ * merged into ACTION_RESOLVERS: every one of those 10 entries assumes `player` is the defending side
+ * (e.g. G-Sky Easy heals "the Unit under attack," meaning the defender's own Unit) -- reusing them
+ * blindly for the attacking side would fire nonsensically (e.g. trying to heal the enemy Unit being
+ * attacked). `battleCtx` is the same `{attacker, target}` shape as ACTION_RESOLVERS gets, just resolved
+ * from the attacking player's own perspective (heuristic.js's actionStep already has both in scope).
+ */
+const ATTACKER_ACTION_RESOLVERS = {
+  // Gamow GD01-127 (Base): "Rest this Base" is the ability's own cost -- unlike every entry in
+  // ACTION_RESOLVERS (none of which rest their own source), this one genuinely needs an explicit
+  // rested-check here since collectActivateActionCandidates deliberately has no generic rested-filter.
+  // No other battle-context dependency; the handler does its own default (ZAFT) 5+AP target selection,
+  // same as every Main-phase resolver above that returns a bare `{}` and lets the handler's fallback pick.
+  'GD01-127': (state, player, opponent, source) => {
+    if (source.rested) return null;
+    const candidates = player.battleArea.filter((u) => (u.def.traits || []).includes('ZAFT') && getAP(u) >= 5);
+    return candidates.length > 0 ? {} : null;
+  },
+  // Moebius (Peacemaker Team) GD02-011: only legal while actually attacking the enemy player directly
+  // (its own handler's guard is `context.target.type !== 'player'`) -- passes the raw {type, instance?}
+  // descriptor through unwrapped, matching what the handler expects.
+  'GD02-011': (state, player, opponent, source, { target }) => (target.type === 'player' ? { target } : null)
+};
+
+/**
+ * Every currently-usable [Activate·Action] source (Base or Unit) + its resolved args, for playerIdx,
+ * given the battle in progress. No rested-filter (unlike collectActivateCandidates' Main-phase
+ * default): none of these cards rest their own source as a cost, and the self-targeting ones
+ * (Graze Ein/AGE-2 Double Bullet/Schwarzette) are only ever usable on a Unit that's the current
+ * attack's legal target -- which per 8-3-1 is already rested (or, for a chosen Blocker, gets rested
+ * as part of blocking) by the time this fires, so filtering on rested state would break exactly the
+ * cards that need it most.
+ *
+ * `resolverTable` defaults to ACTION_RESOLVERS (the defending-side table, every existing call site's
+ * behavior unchanged) -- heuristic.js's actionStep passes ATTACKER_ACTION_RESOLVERS explicitly when
+ * checking the attacking player's own reactive options instead.
+ */
+function collectActivateActionCandidates(state, playerIdx, battleCtx, resolverTable = ACTION_RESOLVERS) {
+  const player = state.players[playerIdx];
+  const opponent = state.players[1 - playerIdx];
+  const activators = [player.base, ...player.battleArea].filter(Boolean);
+  const candidates = [];
+  for (const source of activators) {
+    const handlerInfo = activateActionSource(source);
+    if (!handlerInfo || !resolverTable[handlerInfo.number]) continue;
+    const args = resolverTable[handlerInfo.number](state, player, opponent, source, battleCtx);
+    if (args) candidates.push({ source, args, handler: handlerInfo.handler });
+  }
+  return candidates;
+}
+
+module.exports = {
+  RESOLVERS,
+  collectActivateCandidates,
+  activateMainSource,
+  REQUIRES_RESTED,
+  ACTION_RESOLVERS,
+  ATTACKER_ACTION_RESOLVERS,
+  collectActivateActionCandidates,
+  activateActionSource
+};

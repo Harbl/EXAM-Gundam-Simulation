@@ -10,7 +10,15 @@ const { buildGameDeck } = require('../src/deck/build');
 const { lookupCard } = require('../src/cards/index');
 const { playGame } = require('../src/sim/singleGame');
 const { DEFAULT_MCTS_CONFIG } = require('../src/ai/mcts');
+const { loadNet } = require('../src/ai/valueNet');
 const banlist = require('../data/banlist.json');
+
+// Both sides get the trained net (data/valueNet.json, adopted as the app's default evaluator
+// 2026-08-05) so this isolates the search-budget effect alone -- the original BALANCED_MCTS_CONFIG
+// finding (52.2%, z=2.90, n=4200) was measured under the old linear scoreState, before that net
+// existed. Re-running the same comparison now answers "does the budget bump still help with a much
+// sharper evaluator" instead of assuming the old result still holds.
+const VALUE_MODEL = loadNet(path.join(__dirname, '..', 'data', 'valueNet.json'));
 
 function loadDeck(name) {
   const text = fs.readFileSync(path.join(__dirname, 'decklists', name), 'utf8');
@@ -36,7 +44,9 @@ function runVariant(champion, candidate) {
       const candidateIsA = i % 2 === 0;
       const r = playGame(deck, deck, {
         mctsConfigA: candidateIsA ? candidate : champion,
-        mctsConfigB: candidateIsA ? champion : candidate
+        mctsConfigB: candidateIsA ? champion : candidate,
+        valueModelA: VALUE_MODEL,
+        valueModelB: VALUE_MODEL
       });
       if (r.draw) draws++;
       else if (r.timedOut) timeouts++;

@@ -538,7 +538,7 @@ const MAX_TURNS = 60;
 
 /**
  * `deckA`/`deckB` are {main, resource} CardDef arrays (same shape src/sim/singleGame.js takes).
- * `options` mirrors playGame's: engineA/engineB, mctsConfigA/mctsConfigB.
+ * `options` mirrors playGame's: engineA/engineB, mctsConfigA/mctsConfigB, valueModelA/valueModelB.
  */
 function traceGame(deckA, deckB, seed, options = {}) {
   events = [];
@@ -586,6 +586,8 @@ function traceGame(deckA, deckB, seed, options = {}) {
 
   if (options.mctsConfigA) state.players[0].mctsConfig = options.mctsConfigA;
   if (options.mctsConfigB) state.players[1].mctsConfig = options.mctsConfigB;
+  if (options.valueModelA) state.players[0].valueModel = options.valueModelA;
+  if (options.valueModelB) state.players[1].valueModel = options.valueModelB;
   const engines = [options.engineA || 'mcts', options.engineB || 'mcts'];
 
   events.push({ type: 'gameStart', firstPlayer: state.activePlayerIdx });

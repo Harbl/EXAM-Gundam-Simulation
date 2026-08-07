@@ -23,10 +23,10 @@ function loadDeck(text, label) {
 }
 
 try {
-  const { deckAText, deckBText, seed, engineA, engineB, mctsConfigA, mctsConfigB } = workerData;
+  const { deckAText, deckBText, seed, engineA, engineB, mctsConfigA, mctsConfigB, valueModelA, valueModelB } = workerData;
   const deckA = loadDeck(deckAText, 'Deck A');
   const deckB = loadDeck(deckBText, 'Deck B');
-  const events = traceGame(deckA, deckB, seed, { engineA, engineB, mctsConfigA, mctsConfigB });
+  const events = traceGame(deckA, deckB, seed, { engineA, engineB, mctsConfigA, mctsConfigB, valueModelA, valueModelB });
   parentPort.postMessage({ type: 'done', events });
 } catch (err) {
   parentPort.postMessage({ type: 'error', message: err.message });

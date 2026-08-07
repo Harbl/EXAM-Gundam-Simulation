@@ -6,12 +6,25 @@
 // Each round: (1) collect self-play data using the current champion (round 0 = no valueModel, i.e.
 // today's linear scoreState), sampling a feature vector after every main phase and labeling it with
 // that game's final outcome (a Monte-Carlo target, +/-OUTPUT_SCALE win/loss, 0 draw -- timed-out games
-// are discarded, ambiguous outcome); (2) train a fresh net on that data with early stopping; (3) verify
-// the candidate against the current champion in self-play (weight_tune.js's z-score-gated harness
-// shape); (4) adopt on a significant win and repeat, or stop -- same "keep going until no more
-// improvement" rule already used for scratchpad/weight_coordinate_descent.js, one tier up.
+// are discarded, ambiguous outcome); (2) train a fresh net on a replay window of the last few rounds'
+// pooled data (not just this round's own batch -- see REPLAY_WINDOW_ROUNDS below) with early stopping;
+// (3) verify the candidate against the current champion via SPRT self-play (src/ai/sprt.js -- plays
+// games one at a time and stops as soon as the result is a definitive accept/reject, instead of a fixed
+// sample size that can come back ambiguous); (4) adopt on accept and repeat, or stop -- same "keep going
+// until no more improvement" rule already used for scratchpad/weight_coordinate_descent.js, one tier up.
 //
-// Usage: node bin/train_value_net.js [gamesPerRound] [maxRounds] [verifyGamesPerDeck] [confirmGamesPerDeck] [--resume]
+// Usage: node bin/train_value_net.js [gamesPerRound] [maxRounds] [verifyMaxGamesPerDeck] [confirmMaxGamesPerDeck] [replayWindowRounds] [--resume]
+//   verifyMaxGamesPerDeck/confirmMaxGamesPerDeck are now safety caps, not fixed spends -- SPRT stops
+//   as soon as it resolves, and only runs up to the cap in the (rare, near-p0) case where it doesn't.
+//   replayWindowRounds (default 1 = old exact behavior): how many of the most recent rounds' self-play
+//   datasets stay pooled for training, instead of discarding a round's ~37k samples the instant its
+//   candidate doesn't get adopted. Adapted from MuZero Unplugged's "Reanalyze" -- can't reuse that
+//   technique literally here (Reanalyze re-labels old trajectories with the current model's value
+//   estimate, but this project's targets are the real Monte-Carlo game outcome, which never changes),
+//   but the underlying "don't throw away still-valid self-play games just because their round's
+//   candidate didn't win" idea carries over as a rolling replay window -- standard practice in most
+//   real self-play RL implementations (a bounded window, not the literal full history, so training
+//   doesn't end up dominated by games collected under a much weaker, long-superseded champion).
 //   --resume starts from the currently saved data/valueNet.json as the champion (continuing training
 //   from the best model found so far) instead of round 0's default starting point (today's linear
 //   scoreState). Verification/confirmation are always against the true baseline this run started from,
@@ -27,10 +40,11 @@ const { initializeGame } = require('../src/rules/setup');
 const { runStartPhase, runDrawPhase, runResourcePhase, runEndPhase, passTurn } = require('../src/rules/phases');
 const { checkDefeat } = require('../src/rules/management');
 const { decideMulligan } = require('../src/ai/heuristic');
-const { runMainPhaseMCTS, DEFAULT_MCTS_CONFIG } = require('../src/ai/mcts');
+const { runMainPhaseMCTS, BALANCED_MCTS_CONFIG } = require('../src/ai/mcts');
 const { extractFeatures } = require('../src/ai/valueFeatures');
 const { createNet, forward, trainStep, saveNet, loadNet, OUTPUT_SCALE } = require('../src/ai/valueNet');
 const { playGame } = require('../src/sim/singleGame');
+const { DEFAULT_SPRT, sprtBounds, llrIncrement, sprtVerdict } = require('../src/ai/sprt');
 const banlist = require('../data/banlist.json');
 
 const MAX_TURNS = 60;
@@ -60,6 +74,16 @@ function zScore(winRate, n) {
   return (winRate - 0.5) / se;
 }
 
+// Self-play *data collection* now runs at BALANCED_MCTS_CONFIG's playout budget (100, up from
+// DEFAULT_MCTS_CONFIG's 25) -- confirmed 2026-08-05 (scratchpad/mcts_valuenet_budget_compare.js) that
+// the budget bump still holds a significant edge (53.3%, z=4.26, n=4200) even with the trained net as
+// evaluator, so it's not redundant with the net itself. Training on higher-quality self-play games
+// should teach the net more than the same volume of cheaper/noisier ones would. verify()/the final
+// confirmation deliberately stay at the implicit DEFAULT_MCTS_CONFIG fallback (unchanged) rather than
+// also paying the ~4x per-game cost there -- this isolates "does training on better data help" as its
+// own question, and keeps this run in the same runtime ballpark as prior ones instead of ~4x longer.
+const SELFPLAY_MCTS_CONFIG = BALANCED_MCTS_CONFIG;
+
 /** Plays one self-play game (both sides using `championModel`, or today's linear scoreState if null),
  * sampling extractFeatures after every main phase. Returns the game's samples (unlabeled) plus its
  * outcome, or null if the game timed out (MAX_TURNS, ambiguous outcome -- discarded from training). */
@@ -79,7 +103,7 @@ function playAndSample(deckA, deckB, championModel) {
 
     runResourcePhase(state);
     const activeIdx = state.activePlayerIdx;
-    runMainPhaseMCTS(state, activeIdx, undefined, DEFAULT_MCTS_CONFIG);
+    runMainPhaseMCTS(state, activeIdx, undefined, SELFPLAY_MCTS_CONFIG);
     if (state.winner === null && !state.draw) {
       samples.push({ features: extractFeatures(state, activeIdx), player: activeIdx });
     }
@@ -188,25 +212,43 @@ function trainNet(dataset, seed, { epochs = 60, learningRate = 0.003, patience =
   return { net: bestWeights, history };
 }
 
-/** z-score-gated self-play: candidateModel vs. championModel (either may be null = linear scoreState). */
-function verify(candidateModel, championModel, gamesPerDeck) {
-  let winsCandidate = 0, winsChampion = 0, draws = 0, timeouts = 0;
-  for (const deck of decks) {
-    for (let i = 0; i < gamesPerDeck; i++) {
-      const candidateIsA = i % 2 === 0;
-      const r = playGame(deck, deck, {
-        valueModelA: candidateIsA ? candidateModel : championModel,
-        valueModelB: candidateIsA ? championModel : candidateModel
-      });
-      if (r.draw) draws++;
-      else if (r.timedOut) timeouts++;
-      else if ((r.winner === 0) === candidateIsA) winsCandidate++;
-      else winsChampion++;
-    }
+/** SPRT-gated self-play: candidateModel vs. championModel (either may be null = linear scoreState).
+ * Plays games one at a time, deck-cycling and alternating which side is the candidate exactly like the
+ * old fixed-sample verify() did, but stops as soon as src/ai/sprt.js's stopping rule resolves rather
+ * than always spending a fixed sample -- up to a `maxGamesPerDeck * decks.length` safety cap for the
+ * (rare) case the true rate sits too close to p0 to resolve quickly. `z` is kept for display continuity
+ * with every existing log, but `verdict` ('accept'/'reject'/'inconclusive') is what decides adoption. */
+function sprtVerify(candidateModel, championModel, maxGamesPerDeck, sprtParams = DEFAULT_SPRT) {
+  const bounds = sprtBounds(sprtParams);
+  const maxGames = maxGamesPerDeck * decks.length;
+  let winsCandidate = 0, winsChampion = 0, draws = 0, timeouts = 0, llr = 0, total = 0;
+
+  for (; total < maxGames; total++) {
+    const deck = decks[total % decks.length];
+    const candidateIsA = total % 2 === 0;
+    const r = playGame(deck, deck, {
+      valueModelA: candidateIsA ? candidateModel : championModel,
+      valueModelB: candidateIsA ? championModel : candidateModel
+    });
+    let candidateWon = false;
+    if (r.draw) draws++;
+    else if (r.timedOut) timeouts++;
+    else if ((r.winner === 0) === candidateIsA) {
+      winsCandidate++;
+      candidateWon = true;
+    } else winsChampion++;
+
+    llr += llrIncrement(candidateWon, sprtParams);
+    const verdict = sprtVerdict(llr, bounds);
+    if (verdict) return finalize(verdict);
   }
-  const total = winsCandidate + winsChampion + draws + timeouts;
-  const winRate = winsCandidate / total;
-  return { winsCandidate, winsChampion, draws, timeouts, total, winRate, z: zScore(winRate, total) };
+  return finalize('inconclusive');
+
+  function finalize(verdict) {
+    const n = total + 1;
+    const winRate = winsCandidate / n;
+    return { winsCandidate, winsChampion, draws, timeouts, total: n, winRate, z: zScore(winRate, n), llr, verdict };
+  }
 }
 
 const rawArgs = process.argv.slice(2);
@@ -214,14 +256,14 @@ const RESUME = rawArgs.includes('--resume');
 const positional = rawArgs.filter((a) => a !== '--resume');
 const GAMES_PER_ROUND = Number(positional[0] || 2500);
 const MAX_ROUNDS = Number(positional[1] || 5);
-// verify()/the final confirm both loop *every* deck gamesPerDeck times, so with the deck pool now
-// ~20x bigger than the old fixed 10, a flat 60/400 default would balloon total games (and runtime)
-// by the same ~20x. Scaled down proportionally instead, so the total game budget -- what actually
-// drives z-score statistical power -- lands in the same practical ballpark as the old 10-deck
-// defaults (600/4000 total), just spread across far more distinct decks instead of a few repeated.
-const VERIFY_GAMES_PER_DECK = Number(positional[2] || Math.max(1, Math.round(600 / decks.length)));
-const CONFIRM_GAMES_PER_DECK = Number(positional[3] || Math.max(1, Math.round(4000 / decks.length)));
-const SIGNIFICANCE_Z = 2.5;
+// These are now SPRT safety caps (games/deck), not fixed spends -- SPRT stops as soon as it resolves
+// accept/reject and only approaches the cap when the true rate sits too close to p0 to resolve fast.
+// Verify (runs every round) gets a smaller cap than confirm (runs once, can afford to be patient) --
+// both comfortably above the 3920-game rerun this project already needed once under the old fixed-N
+// scheme, so a real effect at DEFAULT_SPRT.p1's scale should resolve well inside either cap.
+const VERIFY_MAX_GAMES_PER_DECK = Number(positional[2] || Math.max(1, Math.round(2940 / decks.length)));
+const CONFIRM_MAX_GAMES_PER_DECK = Number(positional[3] || Math.max(1, Math.round(5880 / decks.length)));
+const REPLAY_WINDOW_ROUNDS = Number(positional[4] || 1); // 1 = old exact behavior (this round's data only)
 
 const VALUE_NET_PATH = path.join(__dirname, '..', 'data', 'valueNet.json');
 let champion = null; // null = today's linear scoreState (DEFAULT_WEIGHTS)
@@ -232,11 +274,13 @@ if (RESUME) {
 
 console.log(
   `${decks.length} decks; ${GAMES_PER_ROUND} games/round for data collection, up to ${MAX_ROUNDS} rounds, ` +
-    `verify @ ${VERIFY_GAMES_PER_DECK} games/deck, final confirm @ ${CONFIRM_GAMES_PER_DECK} games/deck\n`
+    `SPRT verify (p0=${DEFAULT_SPRT.p0}, p1=${DEFAULT_SPRT.p1}, cap ${VERIFY_MAX_GAMES_PER_DECK} games/deck), ` +
+    `final confirm cap ${CONFIRM_MAX_GAMES_PER_DECK} games/deck, replay window ${REPLAY_WINDOW_ROUNDS} round(s)\n`
 );
 
 const roundLog = [];
 const startedAt = Date.now();
+const replayBuffer = []; // [{round, dataset}, ...], oldest first, capped at REPLAY_WINDOW_ROUNDS entries
 
 for (let round = 1; round <= MAX_ROUNDS; round++) {
   console.log(`--- Round ${round} ---`);
@@ -246,16 +290,27 @@ for (let round = 1; round <= MAX_ROUNDS; round++) {
   const { dataset, gamesPlayed, draws, timeouts } = collectData(GAMES_PER_ROUND, champion);
   console.log(`  ${dataset.length} samples from ${gamesPlayed} games (draws=${draws}, timeouts=${timeouts})`);
 
-  console.log(`  training...`);
-  const { net: candidate, history } = trainNet(dataset, 1000 + round);
+  replayBuffer.push({ round, dataset });
+  if (replayBuffer.length > REPLAY_WINDOW_ROUNDS) replayBuffer.shift();
+  const trainingData = replayBuffer.length > 1 ? replayBuffer.flatMap((entry) => entry.dataset) : dataset;
 
-  console.log(`  verifying candidate vs. current champion (${VERIFY_GAMES_PER_DECK} games/deck)...`);
-  const v = verify(candidate, champion, VERIFY_GAMES_PER_DECK);
-  const sig = Math.abs(v.z) >= SIGNIFICANCE_Z;
+  console.log(
+    replayBuffer.length > 1
+      ? `  training on ${trainingData.length} samples pooled from rounds ${replayBuffer[0].round}-${round}...`
+      : `  training...`
+  );
+  const { net: candidate, history } = trainNet(trainingData, 1000 + round);
+
+  console.log(`  SPRT-verifying candidate vs. current champion (cap ${VERIFY_MAX_GAMES_PER_DECK} games/deck)...`);
+  const v = sprtVerify(candidate, champion, VERIFY_MAX_GAMES_PER_DECK);
   console.log(
     `  candidate ${v.winsCandidate}-${v.winsChampion} champion (${(v.winRate * 100).toFixed(1)}%, z=${v.z.toFixed(2)}, ` +
-      `draws=${v.draws}, timeouts=${v.timeouts})` +
-      (sig && v.z > 0 ? ' <-- ADOPTED' : sig ? ' <-- significant loss, stopping' : ' <-- not significant, stopping')
+      `llr=${v.llr.toFixed(2)}, n=${v.total}, draws=${v.draws}, timeouts=${v.timeouts})` +
+      (v.verdict === 'accept'
+        ? ' <-- ADOPTED'
+        : v.verdict === 'reject'
+          ? ' <-- rejected, stopping'
+          : ' <-- inconclusive (hit safety cap without resolving), stopping')
   );
 
   roundLog.push({
@@ -266,14 +321,14 @@ for (let round = 1; round <= MAX_ROUNDS; round++) {
     timeouts,
     finalEpoch: history[history.length - 1],
     verify: v,
-    adopted: sig && v.z > 0,
+    adopted: v.verdict === 'accept',
     elapsedMs: Date.now() - t0
   });
 
-  if (sig && v.z > 0) {
+  if (v.verdict === 'accept') {
     champion = candidate;
   } else {
-    console.log(`\nStopping after round ${round}: no significant improvement.`);
+    console.log(`\nStopping after round ${round}: ${v.verdict === 'reject' ? 'confirmed no improvement' : 'inconclusive result'}.`);
     break;
   }
   if (round === MAX_ROUNDS) console.log(`\nHit MAX_ROUNDS (${MAX_ROUNDS}) with improvement still happening -- stopping as a safety valve.`);
@@ -284,20 +339,19 @@ console.log(`\nTotal elapsed: ${((Date.now() - startedAt) / 1000 / 60).toFixed(1
 let confirmation = null;
 if (champion) {
   console.log(
-    `\n--- Final confirmation: adopted champion vs. original linear scoreState, ` +
-      `${decks.length} decks x ${CONFIRM_GAMES_PER_DECK} games/deck x 2 = ${decks.length * CONFIRM_GAMES_PER_DECK * 2} games ---`
+    `\n--- Final confirmation: adopted champion vs. original linear scoreState (SPRT, cap ` +
+      `${decks.length} decks x ${CONFIRM_MAX_GAMES_PER_DECK} games/deck x 2 = ${decks.length * CONFIRM_MAX_GAMES_PER_DECK * 2} games) ---`
   );
-  confirmation = verify(champion, null, CONFIRM_GAMES_PER_DECK);
-  const sig = Math.abs(confirmation.z) >= SIGNIFICANCE_Z;
+  confirmation = sprtVerify(champion, null, CONFIRM_MAX_GAMES_PER_DECK);
   console.log(
     `Champion net ${confirmation.winsCandidate}-${confirmation.winsChampion} linear scoreState ` +
-      `(${(confirmation.winRate * 100).toFixed(1)}%, z=${confirmation.z.toFixed(2)}, draws=${confirmation.draws}, ` +
-      `timeouts=${confirmation.timeouts})` +
-      (sig && confirmation.z > 0
+      `(${(confirmation.winRate * 100).toFixed(1)}%, z=${confirmation.z.toFixed(2)}, llr=${confirmation.llr.toFixed(2)}, ` +
+      `n=${confirmation.total}, draws=${confirmation.draws}, timeouts=${confirmation.timeouts})` +
+      (confirmation.verdict === 'accept'
         ? ' <-- SIGNIFICANT OVERALL WIN'
-        : sig
+        : confirmation.verdict === 'reject'
           ? ' <-- SIGNIFICANT OVERALL LOSS (do not adopt!)'
-          : ' <-- not significant')
+          : ' <-- inconclusive')
   );
 
   const outPath = path.join(__dirname, '..', 'data', 'valueNet.json');

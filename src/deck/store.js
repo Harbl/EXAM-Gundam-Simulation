@@ -44,4 +44,4 @@ function deleteDeck(dir, name) {
   if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
 }
 
-module.exports = { listDecks, saveDeck, loadDeck, deleteDeck };
+module.exports = { listDecks, saveDeck, loadDeck, deleteDeck, filePathFor };

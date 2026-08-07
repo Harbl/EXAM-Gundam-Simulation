@@ -102,7 +102,7 @@
     "level": 2, "cost": 1, "ap": 2, "hp": 2, "traits": ["ZAFT", "Minerva Squad"]
   },
   {
-    "number": "ST09-009", "name": "Giant Killing", "type": "command", "color": "purple",
+    "number": "ST09-009", "actionTiming": "both", "name": "Giant Killing", "type": "command", "color": "purple",
     "level": 4, "cost": 3,
     "effectRefs": { "command": "giantKillingCommand" }
   }

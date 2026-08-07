@@ -1,4 +1,13 @@
+const path = require('node:path');
 const { MCTS_PRESETS } = require('./mcts');
+const { loadNet } = require('./valueNet');
+
+// The trained valueNet.js champion (see bin/train_value_net.js) beat the hand-tuned linear scoreState
+// formula 54.1% in a large-sample confirmation (39,200 games, z=11.59) after the 2026-08-05 feature
+// expansion + full-deck-pool training run -- promoted here as the real default evaluator for every
+// skill tier (all of them already share scoreState's dispatch, see src/ai/score.js), same "measure,
+// then adopt" precedent as the MCTS-vs-lookahead and skill-preset defaults below.
+const DEFAULT_VALUE_MODEL = loadNet(path.join(__dirname, '..', '..', 'data', 'valueNet.json'));
 
 /**
  * Named opponent-skill tiers for the simulation UI's skill slider -- lets Jake ask "how does my
@@ -22,11 +31,11 @@ const { MCTS_PRESETS } = require('./mcts');
  * strength ordering, not assumed just because novice is "still MCTS".
  */
 const SKILL_PRESETS = {
-  beginner: { label: 'Beginner (fixed-order heuristic, no real lookahead)', engine: 'lookahead' },
-  novice: { label: 'Novice (MCTS, very light search)', engine: 'mcts', mctsConfig: MCTS_PRESETS.weak },
-  casual: { label: 'Casual (MCTS, light search)', engine: 'mcts', mctsConfig: MCTS_PRESETS.fast },
-  tight: { label: 'Tight (MCTS, heavier search)', engine: 'mcts', mctsConfig: MCTS_PRESETS.balanced },
-  expert: { label: 'Expert (MCTS, full-strength rollout -- much slower per game)', engine: 'mcts', mctsConfig: MCTS_PRESETS.strong }
+  beginner: { label: 'Beginner (fixed-order heuristic, no real lookahead)', engine: 'lookahead', valueModel: DEFAULT_VALUE_MODEL },
+  novice: { label: 'Novice (MCTS, very light search)', engine: 'mcts', mctsConfig: MCTS_PRESETS.weak, valueModel: DEFAULT_VALUE_MODEL },
+  casual: { label: 'Casual (MCTS, light search)', engine: 'mcts', mctsConfig: MCTS_PRESETS.fast, valueModel: DEFAULT_VALUE_MODEL },
+  tight: { label: 'Tight (MCTS, heavier search)', engine: 'mcts', mctsConfig: MCTS_PRESETS.balanced, valueModel: DEFAULT_VALUE_MODEL },
+  expert: { label: 'Expert (MCTS, full-strength rollout -- much slower per game)', engine: 'mcts', mctsConfig: MCTS_PRESETS.strong, valueModel: DEFAULT_VALUE_MODEL }
 };
 
 module.exports = { SKILL_PRESETS };

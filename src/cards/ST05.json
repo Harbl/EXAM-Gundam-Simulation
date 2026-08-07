@@ -64,13 +64,15 @@
     "level": 6, "cost": 4, "ap": 4, "hp": 5, "traits": ["Tekkadan", "Gundam Frame"],
     "linkCondition": "Mikazuki Augus",
     "keywordWhileDamaged": "suppression",
+    "benefitsFromSelfDamage": true,
     "effectRefs": { "deploy": "gundamBarbatos4thFormDeploy" }
   },
   {
     "number": "ST05-002", "name": "Gundam Barbatos 2nd Form", "type": "unit", "color": "purple",
     "level": 4, "cost": 2, "ap": 2, "hp": 4, "traits": ["Tekkadan", "Gundam Frame"],
     "linkCondition": "Mikazuki Augus",
-    "apBonusWhileDamaged": 2
+    "apBonusWhileDamaged": 2,
+    "benefitsFromSelfDamage": true
   },
   {
     "number": "ST05-003", "name": "CGS Mobile Worker", "type": "unit", "color": "purple",
@@ -106,7 +108,7 @@
     "effectRefs": { "burst": "addSelfToHandBurst", "whenPaired": "mcgillisFareedWhenPaired" }
   },
   {
-    "number": "ST05-013", "name": "With Iron and Blood", "type": "command", "color": "purple",
+    "number": "ST05-013", "actionTiming": "both", "name": "With Iron and Blood", "type": "command", "color": "purple",
     "level": 2, "cost": 1,
     "effectRefs": { "command": "withIronAndBloodCommand" }
   },

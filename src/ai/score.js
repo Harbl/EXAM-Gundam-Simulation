@@ -1,7 +1,9 @@
-const { getAP, getRemainingHP, trashSynergyValue } = require('../rules/management');
+const { getAP, getRemainingHP, trashSynergyValue, damagedSynergyValue, reactiveReserveValue } = require('../rules/management');
 const { collectActivateCandidates } = require('./activations');
 const { extractFeatures } = require('./valueFeatures');
 const { forward } = require('./valueNet');
+const { extractDeepSetFeatures } = require('./valueFeaturesV2');
+const { forward: deepSetForward } = require('./deepSetValueNet');
 
 /**
  * Weights tuned via large-sample (n=5000/variant) self-play coordinate descent -- see
@@ -11,6 +13,16 @@ const { forward } = require('./valueNet');
  * 8 weights at once (scratchpad/weight_coordinate_descent.js, +/-30% nudges, n=600/nudge) confirmed
  * the same: every weight, including the two below that had never been empirically checked, is already
  * a local optimum at that step size. See scoreState for how to A/B alternatives via player.aiWeights.
+ *
+ * damagedSynergy added 2026-08-06 (Barbatos Rush vs. Nu Gundam benchmark investigation, continued --
+ * see trashSynergy below for the same investigation's earlier fix on Nu Gundam's side): boardStats
+ * (AP + remainingHP) scores any damage taken as pure loss, with zero credit for cards flagged
+ * `benefitsFromSelfDamage` (Gundam Barbatos 1st Form GD02-054 draws on Attack while damaged; 4th Form
+ * ST05-001 gains <Suppression> while damaged; Barbatos Lupus Rex (LR+) GD05-051 gains AP equal to its
+ * own damage) -- see management.js's damagedSynergyValue for the full reasoning. A reasoned starting
+ * weight (same order of magnitude as trashSynergy, since it's the same "one unlocked payoff" shape) --
+ * not yet coordinate-descent-tuned; see scratchpad/damaged_synergy_barbatos_check.js for the direct
+ * A/B validation this weight was introduced to test before any tuning pass.
  *
  * activationPotential added 2026-08-03 (Phase 5 MSA benchmark investigation): without it, boardValue
  * was a pure stat tally (shields/baseHP/boardStats/hand/resources) with zero awareness that a card's
@@ -56,6 +68,27 @@ const { forward } = require('./valueNet');
  * worth the Level point) -- empirically checked via scratchpad/weight_tune.js and
  * scratchpad/check_ex_resource_timing.js before landing on this value, same precedent as
  * activationPotential/trashSynergy's initial tuning.
+ *
+ * reactiveReserve added 2026-08-07, tested negative TWICE, weight zeroed (deploy-timing/board-flooding
+ * investigation): the generic `resources` weight counts total Resources (active + rested) identically,
+ * so boardValue had zero signal that spending every active Resource in a Main Phase leaves nothing
+ * payable for the entire following opponent turn -- see management.js's reactiveReserveValue for the
+ * full reasoning (only pays off when a real `[Action]`-timing Command in hand is actually being held
+ * up for, not a flat "hoard Resources" reward). First validated via scratchpad/reactive_reserve_check.js
+ * (SPRT, mirror self-play on deck121.txt -- the highest [Action]-Command-density single real deck in
+ * the pool): REJECT at n=2543, 51.3%, llr=-2.95. Per Jake's standing methodology correction (see
+ * feedback_gundam_ai_validate_full_deck_pool.md memory -- a single curated deck isn't enough sample to
+ * trust a reject on), re-validated across the WHOLE real pool
+ * (scratchpad/reactive_reserve_check_broadfield.js, a fresh random deck from all 197 pool decks per
+ * trial instead of one fixed deck): **REJECT again, this time even more decisively -- n=393, 47.3%,
+ * llr=-2.95**, resolving faster and slightly below break-even rather than just flat. The broader,
+ * methodologically-corrected test confirms the original single-deck result rather than overturning it.
+ * Weight zeroed rather than kept at a reasoned nonzero value (unlike damagedSynergy's narrow-matchup
+ * reject, where the underlying flag is still obviously correct outside the one gap it was tested
+ * against -- this WAS the general validation for the mechanism itself, twice over now).
+ * `reactiveReserveValue` stays wired into boardValue (harmless at weight 0, easy to resurrect) and the
+ * trained-net feature vector (valueFeatures.js) is untouched, in case the trained net's own
+ * feature-learning finds signal a hand-picked linear weight didn't.
  */
 const DEFAULT_WEIGHTS = {
   shields: 10,
@@ -65,7 +98,9 @@ const DEFAULT_WEIGHTS = {
   resources: 2,
   activationPotential: 4,
   trashSynergy: 3,
-  exResourceHeld: 5
+  exResourceHeld: 5,
+  damagedSynergy: 3,
+  reactiveReserve: 0
 };
 
 /**
@@ -82,13 +117,20 @@ const DEFAULT_WEIGHTS = {
  * through this one shared scoreState and nowhere else, so this is the only place that dispatch needs
  * to live.
  *
- * data/valueNet.json (2026-08-03, bin/train_value_net.js) is a trained champion that beat this linear
- * formula 53.9% in a large-sample self-play confirmation (8,000 games, z=4.96) after 2 rounds of
- * iterative training -- verified crash/timeout-clean across 300 real-decklist-pool games
- * (scratchpad/value_net_crash_sweep.js). It's loaded and usable (`loadNet` + set as
- * `player.valueModel`) but is NOT wired in as any default here -- promoting it to the actual default
- * is a separate decision, same "measure, then decide to adopt" precedent as every prior AI-default
- * change in this project (MCTS-vs-lookahead, the skill presets).
+ * data/valueNet.json (last retrained 2026-08-05, bin/train_value_net.js, 29-feature/full-deck-pool
+ * run) is a trained champion that beat this linear formula 54.1% in a large-sample self-play
+ * confirmation (39,200 games, z=11.59). It's the real default now: src/ai/skillPresets.js loads it
+ * once and attaches it as `valueModel` on every skill tier's preset, so this linear formula only
+ * still runs when something explicitly opts out (no `valueModel` set at all -- e.g. bin/train_value_net.js's
+ * own baseline comparisons, or a scratch script built directly on playGame/scoreState without going
+ * through skillPresets.js).
+ *
+ * A second, structurally different valueModel kind (2026-08-06): `deepSetValueNet.js`, a DeepSets-style
+ * net fed per-unit board data (`valueFeaturesV2.js`) instead of only hand-engineered aggregate scalars.
+ * Discriminated by `self.valueModel.kind === 'deepset'` -- a plain flat-net model (old saved JSON,
+ * `kind` undefined) still routes to `forward`/`extractFeatures` exactly as before, byte-for-byte
+ * unchanged. Branching here rather than inside either `forward()` keeps both hot paths simple and
+ * independently testable -- see the project plan for why.
  */
 function scoreState(state, playerIdx) {
   if (state.winner === playerIdx) return Infinity;
@@ -96,7 +138,11 @@ function scoreState(state, playerIdx) {
   if (state.draw) return 0;
 
   const self = state.players[playerIdx];
-  if (self.valueModel) return forward(self.valueModel, extractFeatures(state, playerIdx));
+  if (self.valueModel) {
+    return self.valueModel.kind === 'deepset'
+      ? deepSetForward(self.valueModel, extractDeepSetFeatures(state, playerIdx))
+      : forward(self.valueModel, extractFeatures(state, playerIdx));
+  }
 
   const enemy = state.players[1 - playerIdx];
   const weights = self.aiWeights || DEFAULT_WEIGHTS;
@@ -124,8 +170,10 @@ function boardValue(player, weights) {
     player.hand.length * weights.hand +
     player.resourceArea.length * weights.resources +
     trashSynergyValue(player) * weights.trashSynergy +
-    exResourcesHeld * weights.exResourceHeld
+    exResourcesHeld * weights.exResourceHeld +
+    damagedSynergyValue(player) * weights.damagedSynergy +
+    reactiveReserveValue(player) * weights.reactiveReserve
   );
 }
 
-module.exports = { scoreState, DEFAULT_WEIGHTS, trashSynergyValue };
+module.exports = { scoreState, DEFAULT_WEIGHTS, trashSynergyValue, damagedSynergyValue, reactiveReserveValue };

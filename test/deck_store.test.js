@@ -4,7 +4,7 @@ const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
 
-const { listDecks, saveDeck, loadDeck, deleteDeck } = require('../src/deck/store');
+const { listDecks, saveDeck, loadDeck, deleteDeck, filePathFor } = require('../src/deck/store');
 
 function tempDir() {
   return fs.mkdtempSync(path.join(os.tmpdir(), 'gundam-deck-store-'));
@@ -22,6 +22,14 @@ test('saveDeck writes a deck and loadDeck reads it back', () => {
 test('loadDeck returns null for a deck that was never saved', () => {
   const dir = tempDir();
   assert.equal(loadDeck(dir, 'nope'), null);
+});
+
+test('filePathFor resolves to the real file saveDeck writes -- used by the Settings backup feature to zip a selected deck by name', () => {
+  const dir = tempDir();
+  saveDeck(dir, 'My Deck', '4 Zaku II ST03-008');
+  const resolvedPath = filePathFor(dir, 'My Deck');
+  assert.ok(fs.existsSync(resolvedPath));
+  assert.deepEqual(JSON.parse(fs.readFileSync(resolvedPath, 'utf8')).name, 'My Deck');
 });
 
 test('saving a deck under the same name overwrites the previous save', () => {

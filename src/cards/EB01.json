@@ -371,23 +371,23 @@
     "effectRefs": { "burst": "characterRequestsBurst", "command": "characterRequestsCommand" }
   },
   {
-    "number": "EB01-074", "name": "Eternal Road", "type": "command", "color": "blue",
+    "number": "EB01-074", "actionTiming": "both", "name": "Eternal Road", "type": "command", "color": "blue",
     "level": 3, "cost": 1,
     "effectRefs": { "burst": "eternalRoadBurst", "command": "eternalRoadCommand" }
   },
   {
-    "number": "EB01-075", "name": "Fierce Enemy Assault", "type": "command", "color": "blue",
+    "number": "EB01-075", "actionTiming": "both", "name": "Fierce Enemy Assault", "type": "command", "color": "blue",
     "level": 3, "cost": 1,
     "effectRefs": { "command": "fierceEnemyAssaultCommand" }
   },
   {
-    "number": "EB01-076", "name": "Gerbera Straight", "type": "command", "color": "blue",
+    "number": "EB01-076", "actionTiming": "both", "name": "Gerbera Straight", "type": "command", "color": "blue",
     "level": 4, "cost": 1,
     "pilotMode": { "name": "Lowe Guele", "apBonus": 1, "hpBonus": 1 },
     "effectRefs": { "command": "gerberaStraightCommand" }
   },
   {
-    "number": "EB01-077", "name": "Master League Begins", "type": "command", "color": "green",
+    "number": "EB01-077", "actionTiming": "action", "name": "Master League Begins", "type": "command", "color": "green",
     "level": 3, "cost": 1,
     "effectRefs": { "burst": "masterLeagueBeginsBurst", "command": "masterLeagueBeginsCommand" }
   },
@@ -402,28 +402,28 @@
     "effectRefs": { "command": "modificationCommand" }
   },
   {
-    "number": "EB01-080", "name": "Sturm Faust", "type": "command", "color": "green",
+    "number": "EB01-080", "actionTiming": "both", "name": "Sturm Faust", "type": "command", "color": "green",
     "level": 4, "cost": 1,
     "pilotMode": { "name": "Jean Luc Duvall", "apBonus": 1, "hpBonus": 1 },
     "effectRefs": { "command": "sturmFaustCommand" }
   },
   {
-    "number": "EB01-081", "name": "MAP Weapon", "type": "command", "color": "white",
+    "number": "EB01-081", "actionTiming": "both", "name": "MAP Weapon", "type": "command", "color": "white",
     "level": 4, "cost": 2,
     "effectRefs": { "burst": "mapWeaponBurst", "command": "mapWeaponCommand" }
   },
   {
-    "number": "EB01-082", "name": "Warship Cruise", "type": "command", "color": "white",
+    "number": "EB01-082", "actionTiming": "action", "name": "Warship Cruise", "type": "command", "color": "white",
     "level": 3, "cost": 1,
     "effectRefs": { "burst": "warshipCruiseBurst", "command": "warshipCruiseCommand" }
   },
   {
-    "number": "EB01-083", "name": "SP Conversion Chips", "type": "command", "color": "white",
+    "number": "EB01-083", "actionTiming": "action", "name": "SP Conversion Chips", "type": "command", "color": "white",
     "level": 3, "cost": 1,
     "effectRefs": { "command": "spConversionChipsCommand" }
   },
   {
-    "number": "EB01-084", "name": "30cm Cannon (APFSDS Round)", "type": "command", "color": "white",
+    "number": "EB01-084", "actionTiming": "both", "name": "30cm Cannon (APFSDS Round)", "type": "command", "color": "white",
     "level": 4, "cost": 1,
     "pilotMode": { "name": "Demeziere Sonnen", "apBonus": 1, "hpBonus": 1 },
     "effectRefs": { "command": "cm30CannonAPFSDSRoundCommand" }

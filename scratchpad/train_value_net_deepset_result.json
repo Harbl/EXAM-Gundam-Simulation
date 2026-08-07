@@ -1,0 +1,30 @@
+{
+  "roundLog": [
+    {
+      "round": 1,
+      "gamesPlayed": 2500,
+      "samples": 37386,
+      "draws": 0,
+      "timeouts": 0,
+      "finalEpoch": {
+        "epoch": 25,
+        "trainLoss": 970.0828492567713,
+        "valLoss": 1067.0623312723933
+      },
+      "verify": {
+        "winsCandidate": 167,
+        "winsChampion": 190,
+        "draws": 0,
+        "timeouts": 0,
+        "total": 357,
+        "winRate": 0.4677871148459384,
+        "z": -1.217289085257415,
+        "llr": -2.990011828686278,
+        "verdict": "reject"
+      },
+      "adopted": false,
+      "elapsedMs": 1637625
+    }
+  ],
+  "confirmation": null
+}

@@ -65,7 +65,7 @@
     "effectRefs": { "burst": "addSelfToHandBurst", "whenPaired": "markGuilderWhenPaired" }
   },
   {
-    "number": "ST10-013", "name": "Tactical Training", "type": "command", "color": "blue",
+    "number": "ST10-013", "actionTiming": "both", "name": "Tactical Training", "type": "command", "color": "blue",
     "level": 3, "cost": 1,
     "effectRefs": { "burst": "tacticalTrainingBurst", "command": "tacticalTrainingCommand" }
   },
@@ -76,7 +76,7 @@
     "effectRefs": { "command": "unlockingTheDevelopmentDiagramCommand" }
   },
   {
-    "number": "ST10-015", "name": "Diffuse Beam Cannon", "type": "command", "color": "white",
+    "number": "ST10-015", "actionTiming": "action", "name": "Diffuse Beam Cannon", "type": "command", "color": "white",
     "level": 3, "cost": 1,
     "pilotMode": { "name": "Claire Heathrow", "apBonus": 1, "hpBonus": 0 },
     "effectRefs": { "command": "diffuseBeamCannonCommand" }

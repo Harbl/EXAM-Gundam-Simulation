@@ -1,0 +1,1179 @@
+{
+  "overallRate": 0.5094017094017094,
+  "nuWins": 596,
+  "total": 1170,
+  "draws": 0,
+  "timeouts": 0,
+  "perOpponent": [
+    {
+      "name": "deck102.txt",
+      "wins": 6,
+      "n": 6,
+      "rate": 1
+    },
+    {
+      "name": "deck12.txt",
+      "wins": 6,
+      "n": 6,
+      "rate": 1
+    },
+    {
+      "name": "deck125.txt",
+      "wins": 6,
+      "n": 6,
+      "rate": 1
+    },
+    {
+      "name": "deck135.txt",
+      "wins": 6,
+      "n": 6,
+      "rate": 1
+    },
+    {
+      "name": "deck143.txt",
+      "wins": 6,
+      "n": 6,
+      "rate": 1
+    },
+    {
+      "name": "deck145.txt",
+      "wins": 6,
+      "n": 6,
+      "rate": 1
+    },
+    {
+      "name": "deck146.txt",
+      "wins": 6,
+      "n": 6,
+      "rate": 1
+    },
+    {
+      "name": "deck172.txt",
+      "wins": 6,
+      "n": 6,
+      "rate": 1
+    },
+    {
+      "name": "deck173.txt",
+      "wins": 6,
+      "n": 6,
+      "rate": 1
+    },
+    {
+      "name": "deck180.txt",
+      "wins": 6,
+      "n": 6,
+      "rate": 1
+    },
+    {
+      "name": "deck22.txt",
+      "wins": 6,
+      "n": 6,
+      "rate": 1
+    },
+    {
+      "name": "deck32.txt",
+      "wins": 6,
+      "n": 6,
+      "rate": 1
+    },
+    {
+      "name": "rand3.txt",
+      "wins": 6,
+      "n": 6,
+      "rate": 1
+    },
+    {
+      "name": "rand8.txt",
+      "wins": 6,
+      "n": 6,
+      "rate": 1
+    },
+    {
+      "name": "deck101.txt",
+      "wins": 5,
+      "n": 6,
+      "rate": 0.8333333333333334
+    },
+    {
+      "name": "deck106.txt",
+      "wins": 5,
+      "n": 6,
+      "rate": 0.8333333333333334
+    },
+    {
+      "name": "deck109.txt",
+      "wins": 5,
+      "n": 6,
+      "rate": 0.8333333333333334
+    },
+    {
+      "name": "deck115.txt",
+      "wins": 5,
+      "n": 6,
+      "rate": 0.8333333333333334
+    },
+    {
+      "name": "deck133.txt",
+      "wins": 5,
+      "n": 6,
+      "rate": 0.8333333333333334
+    },
+    {
+      "name": "deck149.txt",
+      "wins": 5,
+      "n": 6,
+      "rate": 0.8333333333333334
+    },
+    {
+      "name": "deck15.txt",
+      "wins": 5,
+      "n": 6,
+      "rate": 0.8333333333333334
+    },
+    {
+      "name": "deck152.txt",
+      "wins": 5,
+      "n": 6,
+      "rate": 0.8333333333333334
+    },
+    {
+      "name": "deck165.txt",
+      "wins": 5,
+      "n": 6,
+      "rate": 0.8333333333333334
+    },
+    {
+      "name": "deck168.txt",
+      "wins": 5,
+      "n": 6,
+      "rate": 0.8333333333333334
+    },
+    {
+      "name": "deck176.txt",
+      "wins": 5,
+      "n": 6,
+      "rate": 0.8333333333333334
+    },
+    {
+      "name": "deck182.txt",
+      "wins": 5,
+      "n": 6,
+      "rate": 0.8333333333333334
+    },
+    {
+      "name": "deck20.txt",
+      "wins": 5,
+      "n": 6,
+      "rate": 0.8333333333333334
+    },
+    {
+      "name": "deck26.txt",
+      "wins": 5,
+      "n": 6,
+      "rate": 0.8333333333333334
+    },
+    {
+      "name": "deck31.txt",
+      "wins": 5,
+      "n": 6,
+      "rate": 0.8333333333333334
+    },
+    {
+      "name": "deck34.txt",
+      "wins": 5,
+      "n": 6,
+      "rate": 0.8333333333333334
+    },
+    {
+      "name": "deck44.txt",
+      "wins": 5,
+      "n": 6,
+      "rate": 0.8333333333333334
+    },
+    {
+      "name": "deck45.txt",
+      "wins": 5,
+      "n": 6,
+      "rate": 0.8333333333333334
+    },
+    {
+      "name": "deck48.txt",
+      "wins": 5,
+      "n": 6,
+      "rate": 0.8333333333333334
+    },
+    {
+      "name": "deck60.txt",
+      "wins": 5,
+      "n": 6,
+      "rate": 0.8333333333333334
+    },
+    {
+      "name": "deck62.txt",
+      "wins": 5,
+      "n": 6,
+      "rate": 0.8333333333333334
+    },
+    {
+      "name": "deck67.txt",
+      "wins": 5,
+      "n": 6,
+      "rate": 0.8333333333333334
+    },
+    {
+      "name": "deck68.txt",
+      "wins": 5,
+      "n": 6,
+      "rate": 0.8333333333333334
+    },
+    {
+      "name": "deck75.txt",
+      "wins": 5,
+      "n": 6,
+      "rate": 0.8333333333333334
+    },
+    {
+      "name": "deck76.txt",
+      "wins": 5,
+      "n": 6,
+      "rate": 0.8333333333333334
+    },
+    {
+      "name": "deck8.txt",
+      "wins": 5,
+      "n": 6,
+      "rate": 0.8333333333333334
+    },
+    {
+      "name": "deck86.txt",
+      "wins": 5,
+      "n": 6,
+      "rate": 0.8333333333333334
+    },
+    {
+      "name": "deck99.txt",
+      "wins": 5,
+      "n": 6,
+      "rate": 0.8333333333333334
+    },
+    {
+      "name": "rand1.txt",
+      "wins": 5,
+      "n": 6,
+      "rate": 0.8333333333333334
+    },
+    {
+      "name": "rand2.txt",
+      "wins": 5,
+      "n": 6,
+      "rate": 0.8333333333333334
+    },
+    {
+      "name": "rand4.txt",
+      "wins": 5,
+      "n": 6,
+      "rate": 0.8333333333333334
+    },
+    {
+      "name": "rand5.txt",
+      "wins": 5,
+      "n": 6,
+      "rate": 0.8333333333333334
+    },
+    {
+      "name": "rand7.txt",
+      "wins": 5,
+      "n": 6,
+      "rate": 0.8333333333333334
+    },
+    {
+      "name": "rand9.txt",
+      "wins": 5,
+      "n": 6,
+      "rate": 0.8333333333333334
+    },
+    {
+      "name": "shining_master_real.txt",
+      "wins": 5,
+      "n": 6,
+      "rate": 0.8333333333333334
+    },
+    {
+      "name": "deck107.txt",
+      "wins": 4,
+      "n": 6,
+      "rate": 0.6666666666666666
+    },
+    {
+      "name": "deck111.txt",
+      "wins": 4,
+      "n": 6,
+      "rate": 0.6666666666666666
+    },
+    {
+      "name": "deck154.txt",
+      "wins": 4,
+      "n": 6,
+      "rate": 0.6666666666666666
+    },
+    {
+      "name": "deck156.txt",
+      "wins": 4,
+      "n": 6,
+      "rate": 0.6666666666666666
+    },
+    {
+      "name": "deck163.txt",
+      "wins": 4,
+      "n": 6,
+      "rate": 0.6666666666666666
+    },
+    {
+      "name": "deck169.txt",
+      "wins": 4,
+      "n": 6,
+      "rate": 0.6666666666666666
+    },
+    {
+      "name": "deck170.txt",
+      "wins": 4,
+      "n": 6,
+      "rate": 0.6666666666666666
+    },
+    {
+      "name": "deck174.txt",
+      "wins": 4,
+      "n": 6,
+      "rate": 0.6666666666666666
+    },
+    {
+      "name": "deck175.txt",
+      "wins": 4,
+      "n": 6,
+      "rate": 0.6666666666666666
+    },
+    {
+      "name": "deck177.txt",
+      "wins": 4,
+      "n": 6,
+      "rate": 0.6666666666666666
+    },
+    {
+      "name": "deck27.txt",
+      "wins": 4,
+      "n": 6,
+      "rate": 0.6666666666666666
+    },
+    {
+      "name": "deck4.txt",
+      "wins": 4,
+      "n": 6,
+      "rate": 0.6666666666666666
+    },
+    {
+      "name": "deck40.txt",
+      "wins": 4,
+      "n": 6,
+      "rate": 0.6666666666666666
+    },
+    {
+      "name": "deck49.txt",
+      "wins": 4,
+      "n": 6,
+      "rate": 0.6666666666666666
+    },
+    {
+      "name": "deck59.txt",
+      "wins": 4,
+      "n": 6,
+      "rate": 0.6666666666666666
+    },
+    {
+      "name": "deck61.txt",
+      "wins": 4,
+      "n": 6,
+      "rate": 0.6666666666666666
+    },
+    {
+      "name": "deck74.txt",
+      "wins": 4,
+      "n": 6,
+      "rate": 0.6666666666666666
+    },
+    {
+      "name": "deck80.txt",
+      "wins": 4,
+      "n": 6,
+      "rate": 0.6666666666666666
+    },
+    {
+      "name": "deck87.txt",
+      "wins": 4,
+      "n": 6,
+      "rate": 0.6666666666666666
+    },
+    {
+      "name": "rand6.txt",
+      "wins": 4,
+      "n": 6,
+      "rate": 0.6666666666666666
+    },
+    {
+      "name": "strikefreedom_banshee_real.txt",
+      "wins": 4,
+      "n": 6,
+      "rate": 0.6666666666666666
+    },
+    {
+      "name": "barbatos_real.txt",
+      "wins": 3,
+      "n": 6,
+      "rate": 0.5
+    },
+    {
+      "name": "deck100.txt",
+      "wins": 3,
+      "n": 6,
+      "rate": 0.5
+    },
+    {
+      "name": "deck105.txt",
+      "wins": 3,
+      "n": 6,
+      "rate": 0.5
+    },
+    {
+      "name": "deck110.txt",
+      "wins": 3,
+      "n": 6,
+      "rate": 0.5
+    },
+    {
+      "name": "deck113.txt",
+      "wins": 3,
+      "n": 6,
+      "rate": 0.5
+    },
+    {
+      "name": "deck114.txt",
+      "wins": 3,
+      "n": 6,
+      "rate": 0.5
+    },
+    {
+      "name": "deck116.txt",
+      "wins": 3,
+      "n": 6,
+      "rate": 0.5
+    },
+    {
+      "name": "deck117.txt",
+      "wins": 3,
+      "n": 6,
+      "rate": 0.5
+    },
+    {
+      "name": "deck123.txt",
+      "wins": 3,
+      "n": 6,
+      "rate": 0.5
+    },
+    {
+      "name": "deck126.txt",
+      "wins": 3,
+      "n": 6,
+      "rate": 0.5
+    },
+    {
+      "name": "deck128.txt",
+      "wins": 3,
+      "n": 6,
+      "rate": 0.5
+    },
+    {
+      "name": "deck130.txt",
+      "wins": 3,
+      "n": 6,
+      "rate": 0.5
+    },
+    {
+      "name": "deck136.txt",
+      "wins": 3,
+      "n": 6,
+      "rate": 0.5
+    },
+    {
+      "name": "deck137.txt",
+      "wins": 3,
+      "n": 6,
+      "rate": 0.5
+    },
+    {
+      "name": "deck138.txt",
+      "wins": 3,
+      "n": 6,
+      "rate": 0.5
+    },
+    {
+      "name": "deck140.txt",
+      "wins": 3,
+      "n": 6,
+      "rate": 0.5
+    },
+    {
+      "name": "deck144.txt",
+      "wins": 3,
+      "n": 6,
+      "rate": 0.5
+    },
+    {
+      "name": "deck155.txt",
+      "wins": 3,
+      "n": 6,
+      "rate": 0.5
+    },
+    {
+      "name": "deck157.txt",
+      "wins": 3,
+      "n": 6,
+      "rate": 0.5
+    },
+    {
+      "name": "deck159.txt",
+      "wins": 3,
+      "n": 6,
+      "rate": 0.5
+    },
+    {
+      "name": "deck160.txt",
+      "wins": 3,
+      "n": 6,
+      "rate": 0.5
+    },
+    {
+      "name": "deck162.txt",
+      "wins": 3,
+      "n": 6,
+      "rate": 0.5
+    },
+    {
+      "name": "deck164.txt",
+      "wins": 3,
+      "n": 6,
+      "rate": 0.5
+    },
+    {
+      "name": "deck166.txt",
+      "wins": 3,
+      "n": 6,
+      "rate": 0.5
+    },
+    {
+      "name": "deck178.txt",
+      "wins": 3,
+      "n": 6,
+      "rate": 0.5
+    },
+    {
+      "name": "deck181.txt",
+      "wins": 3,
+      "n": 6,
+      "rate": 0.5
+    },
+    {
+      "name": "deck29.txt",
+      "wins": 3,
+      "n": 6,
+      "rate": 0.5
+    },
+    {
+      "name": "deck30.txt",
+      "wins": 3,
+      "n": 6,
+      "rate": 0.5
+    },
+    {
+      "name": "deck33.txt",
+      "wins": 3,
+      "n": 6,
+      "rate": 0.5
+    },
+    {
+      "name": "deck35.txt",
+      "wins": 3,
+      "n": 6,
+      "rate": 0.5
+    },
+    {
+      "name": "deck42.txt",
+      "wins": 3,
+      "n": 6,
+      "rate": 0.5
+    },
+    {
+      "name": "deck47.txt",
+      "wins": 3,
+      "n": 6,
+      "rate": 0.5
+    },
+    {
+      "name": "deck51.txt",
+      "wins": 3,
+      "n": 6,
+      "rate": 0.5
+    },
+    {
+      "name": "deck55.txt",
+      "wins": 3,
+      "n": 6,
+      "rate": 0.5
+    },
+    {
+      "name": "deck57.txt",
+      "wins": 3,
+      "n": 6,
+      "rate": 0.5
+    },
+    {
+      "name": "deck58.txt",
+      "wins": 3,
+      "n": 6,
+      "rate": 0.5
+    },
+    {
+      "name": "deck7.txt",
+      "wins": 3,
+      "n": 6,
+      "rate": 0.5
+    },
+    {
+      "name": "deck73.txt",
+      "wins": 3,
+      "n": 6,
+      "rate": 0.5
+    },
+    {
+      "name": "deck9.txt",
+      "wins": 3,
+      "n": 6,
+      "rate": 0.5
+    },
+    {
+      "name": "deck90.txt",
+      "wins": 3,
+      "n": 6,
+      "rate": 0.5
+    },
+    {
+      "name": "deck93.txt",
+      "wins": 3,
+      "n": 6,
+      "rate": 0.5
+    },
+    {
+      "name": "deck98.txt",
+      "wins": 3,
+      "n": 6,
+      "rate": 0.5
+    },
+    {
+      "name": "rand10.txt",
+      "wins": 3,
+      "n": 6,
+      "rate": 0.5
+    },
+    {
+      "name": "deck1.txt",
+      "wins": 2,
+      "n": 6,
+      "rate": 0.3333333333333333
+    },
+    {
+      "name": "deck103.txt",
+      "wins": 2,
+      "n": 6,
+      "rate": 0.3333333333333333
+    },
+    {
+      "name": "deck104.txt",
+      "wins": 2,
+      "n": 6,
+      "rate": 0.3333333333333333
+    },
+    {
+      "name": "deck11.txt",
+      "wins": 2,
+      "n": 6,
+      "rate": 0.3333333333333333
+    },
+    {
+      "name": "deck112.txt",
+      "wins": 2,
+      "n": 6,
+      "rate": 0.3333333333333333
+    },
+    {
+      "name": "deck119.txt",
+      "wins": 2,
+      "n": 6,
+      "rate": 0.3333333333333333
+    },
+    {
+      "name": "deck120.txt",
+      "wins": 2,
+      "n": 6,
+      "rate": 0.3333333333333333
+    },
+    {
+      "name": "deck121.txt",
+      "wins": 2,
+      "n": 6,
+      "rate": 0.3333333333333333
+    },
+    {
+      "name": "deck13.txt",
+      "wins": 2,
+      "n": 6,
+      "rate": 0.3333333333333333
+    },
+    {
+      "name": "deck132.txt",
+      "wins": 2,
+      "n": 6,
+      "rate": 0.3333333333333333
+    },
+    {
+      "name": "deck134.txt",
+      "wins": 2,
+      "n": 6,
+      "rate": 0.3333333333333333
+    },
+    {
+      "name": "deck14.txt",
+      "wins": 2,
+      "n": 6,
+      "rate": 0.3333333333333333
+    },
+    {
+      "name": "deck141.txt",
+      "wins": 2,
+      "n": 6,
+      "rate": 0.3333333333333333
+    },
+    {
+      "name": "deck148.txt",
+      "wins": 2,
+      "n": 6,
+      "rate": 0.3333333333333333
+    },
+    {
+      "name": "deck150.txt",
+      "wins": 2,
+      "n": 6,
+      "rate": 0.3333333333333333
+    },
+    {
+      "name": "deck151.txt",
+      "wins": 2,
+      "n": 6,
+      "rate": 0.3333333333333333
+    },
+    {
+      "name": "deck153.txt",
+      "wins": 2,
+      "n": 6,
+      "rate": 0.3333333333333333
+    },
+    {
+      "name": "deck158.txt",
+      "wins": 2,
+      "n": 6,
+      "rate": 0.3333333333333333
+    },
+    {
+      "name": "deck16.txt",
+      "wins": 2,
+      "n": 6,
+      "rate": 0.3333333333333333
+    },
+    {
+      "name": "deck17.txt",
+      "wins": 2,
+      "n": 6,
+      "rate": 0.3333333333333333
+    },
+    {
+      "name": "deck171.txt",
+      "wins": 2,
+      "n": 6,
+      "rate": 0.3333333333333333
+    },
+    {
+      "name": "deck179.txt",
+      "wins": 2,
+      "n": 6,
+      "rate": 0.3333333333333333
+    },
+    {
+      "name": "deck19.txt",
+      "wins": 2,
+      "n": 6,
+      "rate": 0.3333333333333333
+    },
+    {
+      "name": "deck2.txt",
+      "wins": 2,
+      "n": 6,
+      "rate": 0.3333333333333333
+    },
+    {
+      "name": "deck21.txt",
+      "wins": 2,
+      "n": 6,
+      "rate": 0.3333333333333333
+    },
+    {
+      "name": "deck23.txt",
+      "wins": 2,
+      "n": 6,
+      "rate": 0.3333333333333333
+    },
+    {
+      "name": "deck25.txt",
+      "wins": 2,
+      "n": 6,
+      "rate": 0.3333333333333333
+    },
+    {
+      "name": "deck28.txt",
+      "wins": 2,
+      "n": 6,
+      "rate": 0.3333333333333333
+    },
+    {
+      "name": "deck3.txt",
+      "wins": 2,
+      "n": 6,
+      "rate": 0.3333333333333333
+    },
+    {
+      "name": "deck38.txt",
+      "wins": 2,
+      "n": 6,
+      "rate": 0.3333333333333333
+    },
+    {
+      "name": "deck39.txt",
+      "wins": 2,
+      "n": 6,
+      "rate": 0.3333333333333333
+    },
+    {
+      "name": "deck41.txt",
+      "wins": 2,
+      "n": 6,
+      "rate": 0.3333333333333333
+    },
+    {
+      "name": "deck43.txt",
+      "wins": 2,
+      "n": 6,
+      "rate": 0.3333333333333333
+    },
+    {
+      "name": "deck46.txt",
+      "wins": 2,
+      "n": 6,
+      "rate": 0.3333333333333333
+    },
+    {
+      "name": "deck5.txt",
+      "wins": 2,
+      "n": 6,
+      "rate": 0.3333333333333333
+    },
+    {
+      "name": "deck52.txt",
+      "wins": 2,
+      "n": 6,
+      "rate": 0.3333333333333333
+    },
+    {
+      "name": "deck54.txt",
+      "wins": 2,
+      "n": 6,
+      "rate": 0.3333333333333333
+    },
+    {
+      "name": "deck56.txt",
+      "wins": 2,
+      "n": 6,
+      "rate": 0.3333333333333333
+    },
+    {
+      "name": "deck64.txt",
+      "wins": 2,
+      "n": 6,
+      "rate": 0.3333333333333333
+    },
+    {
+      "name": "deck65.txt",
+      "wins": 2,
+      "n": 6,
+      "rate": 0.3333333333333333
+    },
+    {
+      "name": "deck70.txt",
+      "wins": 2,
+      "n": 6,
+      "rate": 0.3333333333333333
+    },
+    {
+      "name": "deck72.txt",
+      "wins": 2,
+      "n": 6,
+      "rate": 0.3333333333333333
+    },
+    {
+      "name": "deck77.txt",
+      "wins": 2,
+      "n": 6,
+      "rate": 0.3333333333333333
+    },
+    {
+      "name": "deck79.txt",
+      "wins": 2,
+      "n": 6,
+      "rate": 0.3333333333333333
+    },
+    {
+      "name": "deck82.txt",
+      "wins": 2,
+      "n": 6,
+      "rate": 0.3333333333333333
+    },
+    {
+      "name": "deck83.txt",
+      "wins": 2,
+      "n": 6,
+      "rate": 0.3333333333333333
+    },
+    {
+      "name": "deck84.txt",
+      "wins": 2,
+      "n": 6,
+      "rate": 0.3333333333333333
+    },
+    {
+      "name": "deck89.txt",
+      "wins": 2,
+      "n": 6,
+      "rate": 0.3333333333333333
+    },
+    {
+      "name": "deck94.txt",
+      "wins": 2,
+      "n": 6,
+      "rate": 0.3333333333333333
+    },
+    {
+      "name": "deck108.txt",
+      "wins": 1,
+      "n": 6,
+      "rate": 0.16666666666666666
+    },
+    {
+      "name": "deck118.txt",
+      "wins": 1,
+      "n": 6,
+      "rate": 0.16666666666666666
+    },
+    {
+      "name": "deck122.txt",
+      "wins": 1,
+      "n": 6,
+      "rate": 0.16666666666666666
+    },
+    {
+      "name": "deck124.txt",
+      "wins": 1,
+      "n": 6,
+      "rate": 0.16666666666666666
+    },
+    {
+      "name": "deck127.txt",
+      "wins": 1,
+      "n": 6,
+      "rate": 0.16666666666666666
+    },
+    {
+      "name": "deck131.txt",
+      "wins": 1,
+      "n": 6,
+      "rate": 0.16666666666666666
+    },
+    {
+      "name": "deck142.txt",
+      "wins": 1,
+      "n": 6,
+      "rate": 0.16666666666666666
+    },
+    {
+      "name": "deck147.txt",
+      "wins": 1,
+      "n": 6,
+      "rate": 0.16666666666666666
+    },
+    {
+      "name": "deck161.txt",
+      "wins": 1,
+      "n": 6,
+      "rate": 0.16666666666666666
+    },
+    {
+      "name": "deck167.txt",
+      "wins": 1,
+      "n": 6,
+      "rate": 0.16666666666666666
+    },
+    {
+      "name": "deck18.txt",
+      "wins": 1,
+      "n": 6,
+      "rate": 0.16666666666666666
+    },
+    {
+      "name": "deck24.txt",
+      "wins": 1,
+      "n": 6,
+      "rate": 0.16666666666666666
+    },
+    {
+      "name": "deck37.txt",
+      "wins": 1,
+      "n": 6,
+      "rate": 0.16666666666666666
+    },
+    {
+      "name": "deck50.txt",
+      "wins": 1,
+      "n": 6,
+      "rate": 0.16666666666666666
+    },
+    {
+      "name": "deck53.txt",
+      "wins": 1,
+      "n": 6,
+      "rate": 0.16666666666666666
+    },
+    {
+      "name": "deck63.txt",
+      "wins": 1,
+      "n": 6,
+      "rate": 0.16666666666666666
+    },
+    {
+      "name": "deck66.txt",
+      "wins": 1,
+      "n": 6,
+      "rate": 0.16666666666666666
+    },
+    {
+      "name": "deck71.txt",
+      "wins": 1,
+      "n": 6,
+      "rate": 0.16666666666666666
+    },
+    {
+      "name": "deck81.txt",
+      "wins": 1,
+      "n": 6,
+      "rate": 0.16666666666666666
+    },
+    {
+      "name": "deck85.txt",
+      "wins": 1,
+      "n": 6,
+      "rate": 0.16666666666666666
+    },
+    {
+      "name": "deck88.txt",
+      "wins": 1,
+      "n": 6,
+      "rate": 0.16666666666666666
+    },
+    {
+      "name": "deck91.txt",
+      "wins": 1,
+      "n": 6,
+      "rate": 0.16666666666666666
+    },
+    {
+      "name": "deck92.txt",
+      "wins": 1,
+      "n": 6,
+      "rate": 0.16666666666666666
+    },
+    {
+      "name": "deck95.txt",
+      "wins": 1,
+      "n": 6,
+      "rate": 0.16666666666666666
+    },
+    {
+      "name": "deck97.txt",
+      "wins": 1,
+      "n": 6,
+      "rate": 0.16666666666666666
+    },
+    {
+      "name": "strikefreedom_barbatos_real.txt",
+      "wins": 1,
+      "n": 6,
+      "rate": 0.16666666666666666
+    },
+    {
+      "name": "deck10.txt",
+      "wins": 0,
+      "n": 6,
+      "rate": 0
+    },
+    {
+      "name": "deck129.txt",
+      "wins": 0,
+      "n": 6,
+      "rate": 0
+    },
+    {
+      "name": "deck139.txt",
+      "wins": 0,
+      "n": 6,
+      "rate": 0
+    },
+    {
+      "name": "deck36.txt",
+      "wins": 0,
+      "n": 6,
+      "rate": 0
+    },
+    {
+      "name": "deck69.txt",
+      "wins": 0,
+      "n": 6,
+      "rate": 0
+    },
+    {
+      "name": "deck78.txt",
+      "wins": 0,
+      "n": 6,
+      "rate": 0
+    },
+    {
+      "name": "deck96.txt",
+      "wins": 0,
+      "n": 6,
+      "rate": 0
+    }
+  ]
+}

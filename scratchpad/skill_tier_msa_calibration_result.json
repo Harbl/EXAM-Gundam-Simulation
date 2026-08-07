@@ -1,0 +1,146 @@
+[
+  {
+    "tier": "beginner",
+    "mad": 23,
+    "rows": [
+      {
+        "label": "Shining & Master Gundam vs Nu Gundam",
+        "real": 52,
+        "sim": 8,
+        "deviation": -44
+      },
+      {
+        "label": "Nu Gundam vs Strike Freedom & Marida's Banshee",
+        "real": 56,
+        "sim": 86,
+        "deviation": 30
+      },
+      {
+        "label": "Nu Gundam vs Strike Freedom & Barbatos Lupus",
+        "real": 51,
+        "sim": 50,
+        "deviation": -1
+      },
+      {
+        "label": "Strike Freedom & Marida's Banshee vs Shining & Master Gundam",
+        "real": 71,
+        "sim": 60,
+        "deviation": -11
+      },
+      {
+        "label": "Barbatos Rush (Char Aznable) vs Nu Gundam",
+        "real": 64,
+        "sim": 35,
+        "deviation": -29
+      }
+    ]
+  },
+  {
+    "tier": "casual",
+    "mad": 30.6,
+    "rows": [
+      {
+        "label": "Shining & Master Gundam vs Nu Gundam",
+        "real": 52,
+        "sim": 10,
+        "deviation": -42
+      },
+      {
+        "label": "Nu Gundam vs Strike Freedom & Marida's Banshee",
+        "real": 56,
+        "sim": 84,
+        "deviation": 28
+      },
+      {
+        "label": "Nu Gundam vs Strike Freedom & Barbatos Lupus",
+        "real": 51,
+        "sim": 70,
+        "deviation": 19
+      },
+      {
+        "label": "Strike Freedom & Marida's Banshee vs Shining & Master Gundam",
+        "real": 71,
+        "sim": 45,
+        "deviation": -26
+      },
+      {
+        "label": "Barbatos Rush (Char Aznable) vs Nu Gundam",
+        "real": 64,
+        "sim": 26,
+        "deviation": -38
+      }
+    ]
+  },
+  {
+    "tier": "novice",
+    "mad": 30.8,
+    "rows": [
+      {
+        "label": "Shining & Master Gundam vs Nu Gundam",
+        "real": 52,
+        "sim": 7.000000000000001,
+        "deviation": -45
+      },
+      {
+        "label": "Nu Gundam vs Strike Freedom & Marida's Banshee",
+        "real": 56,
+        "sim": 90,
+        "deviation": 34
+      },
+      {
+        "label": "Nu Gundam vs Strike Freedom & Barbatos Lupus",
+        "real": 51,
+        "sim": 75,
+        "deviation": 24
+      },
+      {
+        "label": "Strike Freedom & Marida's Banshee vs Shining & Master Gundam",
+        "real": 71,
+        "sim": 56.99999999999999,
+        "deviation": -14.000000000000007
+      },
+      {
+        "label": "Barbatos Rush (Char Aznable) vs Nu Gundam",
+        "real": 64,
+        "sim": 27,
+        "deviation": -37
+      }
+    ]
+  },
+  {
+    "tier": "tight",
+    "mad": 32.333333333333336,
+    "rows": [
+      {
+        "label": "Shining & Master Gundam vs Nu Gundam",
+        "real": 52,
+        "sim": 15,
+        "deviation": -37
+      },
+      {
+        "label": "Nu Gundam vs Strike Freedom & Marida's Banshee",
+        "real": 56,
+        "sim": 88.33333333333333,
+        "deviation": 32.33333333333333
+      },
+      {
+        "label": "Nu Gundam vs Strike Freedom & Barbatos Lupus",
+        "real": 51,
+        "sim": 76.66666666666667,
+        "deviation": 25.66666666666667
+      },
+      {
+        "label": "Strike Freedom & Marida's Banshee vs Shining & Master Gundam",
+        "real": 71,
+        "sim": 50,
+        "deviation": -21
+      },
+      {
+        "label": "Barbatos Rush (Char Aznable) vs Nu Gundam",
+        "real": 64,
+        "sim": 18.333333333333332,
+        "deviation": -45.66666666666667
+      }
+    ]
+  }
+]

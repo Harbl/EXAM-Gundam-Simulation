@@ -112,13 +112,13 @@
     "effectRefs": { "destroyed": "miguelsGinnST04009Destroyed" }
   },
   {
-    "number": "ST04-013", "name": "Hawk of Endymion", "type": "command", "color": "white",
+    "number": "ST04-013", "actionTiming": "both", "name": "Hawk of Endymion", "type": "command", "color": "white",
     "level": 2, "cost": 1,
     "pilotMode": { "name": "Mu La Flaga", "apBonus": 1, "hpBonus": 0 },
     "effectRefs": { "command": "hawkOfEndymionCommand" }
   },
   {
-    "number": "ST04-014", "name": "The Magic Bullet of Dusk", "type": "command", "color": "red",
+    "number": "ST04-014", "actionTiming": "both", "name": "The Magic Bullet of Dusk", "type": "command", "color": "red",
     "level": 3, "cost": 1,
     "pilotMode": { "name": "Miguel Ayman", "apBonus": 0, "hpBonus": 1 },
     "effectRefs": { "command": "theMagicBulletOfDuskCommand" }

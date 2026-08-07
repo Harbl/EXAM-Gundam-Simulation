@@ -329,6 +329,27 @@
   .smallStatus { font-size: 11.5px; color: var(--gold); margin-top: 4px; min-height: 14px; }
   .buttons.builderActions .smallBtn { flex: 1 !important; }
 
+  .checkboxLabel { display: block; font-size: 12.5px; color: var(--text); margin-top: 10px; cursor: pointer; }
+  .checkboxLabel input[type=checkbox] { accent-color: var(--red); margin-right: 4px; vertical-align: -2px; }
+  .newtypeBanner {
+    display: none;
+    font-size: 12px;
+    line-height: 1.4;
+    color: var(--text);
+    background: rgba(155, 27, 30, 0.18);
+    border-left: 3px solid var(--red);
+    border-radius: 3px;
+    padding: 8px 10px;
+    margin-top: 6px;
+  }
+
+  /* Settings screen: category checkbox lists (mirrors .tourneyEntrantRow's checkbox styling) */
+  .settingsSection { margin-bottom: 22px; }
+  .settingsSection h3 { margin: 0 0 8px; color: var(--gold); font-family: var(--font-head); }
+  .backupRow { display: flex; align-items: center; gap: 6px; padding: 3px 0; font-size: 12.5px; }
+  .backupRow input[type=checkbox] { accent-color: var(--red); }
+  .backupRow .backupMeta { color: #999; font-size: 11px; }
+
   /* Tournament screen: entrant checklist, bracket columns, champion banner, expandable per-deck stats */
   .tourneyEntrantRow { cursor: pointer; }
   .tourneyEntrantRow input[type=checkbox] { flex: none; width: auto; margin-right: 4px; accent-color: var(--red); }
@@ -512,6 +533,25 @@
     background: #000;
   }
   .cardZoom img { display: block; width: 300px; height: 419px; object-fit: cover; }
+
+  /* "What's new" splash, shown once per version on the first launch after an update -- see
+     check-changelog (main.js). Same dark/gold theme as the rest of the app, just a centered modal
+     instead of an in-page panel since this needs to grab attention once, not live alongside a screen. */
+  .splashOverlay {
+    display: none;
+    position: fixed; inset: 0; z-index: 900;
+    background: rgba(0,0,0,0.75);
+    align-items: center; justify-content: center;
+  }
+  .splashOverlay.visible { display: flex; }
+  .splashModal {
+    background: #111; border: 1px solid var(--gold); box-shadow: 0 0 24px rgba(0,0,0,0.85);
+    max-width: 480px; width: 90%; max-height: 80vh; overflow-y: auto; padding: 20px 24px;
+  }
+  .splashModal h2 { color: var(--gold); margin: 0 0 2px; }
+  .splashModal .splashDate { color: #888; font-size: 11px; margin-bottom: 12px; }
+  .splashModal ul { margin: 0 0 16px; padding-left: 20px; }
+  .splashModal li { margin-bottom: 8px; font-size: 13px; line-height: 1.4; }
 </style>
 </head>
 <body>
@@ -529,6 +569,7 @@
   <button id="navDecks">Saved Decks</button>
   <button id="navLog">Log</button>
   <button id="navTournament">Tournament</button>
+  <button id="navSettings">Settings</button>
 </nav>
 <main>
 <div class="screen" id="simulateScreen">
@@ -565,6 +606,8 @@
         <select id="skillB"></select>
       </div>
     </div>
+    <label class="checkboxLabel"><input type="checkbox" id="newtypeToggle" /> ☢️ Newtype Awakening (unleash full-strength AI, even for archetypes that beat it unrealistically well)</label>
+    <div id="newtypeBanner" class="newtypeBanner"></div>
     <label for="games">Games to simulate</label>
     <input type="number" id="games" value="100" min="1" max="10000" />
     <div class="buttons">
@@ -708,6 +751,8 @@
         <select id="tourneySkill"></select>
       </div>
     </div>
+    <label class="checkboxLabel"><input type="checkbox" id="tourneyNewtypeToggle" /> ☢️ Newtype Awakening (unleash full-strength AI, even for archetypes that beat it unrealistically well)</label>
+    <div id="tourneyNewtypeBanner" class="newtypeBanner"></div>
     <div class="buttons">
       <button id="tourneyRunBtn">Start Tournament</button>
       <button id="tourneyCancelBtn" disabled>Cancel</button>
@@ -731,10 +776,43 @@
     <div id="saveTourneyStatus" class="smallStatus"></div>
   </div>
 </div>
+
+<div class="screen hidden" id="settingsScreen">
+  <div class="panel">
+    <h2>Back Up Your Data</h2>
+    <p class="hint">Pick what to include, then choose where to save the zip. Nothing is deleted or changed -- this only reads and archives your existing saved decks, batch logs, and tournament results.</p>
+    <div class="settingsSection">
+      <h3>Saved Decks</h3>
+      <div id="backupDeckList"></div>
+    </div>
+    <div class="settingsSection">
+      <h3>Batch Logs</h3>
+      <div id="backupBatchList"></div>
+    </div>
+    <div class="settingsSection">
+      <h3>Tournaments</h3>
+      <div id="backupTournamentList"></div>
+    </div>
+    <div class="buttons">
+      <button id="backupSelectAllBtn" class="smallBtn">Select All</button>
+      <button id="backupRunBtn" disabled>Back Up Selected</button>
+    </div>
+    <div id="backupStatus" class="smallStatus"></div>
+  </div>
+</div>
 </main>
 </div>
 
 <div id="cardZoom" class="cardZoom"><img id="cardZoomImg" alt="" /></div>
+
+<div class="splashOverlay" id="splashOverlay">
+  <div class="splashModal">
+    <h2 id="splashVersion"></h2>
+    <div class="splashDate" id="splashDate"></div>
+    <ul id="splashNotes"></ul>
+    <button id="splashDismiss">Got it</button>
+  </div>
+</div>
 
 <script>
   const runBtn = document.getElementById('runBtn');
@@ -757,6 +835,54 @@
   const skillASelect = document.getElementById('skillA');
   const skillBSelect = document.getElementById('skillB');
   const tourneySkillSelect = document.getElementById('tourneySkill');
+  const newtypeToggle = document.getElementById('newtypeToggle');
+  const newtypeBanner = document.getElementById('newtypeBanner');
+  const tourneyNewtypeToggle = document.getElementById('tourneyNewtypeToggle');
+  const tourneyNewtypeBanner = document.getElementById('tourneyNewtypeBanner');
+
+  // --- Newtype Awakening: client-side heuristic only (a quick regex over "<qty> ... <number>" lines),
+  // purely to decide whether to show the warning banner -- the actual handicap decision always happens
+  // correctly in the worker (src/ai/archetypeHandicaps.js) regardless of what this detects. window.sim
+  // .archetypeHandicaps is static inert data (preload.js), not a live IPC call, so this can run on
+  // every keystroke/toggle cheaply.
+  function countArchetypeCopies(decklistText, cardNumbers) {
+    let count = 0;
+    for (const line of (decklistText || '').split('\n')) {
+      const match = line.trim().match(/^(\d+)\s+.*\s(\S+)$/);
+      if (!match) continue;
+      if (cardNumbers.includes(match[2])) count += Number(match[1]);
+    }
+    return count;
+  }
+  function detectArchetypeMatch(decklistText) {
+    const archetypes = (window.sim && window.sim.archetypeHandicaps) || [];
+    return archetypes.find((a) => countArchetypeCopies(decklistText, a.cardNumbers) >= a.minCopies) || null;
+  }
+  function newtypeWarningText(archetypeName) {
+    return `⚠️ Newtype Awakening is on: ${archetypeName} is piloting at full AI strength. Our search engine plays this archetype's precise sequencing closer to optimal than real ladder pilots can consistently match, so its simulated win rate will likely run higher than real-world results.`;
+  }
+  function updateNewtypeBanner() {
+    const match = detectArchetypeMatch(document.getElementById('deckA').value) || detectArchetypeMatch(document.getElementById('deckB').value);
+    const show = newtypeToggle.checked && !!match;
+    newtypeBanner.style.display = show ? 'block' : 'none';
+    if (show) newtypeBanner.textContent = newtypeWarningText(match.name);
+  }
+  document.getElementById('deckA').addEventListener('input', updateNewtypeBanner);
+  document.getElementById('deckB').addEventListener('input', updateNewtypeBanner);
+  newtypeToggle.addEventListener('change', updateNewtypeBanner);
+
+  function updateTourneyNewtypeBanner() {
+    const checkedDecklists = [...tourneyDeckListEl.querySelectorAll('input[type=checkbox]:checked')]
+      .map((cb) => (tourneySavedDecks.find((d) => d.name === cb.value) || {}).decklistText);
+    const match = checkedDecklists.map(detectArchetypeMatch).find(Boolean);
+    const show = tourneyNewtypeToggle.checked && !!match;
+    tourneyNewtypeBanner.style.display = show ? 'block' : 'none';
+    if (show) tourneyNewtypeBanner.textContent = newtypeWarningText(match.name);
+  }
+  tourneyNewtypeToggle.addEventListener('change', updateTourneyNewtypeBanner);
+  // tourneyDeckListEl itself isn't declared until later (its entrant-checkbox rendering lives further
+  // down in the Tournament section) -- its own change listener is wired there instead, right next to
+  // where the element is first defined, to avoid a temporal-dead-zone reference here.
   const savedASelect = document.getElementById('savedA');
   const savedBSelect = document.getElementById('savedB');
   const statsChart = document.getElementById('statsChart');
@@ -812,7 +938,7 @@
     cancelBtn.disabled = false;
     setStatus('busy', 'RUNNING');
 
-    window.sim.run(deckAText, deckBText, games, skillASelect.value, skillBSelect.value);
+    window.sim.run(deckAText, deckBText, games, skillASelect.value, skillBSelect.value, newtypeToggle.checked);
   });
 
   cancelBtn.addEventListener('click', () => {
@@ -1540,6 +1666,22 @@
   // becoming a battle-area Unit) -- everyday updates to an unchanged role go through refreshTile
   // instead, which only touches the specific sub-nodes that changed so their own CSS transitions
   // (HP bar width, rested opacity) actually have an old value to animate from.
+  //
+  // A paired Pilot's own hpBonus (very common on Pilot cards, e.g. "This Unit gets HP+1") needs to be
+  // added on top of the Unit's printed HP -- getHP() in src/rules/management.js is the real-game
+  // source of truth for this, but the replay board is a lightweight client-side reconstruction with no
+  // access to that module, so this mirrors just the pilot-bonus piece of it (link/buff/granted bonuses
+  // aren't tracked in trace events at all, so they're out of scope for this display).
+  function effectiveMaxHp(item, cardDef) {
+    if (!cardDef || !cardDef.hp) return null;
+    let hp = cardDef.hp;
+    if (item.pilot) {
+      const pilotCard = cardByNumber(item.pilot.number);
+      const pilotDef = pilotCard && pilotCard.pilotMode ? Object.assign({}, pilotCard, pilotCard.pilotMode) : pilotCard;
+      if (pilotDef) hp += pilotDef.hpBonus || 0;
+    }
+    return hp;
+  }
   function setTileRole(el, role, item, cardDef) {
     el.dataset.role = role;
     if (role === 'shieldBack') {
@@ -1557,7 +1699,7 @@
     // role === 'unit' (Battle Area member or Base)
     el.className = 'unitTile' + (item.rested ? ' rested' : '');
     el.dataset.number = item.number;
-    const maxHp = cardDef ? cardDef.hp : null;
+    const maxHp = effectiveMaxHp(item, cardDef);
     el.innerHTML = `
       <img src="${imgSrcFor(item.number)}" onerror="this.style.visibility='hidden'" />
       <div class="uName">${item.name}</div>
@@ -1570,7 +1712,7 @@
   function refreshTile(el, role, item, cardDef) {
     if (role !== 'unit') return;
     el.classList.toggle('rested', !!item.rested);
-    const maxHp = cardDef ? cardDef.hp : null;
+    const maxHp = effectiveMaxHp(item, cardDef);
     if (maxHp) {
       const remaining = Math.max(0, maxHp - item.damage);
       const pct = Math.max(0, Math.min(100, (remaining / maxHp) * 100));
@@ -1946,11 +2088,13 @@
   const navDecks = document.getElementById('navDecks');
   const navLog = document.getElementById('navLog');
   const navTournament = document.getElementById('navTournament');
+  const navSettings = document.getElementById('navSettings');
   const simulateScreen = document.getElementById('simulateScreen');
   const builderScreen = document.getElementById('builderScreen');
   const decksScreen = document.getElementById('decksScreen');
   const logScreen = document.getElementById('logScreen');
   const tournamentScreen = document.getElementById('tournamentScreen');
+  const settingsScreen = document.getElementById('settingsScreen');
 
   function showScreen(which) {
     simulateScreen.classList.toggle('hidden', which !== 'simulate');
@@ -1958,13 +2102,19 @@
     decksScreen.classList.toggle('hidden', which !== 'decks');
     logScreen.classList.toggle('hidden', which !== 'log');
     tournamentScreen.classList.toggle('hidden', which !== 'tournament');
+    settingsScreen.classList.toggle('hidden', which !== 'settings');
     navSimulate.classList.toggle('active', which === 'simulate');
     navBuilder.classList.toggle('active', which === 'builder');
     navDecks.classList.toggle('active', which === 'decks');
     navLog.classList.toggle('active', which === 'log');
     navTournament.classList.toggle('active', which === 'tournament');
+    navSettings.classList.toggle('active', which === 'settings');
   }
   navSimulate.addEventListener('click', () => showScreen('simulate'));
+  navSettings.addEventListener('click', () => {
+    showScreen('settings');
+    refreshBackupLists();
+  });
   navDecks.addEventListener('click', () => {
     showScreen('decks');
     refreshSavedDecks();
@@ -2602,6 +2752,7 @@
 
   // --- Tournament: random single- or double-elimination bracket across N saved decks, best-of-1/3/5/7 ---
   const tourneyDeckListEl = document.getElementById('tourneyDeckList');
+  tourneyDeckListEl.addEventListener('change', updateTourneyNewtypeBanner);
   const tourneyFormatSelect = document.getElementById('tourneyFormat');
   const tourneyBestOfSelect = document.getElementById('tourneyBestOf');
   const tourneyRunBtn = document.getElementById('tourneyRunBtn');
@@ -2748,7 +2899,7 @@
     });
   }
 
-  function buildMatchGameRows(container, games, deckAText, deckBText, engine, mctsConfig) {
+  function buildMatchGameRows(container, games, deckAText, deckBText, engineA, engineB, mctsConfigA, mctsConfigB, valueModelA, valueModelB) {
     games.forEach((g, i) => {
       const gRow = document.createElement('div');
       gRow.className = 'batchGameRow';
@@ -2756,9 +2907,7 @@
       gRow.textContent = `#${i + 1} — ${outcome} — ${Math.ceil(g.turns / 2)} turns`;
       gRow.addEventListener('click', (ev) => {
         ev.stopPropagation();
-        viewReplay(g.seed, {
-          deckAText, deckBText, engineA: engine, engineB: engine, mctsConfigA: mctsConfig, mctsConfigB: mctsConfig
-        });
+        viewReplay(g.seed, { deckAText, deckBText, engineA, engineB, mctsConfigA, mctsConfigB, valueModelA, valueModelB });
       });
       container.appendChild(gRow);
     });
@@ -2767,7 +2916,7 @@
   // Makes every *played* match box (bye-free, has a result) clickable to expand its individual games,
   // same click-a-game-to-replay pattern as a saved batch's game list (buildGameRows above) -- just
   // scoped to one match's games instead of a whole batch. `replayCtx` is {entrantsById (id -> decklist
-  // text), engine, mctsConfig}, resolved once per tournament (same skill both sides of every match).
+  // text), engine, mctsConfig, valueModel}, resolved once per tournament (same skill both sides of every match).
   function enableGameReplayClicks(matchEls, rounds, replayCtx) {
     rounds.forEach((round, roundIdx) => {
       round.forEach((match, matchIdx) => {
@@ -2785,7 +2934,15 @@
           if (!showing && !gamesList.dataset.built) {
             const deckAText = replayCtx.entrantsById.get(match.a.id);
             const deckBText = replayCtx.entrantsById.get(match.b.id);
-            buildMatchGameRows(gamesList, match.result.games, deckAText, deckBText, replayCtx.engine, replayCtx.mctsConfig);
+            // Prefer the match's own resolved per-side engine/config (post-archetype-handicap) over the
+            // tournament-wide nominal preset -- older saved tournaments predating this fix won't have
+            // these fields on `result`, so they fall back to the shared replayCtx values as before.
+            buildMatchGameRows(
+              gamesList, match.result.games, deckAText, deckBText,
+              match.result.engineA || replayCtx.engine, match.result.engineB || replayCtx.engine,
+              match.result.mctsConfigA || replayCtx.mctsConfig, match.result.mctsConfigB || replayCtx.mctsConfig,
+              match.result.valueModelA || replayCtx.valueModel, match.result.valueModelB || replayCtx.valueModel
+            );
             gamesList.dataset.built = '1';
           }
         });
@@ -2902,7 +3059,7 @@
         const deck = tourneySavedDecks.find((d) => d.name === cb.value);
         return { id: i, name: cb.value, deckText: deck.decklistText };
       });
-      window.tournament.run(currentTourneyEntrants, Number(tourneyBestOfSelect.value), tourneySkillSelect.value, tourneyFormatSelect.value);
+      window.tournament.run(currentTourneyEntrants, Number(tourneyBestOfSelect.value), tourneySkillSelect.value, tourneyFormatSelect.value, tourneyNewtypeToggle.checked);
     });
 
     tourneyCancelBtn.addEventListener('click', () => {
@@ -2956,7 +3113,7 @@
       updateTournamentBracket(liveBracketMatchEls, result);
       const entrantsById = new Map(context.entrants.map((e) => [e.id, e.deckText]));
       enableTournamentReplayClicks(liveBracketMatchEls, result, {
-        entrantsById, engine: context.engine, mctsConfig: context.mctsConfig
+        entrantsById, engine: context.engine, mctsConfig: context.mctsConfig, valueModel: context.valueModel
       });
       renderTourneyDeckStats(currentTourneyEntrants, result);
 
@@ -3028,7 +3185,7 @@
           updateTournamentBracket(matchEls, t.result);
           const entrantsById = new Map(t.context.entrants.map((e) => [e.id, e.deckText]));
           enableTournamentReplayClicks(matchEls, t.result, {
-            entrantsById, engine: t.context.engine, mctsConfig: t.context.mctsConfig
+            entrantsById, engine: t.context.engine, mctsConfig: t.context.mctsConfig, valueModel: t.context.valueModel
           });
           bracketWrap.dataset.built = '1';
         }
@@ -3044,6 +3201,80 @@
       tournamentListEl.appendChild(wrap);
     }
   }
+
+  // --- Settings / Backup: lists existing deckStore/resultsStore/tournamentStore records (same
+  // data the Saved Decks/Log screens already show) with a checkbox per item, zips whatever's
+  // selected via window.backup.run, which is just window.dialog.showSaveDialog + adm-zip on the
+  // main-process side (electron/main.js's backup-selected handler) -- nothing new is persisted here,
+  // this only reads and archives what's already saved.
+  const backupDeckListEl = document.getElementById('backupDeckList');
+  const backupBatchListEl = document.getElementById('backupBatchList');
+  const backupTournamentListEl = document.getElementById('backupTournamentList');
+  const backupSelectAllBtn = document.getElementById('backupSelectAllBtn');
+  const backupRunBtn = document.getElementById('backupRunBtn');
+  const backupStatusEl = document.getElementById('backupStatus');
+
+  function renderBackupRow(container, name, savedAt) {
+    const row = document.createElement('label');
+    row.className = 'backupRow';
+    const checkbox = document.createElement('input');
+    checkbox.type = 'checkbox';
+    checkbox.value = name;
+    checkbox.addEventListener('change', updateBackupRunEnabled);
+    const label = document.createElement('span');
+    label.textContent = name;
+    const meta = document.createElement('span');
+    meta.className = 'backupMeta';
+    meta.textContent = savedAt ? new Date(savedAt).toLocaleDateString() : '';
+    row.append(checkbox, label, meta);
+    container.appendChild(row);
+  }
+
+  function updateBackupRunEnabled() {
+    const anyChecked = !!document.querySelector('#settingsScreen input[type=checkbox]:checked');
+    backupRunBtn.disabled = !anyChecked;
+  }
+
+  async function refreshBackupLists() {
+    if (!window.deckStore || !window.resultsStore || !window.tournamentStore) return;
+    const [decks, batches, tournaments] = await Promise.all([
+      window.deckStore.list(),
+      window.resultsStore.list(),
+      window.tournamentStore.list()
+    ]);
+    backupDeckListEl.innerHTML = '';
+    backupBatchListEl.innerHTML = '';
+    backupTournamentListEl.innerHTML = '';
+    decks.forEach((d) => renderBackupRow(backupDeckListEl, d.name, d.savedAt));
+    batches.forEach((b) => renderBackupRow(backupBatchListEl, b.name, b.savedAt));
+    tournaments.forEach((t) => renderBackupRow(backupTournamentListEl, t.name, t.savedAt));
+    if (decks.length === 0) backupDeckListEl.innerHTML = '<p class="hint">No saved decks yet.</p>';
+    if (batches.length === 0) backupBatchListEl.innerHTML = '<p class="hint">No saved batch logs yet.</p>';
+    if (tournaments.length === 0) backupTournamentListEl.innerHTML = '<p class="hint">No saved tournaments yet.</p>';
+    updateBackupRunEnabled();
+  }
+
+  backupSelectAllBtn.addEventListener('click', () => {
+    document.querySelectorAll('#settingsScreen input[type=checkbox]').forEach((cb) => (cb.checked = true));
+    updateBackupRunEnabled();
+  });
+
+  backupRunBtn.addEventListener('click', async () => {
+    const selection = {
+      decks: [...backupDeckListEl.querySelectorAll('input:checked')].map((cb) => cb.value),
+      batches: [...backupBatchListEl.querySelectorAll('input:checked')].map((cb) => cb.value),
+      tournaments: [...backupTournamentListEl.querySelectorAll('input:checked')].map((cb) => cb.value)
+    };
+    backupStatusEl.textContent = 'Zipping...';
+    try {
+      const result = await window.backup.run(selection);
+      backupStatusEl.textContent = result.saved
+        ? `Saved ${result.fileCount} file(s) to ${result.filePath}`
+        : 'Cancelled.';
+    } catch (err) {
+      backupStatusEl.textContent = `Backup failed: ${err.message}`;
+    }
+  });
 
   // --- Update banner: main.js checks GitHub Releases a few seconds after launch (never blocking
   // startup, never silently downloading -- see main.js's autoUpdater comment). This just reflects
@@ -3073,6 +3304,26 @@
       } else {
         updateBannerEl.style.display = 'none';
       }
+    });
+  }
+
+  // --- "What's new" splash: main.js's check-changelog handler only reports show:true on the first
+  // launch after an actual version change (never on a fresh install) -- see its own comment.
+  if (window.changelog) {
+    window.changelog.check().then((result) => {
+      if (!result || !result.show) return;
+      document.getElementById('splashVersion').textContent = `What's new in ${result.version}`;
+      document.getElementById('splashDate').textContent = result.date || '';
+      const notesEl = document.getElementById('splashNotes');
+      for (const note of result.notes) {
+        const li = document.createElement('li');
+        li.textContent = note;
+        notesEl.appendChild(li);
+      }
+      document.getElementById('splashOverlay').classList.add('visible');
+    });
+    document.getElementById('splashDismiss').addEventListener('click', () => {
+      document.getElementById('splashOverlay').classList.remove('visible');
     });
   }
 </script>

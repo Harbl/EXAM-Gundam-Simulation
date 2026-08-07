@@ -1,0 +1,382 @@
+[
+  {
+    "number": "GD04-117",
+    "name": "Graceful Demeanor",
+    "timing": "action"
+  },
+  {
+    "number": "GD01-120",
+    "name": "Naval Bombardment",
+    "timing": "action"
+  },
+  {
+    "number": "GD01-099",
+    "name": "Intercept Orders",
+    "timing": "both"
+  },
+  {
+    "number": "GD01-101",
+    "name": "Deep Devotion",
+    "timing": "both"
+  },
+  {
+    "number": "GD01-110",
+    "name": "Rasid's Orders",
+    "timing": "both"
+  },
+  {
+    "number": "GD01-113",
+    "name": "The Desert Tiger",
+    "timing": "both"
+  },
+  {
+    "number": "GD01-114",
+    "name": "Assault on Torrington Base",
+    "timing": "action"
+  },
+  {
+    "number": "GD01-115",
+    "name": "Zeon Remnant Forces",
+    "timing": "both"
+  },
+  {
+    "number": "GD01-116",
+    "name": "Stealth Stratagem",
+    "timing": "both"
+  },
+  {
+    "number": "GD01-117",
+    "name": "The Witch and the Bride",
+    "timing": "both"
+  },
+  {
+    "number": "GD01-119",
+    "name": "Iron-Fisted Discipline",
+    "timing": "both"
+  },
+  {
+    "number": "GD02-101",
+    "name": "Beneath the Mask",
+    "timing": "both"
+  },
+  {
+    "number": "GD02-102",
+    "name": "Mouar's Determination",
+    "timing": "both"
+  },
+  {
+    "number": "GD02-105",
+    "name": "Valedictorian",
+    "timing": "action"
+  },
+  {
+    "number": "GD02-106",
+    "name": "White Wolf",
+    "timing": "action"
+  },
+  {
+    "number": "GD02-109",
+    "name": "Undying Persistence",
+    "timing": "both"
+  },
+  {
+    "number": "GD02-113",
+    "name": "Sisterly Care",
+    "timing": "both"
+  },
+  {
+    "number": "GD02-114",
+    "name": "It's Name is Ryusei-Go",
+    "timing": "both"
+  },
+  {
+    "number": "GD02-115",
+    "name": "Familial Devotion",
+    "timing": "both"
+  },
+  {
+    "number": "GD02-118",
+    "name": "Heart Set on Revenge",
+    "timing": "action"
+  },
+  {
+    "number": "GD02-119",
+    "name": "Persistent and Fortitudinous",
+    "timing": "action"
+  },
+  {
+    "number": "GD02-120",
+    "name": "Aspiring Pilot",
+    "timing": "action"
+  },
+  {
+    "number": "GD03-102",
+    "name": "Privileged Position",
+    "timing": "action"
+  },
+  {
+    "number": "GD03-104",
+    "name": "Reccoa's Shadow",
+    "timing": "action"
+  },
+  {
+    "number": "GD03-110",
+    "name": "Eliminate Target",
+    "timing": "action"
+  },
+  {
+    "number": "GD03-111",
+    "name": "Infiltrator Present",
+    "timing": "action"
+  },
+  {
+    "number": "GD03-112",
+    "name": "Warped Intent",
+    "timing": "action"
+  },
+  {
+    "number": "GD03-113",
+    "name": "Human Karma",
+    "timing": "action"
+  },
+  {
+    "number": "GD03-114",
+    "name": "Look of Determination (R+)",
+    "timing": "action"
+  },
+  {
+    "number": "GD03-115",
+    "name": "Distant Reunion",
+    "timing": "action"
+  },
+  {
+    "number": "GD03-116",
+    "name": "Towards Destiny",
+    "timing": "action"
+  },
+  {
+    "number": "GD03-118",
+    "name": "Awakened Potential (R+)",
+    "timing": "action"
+  },
+  {
+    "number": "GD03-121",
+    "name": "Unheralded Attack",
+    "timing": "action"
+  },
+  {
+    "number": "GD03-122",
+    "name": "Veteran Tactics",
+    "timing": "action"
+  },
+  {
+    "number": "GD04-066",
+    "name": "Unicorn Gundam (Awakened) (LR+)",
+    "timing": "both"
+  },
+  {
+    "number": "GD04-104",
+    "name": "Shrike Team's Bulwark",
+    "timing": "action"
+  },
+  {
+    "number": "GD04-107",
+    "name": "Destined Battle",
+    "timing": "action"
+  },
+  {
+    "number": "GD04-108",
+    "name": "Witches from Earth",
+    "timing": "action"
+  },
+  {
+    "number": "GD04-110",
+    "name": "Financier (U+)",
+    "timing": "action"
+  },
+  {
+    "number": "GD04-111",
+    "name": "Trinity",
+    "timing": "action"
+  },
+  {
+    "number": "GD04-113",
+    "name": "Damage Control",
+    "timing": "action"
+  },
+  {
+    "number": "GD04-114",
+    "name": "Reformationist (U+)",
+    "timing": "action"
+  },
+  {
+    "number": "GD04-118",
+    "name": "World Distortion",
+    "timing": "action"
+  },
+  {
+    "number": "GD04-119",
+    "name": "Fighting Alone",
+    "timing": "action"
+  },
+  {
+    "number": "GD04-120",
+    "name": "Machine Doll Squad",
+    "timing": "action"
+  },
+  {
+    "number": "GD05-102",
+    "name": "Wings of Light (R+)",
+    "timing": "action"
+  },
+  {
+    "number": "GD05-103",
+    "name": "Not with Scattershot!",
+    "timing": "both"
+  },
+  {
+    "number": "GD05-104",
+    "name": "At the Risk of One's Life",
+    "timing": "action"
+  },
+  {
+    "number": "GD05-105",
+    "name": "Exclusively Defense-Oriented Policy",
+    "timing": "both"
+  },
+  {
+    "number": "GD05-108",
+    "name": "Overcoming Hardships",
+    "timing": "action"
+  },
+  {
+    "number": "GD05-109",
+    "name": "Felsi's Plea",
+    "timing": "action"
+  },
+  {
+    "number": "GD05-116",
+    "name": "Veteran's Pride",
+    "timing": "both"
+  },
+  {
+    "number": "GD05-119",
+    "name": "A Wind Against Fires (R+)",
+    "timing": "action"
+  },
+  {
+    "number": "EB01-074",
+    "name": "Eternal Road",
+    "timing": "both"
+  },
+  {
+    "number": "EB01-075",
+    "name": "Fierce Enemy Assault",
+    "timing": "both"
+  },
+  {
+    "number": "EB01-076",
+    "name": "Gerbera Straight",
+    "timing": "both"
+  },
+  {
+    "number": "EB01-077",
+    "name": "Master League Begins",
+    "timing": "action"
+  },
+  {
+    "number": "EB01-080",
+    "name": "Sturm Faust",
+    "timing": "both"
+  },
+  {
+    "number": "EB01-081",
+    "name": "MAP Weapon",
+    "timing": "both"
+  },
+  {
+    "number": "EB01-082",
+    "name": "Warship Cruise",
+    "timing": "action"
+  },
+  {
+    "number": "EB01-083",
+    "name": "SP Conversion Chips",
+    "timing": "action"
+  },
+  {
+    "number": "EB01-084",
+    "name": "30cm Cannon (APFSDS Round)",
+    "timing": "both"
+  },
+  {
+    "number": "ST02-013",
+    "name": "Peaceful Timbre",
+    "timing": "action"
+  },
+  {
+    "number": "ST02-014",
+    "name": "Siege Ploy",
+    "timing": "both"
+  },
+  {
+    "number": "ST03-012",
+    "name": "Indignation",
+    "timing": "both"
+  },
+  {
+    "number": "ST03-014",
+    "name": "The Blue Giant",
+    "timing": "action"
+  },
+  {
+    "number": "ST04-013",
+    "name": "Hawk of Endymion",
+    "timing": "both"
+  },
+  {
+    "number": "ST04-014",
+    "name": "The Magic Bullet of Dusk",
+    "timing": "both"
+  },
+  {
+    "number": "ST05-013",
+    "name": "With Iron and Blood",
+    "timing": "both"
+  },
+  {
+    "number": "ST06-011",
+    "name": "Ruthless Tactics",
+    "timing": "both"
+  },
+  {
+    "number": "ST06-013",
+    "name": "Fierce Unity",
+    "timing": "action"
+  },
+  {
+    "number": "ST07-013",
+    "name": "Armed Intervention",
+    "timing": "action"
+  },
+  {
+    "number": "ST08-013",
+    "name": "Lady Luck",
+    "timing": "both"
+  },
+  {
+    "number": "ST09-009",
+    "name": "Giant Killing",
+    "timing": "both"
+  },
+  {
+    "number": "ST10-013",
+    "name": "Tactical Training",
+    "timing": "both"
+  },
+  {
+    "number": "ST10-015",
+    "name": "Diffuse Beam Cannon",
+    "timing": "action"
+  }
+]

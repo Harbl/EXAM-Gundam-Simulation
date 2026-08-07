@@ -9,6 +9,11 @@ const { EX_RESOURCE_DEF } = require('./setup');
  * 10-1-6-6: the active player's triggers resolve first, then the standby player's.
  */
 function triggerEvent(state, eventName, context) {
+  // Many single-card unit tests call pairPilot/unpairPilot with a deliberately minimal state stand-in
+  // (e.g. `{ turnNumber: 1 }`) that has no `players` array at all -- harmless there since those tests
+  // only assert on the paired unit's own live-computed getAP/getKeywords, not on a broadcast re-sync.
+  // Real games always build `state` via createGame, so this never skips anything in actual play.
+  if (!Array.isArray(state.players)) return;
   const order = [state.players[state.activePlayerIdx], state.players[1 - state.activePlayerIdx]];
   for (const player of order) {
     const cardsOnField = [...player.battleArea, player.base].filter(Boolean);
@@ -304,6 +309,23 @@ function payAbilityCost(state, player, source, amount) {
   }
 }
 
+/**
+ * Idempotent turn-scoped buff grant for "During Pair"/"During Link"/other continuously-live static
+ * auras that are re-evaluated via a startOfTurn handler (e.g. Gundam ST01-001's "all your Units get
+ * AP+1 while paired"). Those handlers now fire more than once in a real turn -- once from the actual
+ * start phase, and again any time pairPilot/unpairPilot fires mid-turn (see actions.js's pairPilot),
+ * so the source's real pairing status is reflected immediately instead of only from next turn's start
+ * phase. A plain `buffs.push` would double up on the second firing; this instead removes whatever this
+ * exact source previously granted before adding the new grant, so re-invoking within the same turn
+ * replaces rather than stacks. `clearTurnBuffs` below still wipes it (and everything else `scope:
+ * 'turn'`) at the real turn boundary regardless of source. Pass a falsy `buff` to just clear this
+ * source's prior grant without adding a new one (the condition-false case).
+ */
+function grantTurnBuff(unit, sourceId, buff) {
+  unit.buffs = unit.buffs.filter((b) => b.source !== sourceId);
+  if (buff) unit.buffs.push({ ...buff, scope: 'turn', source: sourceId });
+}
+
 /** Clears "during this turn" and "during this battle" buffs (7-6-6-1 / 8-6-1). */
 function clearTurnBuffs(player) {
   for (const instance of player.battleArea) {
@@ -339,5 +361,6 @@ module.exports = {
   clearBattleBuffs,
   setActiveByEffect,
   restEnemyByEffect,
-  payAbilityCost
+  payAbilityCost,
+  grantTurnBuff
 };

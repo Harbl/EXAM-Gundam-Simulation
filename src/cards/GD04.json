@@ -180,7 +180,7 @@
     }
   },
   {
-    "number": "GD04-117",
+    "number": "GD04-117", "actionTiming": "action",
     "name": "Graceful Demeanor",
     "type": "command",
     "color": "white",
@@ -1831,7 +1831,7 @@
     }
   },
   {
-    "number": "GD04-104",
+    "number": "GD04-104", "actionTiming": "action",
     "name": "Shrike Team's Bulwark",
     "type": "command",
     "color": "blue",
@@ -1882,7 +1882,7 @@
     }
   },
   {
-    "number": "GD04-107",
+    "number": "GD04-107", "actionTiming": "action",
     "name": "Destined Battle",
     "type": "command",
     "color": "green",
@@ -1894,7 +1894,7 @@
     }
   },
   {
-    "number": "GD04-108",
+    "number": "GD04-108", "actionTiming": "action",
     "name": "Witches from Earth",
     "type": "command",
     "color": "green",
@@ -1914,7 +1914,7 @@
     }
   },
   {
-    "number": "GD04-110",
+    "number": "GD04-110", "actionTiming": "action",
     "name": "Financier (U+)",
     "type": "command",
     "color": "red",
@@ -1925,7 +1925,7 @@
     }
   },
   {
-    "number": "GD04-111",
+    "number": "GD04-111", "actionTiming": "action",
     "name": "Trinity",
     "type": "command",
     "color": "red",
@@ -1965,7 +1965,7 @@
     }
   },
   {
-    "number": "GD04-113",
+    "number": "GD04-113", "actionTiming": "action",
     "name": "Damage Control",
     "type": "command",
     "color": "purple",
@@ -1977,7 +1977,7 @@
     }
   },
   {
-    "number": "GD04-114",
+    "number": "GD04-114", "actionTiming": "action",
     "name": "Reformationist (U+)",
     "type": "command",
     "color": "purple",
@@ -2022,7 +2022,7 @@
     }
   },
   {
-    "number": "GD04-118",
+    "number": "GD04-118", "actionTiming": "action",
     "name": "World Distortion",
     "type": "command",
     "color": "white",
@@ -2041,7 +2041,7 @@
     }
   },
   {
-    "number": "GD04-119",
+    "number": "GD04-119", "actionTiming": "action",
     "name": "Fighting Alone",
     "type": "command",
     "color": "white",
@@ -2060,7 +2060,7 @@
     }
   },
   {
-    "number": "GD04-120",
+    "number": "GD04-120", "actionTiming": "action",
     "name": "Machine Doll Squad",
     "type": "command",
     "color": "white",

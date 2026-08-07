@@ -1,0 +1,786 @@
+[
+  {
+    "name": "barbatos_real.txt",
+    "density": 0.88
+  },
+  {
+    "name": "deck1.txt",
+    "density": 0.78
+  },
+  {
+    "name": "deck10.txt",
+    "density": 0.8
+  },
+  {
+    "name": "deck100.txt",
+    "density": 0.84
+  },
+  {
+    "name": "deck101.txt",
+    "density": 0.76
+  },
+  {
+    "name": "deck102.txt",
+    "density": 0.96
+  },
+  {
+    "name": "deck103.txt",
+    "density": 0.78
+  },
+  {
+    "name": "deck104.txt",
+    "density": 0.76
+  },
+  {
+    "name": "deck105.txt",
+    "density": 0.86
+  },
+  {
+    "name": "deck106.txt",
+    "density": 0.92
+  },
+  {
+    "name": "deck107.txt",
+    "density": 0.92
+  },
+  {
+    "name": "deck108.txt",
+    "density": 0.84
+  },
+  {
+    "name": "deck109.txt",
+    "density": 0.8
+  },
+  {
+    "name": "deck11.txt",
+    "density": 0.84
+  },
+  {
+    "name": "deck110.txt",
+    "density": 0.76
+  },
+  {
+    "name": "deck111.txt",
+    "density": 0.78
+  },
+  {
+    "name": "deck112.txt",
+    "density": 0.72
+  },
+  {
+    "name": "deck113.txt",
+    "density": 0.76
+  },
+  {
+    "name": "deck114.txt",
+    "density": 0.8
+  },
+  {
+    "name": "deck115.txt",
+    "density": 0.92
+  },
+  {
+    "name": "deck116.txt",
+    "density": 0.66
+  },
+  {
+    "name": "deck117.txt",
+    "density": 0.8
+  },
+  {
+    "name": "deck118.txt",
+    "density": 0.82
+  },
+  {
+    "name": "deck119.txt",
+    "density": 0.7
+  },
+  {
+    "name": "deck12.txt",
+    "density": 1
+  },
+  {
+    "name": "deck120.txt",
+    "density": 0.62
+  },
+  {
+    "name": "deck121.txt",
+    "density": 0.76
+  },
+  {
+    "name": "deck122.txt",
+    "density": 0.76
+  },
+  {
+    "name": "deck123.txt",
+    "density": 0.8
+  },
+  {
+    "name": "deck124.txt",
+    "density": 0.92
+  },
+  {
+    "name": "deck125.txt",
+    "density": 0.84
+  },
+  {
+    "name": "deck126.txt",
+    "density": 0.84
+  },
+  {
+    "name": "deck127.txt",
+    "density": 0.68
+  },
+  {
+    "name": "deck128.txt",
+    "density": 0.82
+  },
+  {
+    "name": "deck129.txt",
+    "density": 0.84
+  },
+  {
+    "name": "deck13.txt",
+    "density": 0.78
+  },
+  {
+    "name": "deck130.txt",
+    "density": 0.82
+  },
+  {
+    "name": "deck131.txt",
+    "density": 0.74
+  },
+  {
+    "name": "deck132.txt",
+    "density": 0.72
+  },
+  {
+    "name": "deck133.txt",
+    "density": 0.84
+  },
+  {
+    "name": "deck134.txt",
+    "density": 0.84
+  },
+  {
+    "name": "deck135.txt",
+    "density": 0.86
+  },
+  {
+    "name": "deck136.txt",
+    "density": 0.82
+  },
+  {
+    "name": "deck137.txt",
+    "density": 0.8
+  },
+  {
+    "name": "deck138.txt",
+    "density": 0.82
+  },
+  {
+    "name": "deck139.txt",
+    "density": 0.68
+  },
+  {
+    "name": "deck14.txt",
+    "density": 0.7
+  },
+  {
+    "name": "deck140.txt",
+    "density": 0.82
+  },
+  {
+    "name": "deck141.txt",
+    "density": 0.64
+  },
+  {
+    "name": "deck142.txt",
+    "density": 0.78
+  },
+  {
+    "name": "deck143.txt",
+    "density": 0.86
+  },
+  {
+    "name": "deck144.txt",
+    "density": 0.84
+  },
+  {
+    "name": "deck145.txt",
+    "density": 0.74
+  },
+  {
+    "name": "deck146.txt",
+    "density": 0.76
+  },
+  {
+    "name": "deck147.txt",
+    "density": 0.74
+  },
+  {
+    "name": "deck148.txt",
+    "density": 0.88
+  },
+  {
+    "name": "deck149.txt",
+    "density": 0.84
+  },
+  {
+    "name": "deck15.txt",
+    "density": 0.94
+  },
+  {
+    "name": "deck150.txt",
+    "density": 0.72
+  },
+  {
+    "name": "deck151.txt",
+    "density": 0.64
+  },
+  {
+    "name": "deck152.txt",
+    "density": 0.84
+  },
+  {
+    "name": "deck153.txt",
+    "density": 0.68
+  },
+  {
+    "name": "deck154.txt",
+    "density": 0.86
+  },
+  {
+    "name": "deck155.txt",
+    "density": 0.84
+  },
+  {
+    "name": "deck156.txt",
+    "density": 0.92
+  },
+  {
+    "name": "deck157.txt",
+    "density": 0.76
+  },
+  {
+    "name": "deck158.txt",
+    "density": 0.8
+  },
+  {
+    "name": "deck159.txt",
+    "density": 0.8
+  },
+  {
+    "name": "deck16.txt",
+    "density": 0.84
+  },
+  {
+    "name": "deck160.txt",
+    "density": 0.76
+  },
+  {
+    "name": "deck161.txt",
+    "density": 0.84
+  },
+  {
+    "name": "deck162.txt",
+    "density": 0.84
+  },
+  {
+    "name": "deck163.txt",
+    "density": 0.84
+  },
+  {
+    "name": "deck164.txt",
+    "density": 0.8
+  },
+  {
+    "name": "deck165.txt",
+    "density": 0.88
+  },
+  {
+    "name": "deck166.txt",
+    "density": 0.7
+  },
+  {
+    "name": "deck167.txt",
+    "density": 0.8
+  },
+  {
+    "name": "deck168.txt",
+    "density": 0.92
+  },
+  {
+    "name": "deck169.txt",
+    "density": 0.84
+  },
+  {
+    "name": "deck17.txt",
+    "density": 0.84
+  },
+  {
+    "name": "deck170.txt",
+    "density": 0.86
+  },
+  {
+    "name": "deck171.txt",
+    "density": 0.68
+  },
+  {
+    "name": "deck172.txt",
+    "density": 0.96
+  },
+  {
+    "name": "deck173.txt",
+    "density": 0.92
+  },
+  {
+    "name": "deck174.txt",
+    "density": 0.84
+  },
+  {
+    "name": "deck175.txt",
+    "density": 0.84
+  },
+  {
+    "name": "deck176.txt",
+    "density": 0.84
+  },
+  {
+    "name": "deck177.txt",
+    "density": 0.84
+  },
+  {
+    "name": "deck178.txt",
+    "density": 0.82
+  },
+  {
+    "name": "deck179.txt",
+    "density": 0.76
+  },
+  {
+    "name": "deck18.txt",
+    "density": 0.78
+  },
+  {
+    "name": "deck180.txt",
+    "density": 0.92
+  },
+  {
+    "name": "deck181.txt",
+    "density": 0.82
+  },
+  {
+    "name": "deck182.txt",
+    "density": 0.92
+  },
+  {
+    "name": "deck19.txt",
+    "density": 0.84
+  },
+  {
+    "name": "deck2.txt",
+    "density": 0.76
+  },
+  {
+    "name": "deck20.txt",
+    "density": 0.82
+  },
+  {
+    "name": "deck21.txt",
+    "density": 0.68
+  },
+  {
+    "name": "deck22.txt",
+    "density": 0.74
+  },
+  {
+    "name": "deck23.txt",
+    "density": 0.68
+  },
+  {
+    "name": "deck24.txt",
+    "density": 0.92
+  },
+  {
+    "name": "deck25.txt",
+    "density": 0.84
+  },
+  {
+    "name": "deck26.txt",
+    "density": 0.84
+  },
+  {
+    "name": "deck27.txt",
+    "density": 0.84
+  },
+  {
+    "name": "deck28.txt",
+    "density": 0.84
+  },
+  {
+    "name": "deck29.txt",
+    "density": 0.76
+  },
+  {
+    "name": "deck3.txt",
+    "density": 0.92
+  },
+  {
+    "name": "deck30.txt",
+    "density": 0.92
+  },
+  {
+    "name": "deck31.txt",
+    "density": 0.84
+  },
+  {
+    "name": "deck32.txt",
+    "density": 0.92
+  },
+  {
+    "name": "deck33.txt",
+    "density": 0.88
+  },
+  {
+    "name": "deck34.txt",
+    "density": 0.96
+  },
+  {
+    "name": "deck35.txt",
+    "density": 0.86
+  },
+  {
+    "name": "deck36.txt",
+    "density": 0.92
+  },
+  {
+    "name": "deck37.txt",
+    "density": 0.78
+  },
+  {
+    "name": "deck38.txt",
+    "density": 0.82
+  },
+  {
+    "name": "deck39.txt",
+    "density": 0.8
+  },
+  {
+    "name": "deck4.txt",
+    "density": 0.84
+  },
+  {
+    "name": "deck40.txt",
+    "density": 0.84
+  },
+  {
+    "name": "deck41.txt",
+    "density": 0.84
+  },
+  {
+    "name": "deck42.txt",
+    "density": 0.92
+  },
+  {
+    "name": "deck43.txt",
+    "density": 0.84
+  },
+  {
+    "name": "deck44.txt",
+    "density": 1
+  },
+  {
+    "name": "deck45.txt",
+    "density": 0.8
+  },
+  {
+    "name": "deck46.txt",
+    "density": 0.88
+  },
+  {
+    "name": "deck47.txt",
+    "density": 0.84
+  },
+  {
+    "name": "deck48.txt",
+    "density": 1
+  },
+  {
+    "name": "deck49.txt",
+    "density": 0.92
+  },
+  {
+    "name": "deck5.txt",
+    "density": 0.88
+  },
+  {
+    "name": "deck50.txt",
+    "density": 0.76
+  },
+  {
+    "name": "deck51.txt",
+    "density": 0.88
+  },
+  {
+    "name": "deck52.txt",
+    "density": 0.88
+  },
+  {
+    "name": "deck53.txt",
+    "density": 0.84
+  },
+  {
+    "name": "deck54.txt",
+    "density": 0.86
+  },
+  {
+    "name": "deck55.txt",
+    "density": 0.88
+  },
+  {
+    "name": "deck56.txt",
+    "density": 0.76
+  },
+  {
+    "name": "deck57.txt",
+    "density": 0.84
+  },
+  {
+    "name": "deck58.txt",
+    "density": 0.86
+  },
+  {
+    "name": "deck59.txt",
+    "density": 0.92
+  },
+  {
+    "name": "deck60.txt",
+    "density": 0.92
+  },
+  {
+    "name": "deck61.txt",
+    "density": 1
+  },
+  {
+    "name": "deck62.txt",
+    "density": 0.92
+  },
+  {
+    "name": "deck63.txt",
+    "density": 0.86
+  },
+  {
+    "name": "deck64.txt",
+    "density": 0.76
+  },
+  {
+    "name": "deck65.txt",
+    "density": 0.62
+  },
+  {
+    "name": "deck66.txt",
+    "density": 0.84
+  },
+  {
+    "name": "deck67.txt",
+    "density": 0.84
+  },
+  {
+    "name": "deck68.txt",
+    "density": 0.68
+  },
+  {
+    "name": "deck69.txt",
+    "density": 0.76
+  },
+  {
+    "name": "deck7.txt",
+    "density": 0.8
+  },
+  {
+    "name": "deck70.txt",
+    "density": 0.86
+  },
+  {
+    "name": "deck71.txt",
+    "density": 0.78
+  },
+  {
+    "name": "deck72.txt",
+    "density": 0.74
+  },
+  {
+    "name": "deck73.txt",
+    "density": 0.76
+  },
+  {
+    "name": "deck74.txt",
+    "density": 0.82
+  },
+  {
+    "name": "deck75.txt",
+    "density": 0.92
+  },
+  {
+    "name": "deck76.txt",
+    "density": 0.92
+  },
+  {
+    "name": "deck77.txt",
+    "density": 0.68
+  },
+  {
+    "name": "deck78.txt",
+    "density": 0.8
+  },
+  {
+    "name": "deck79.txt",
+    "density": 0.8
+  },
+  {
+    "name": "deck8.txt",
+    "density": 0.92
+  },
+  {
+    "name": "deck80.txt",
+    "density": 0.76
+  },
+  {
+    "name": "deck81.txt",
+    "density": 0.84
+  },
+  {
+    "name": "deck82.txt",
+    "density": 0.8
+  },
+  {
+    "name": "deck83.txt",
+    "density": 0.92
+  },
+  {
+    "name": "deck84.txt",
+    "density": 0.84
+  },
+  {
+    "name": "deck85.txt",
+    "density": 0.84
+  },
+  {
+    "name": "deck86.txt",
+    "density": 0.68
+  },
+  {
+    "name": "deck87.txt",
+    "density": 0.74
+  },
+  {
+    "name": "deck88.txt",
+    "density": 0.6
+  },
+  {
+    "name": "deck89.txt",
+    "density": 0.76
+  },
+  {
+    "name": "deck9.txt",
+    "density": 0.92
+  },
+  {
+    "name": "deck90.txt",
+    "density": 0.72
+  },
+  {
+    "name": "deck91.txt",
+    "density": 0.84
+  },
+  {
+    "name": "deck92.txt",
+    "density": 0.88
+  },
+  {
+    "name": "deck93.txt",
+    "density": 0.86
+  },
+  {
+    "name": "deck94.txt",
+    "density": 0.8
+  },
+  {
+    "name": "deck95.txt",
+    "density": 0.7
+  },
+  {
+    "name": "deck96.txt",
+    "density": 0.8
+  },
+  {
+    "name": "deck97.txt",
+    "density": 0.8
+  },
+  {
+    "name": "deck98.txt",
+    "density": 0.88
+  },
+  {
+    "name": "deck99.txt",
+    "density": 0.92
+  },
+  {
+    "name": "nu_gundam_real.txt",
+    "density": 0.78
+  },
+  {
+    "name": "rand1.txt",
+    "density": 0.72
+  },
+  {
+    "name": "rand10.txt",
+    "density": 0.78
+  },
+  {
+    "name": "rand2.txt",
+    "density": 0.66
+  },
+  {
+    "name": "rand3.txt",
+    "density": 0.94
+  },
+  {
+    "name": "rand4.txt",
+    "density": 0.82
+  },
+  {
+    "name": "rand5.txt",
+    "density": 0.6
+  },
+  {
+    "name": "rand6.txt",
+    "density": 0.56
+  },
+  {
+    "name": "rand7.txt",
+    "density": 0.82
+  },
+  {
+    "name": "rand8.txt",
+    "density": 0.74
+  },
+  {
+    "name": "rand9.txt",
+    "density": 0.8
+  },
+  {
+    "name": "shining_master_real.txt",
+    "density": 0.92
+  },
+  {
+    "name": "strikefreedom_banshee_real.txt",
+    "density": 0.8
+  },
+  {
+    "name": "strikefreedom_barbatos_real.txt",
+    "density": 0.74
+  }
+]

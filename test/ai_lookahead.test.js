@@ -5,7 +5,7 @@ const { createInstance, createPlayer, createGame } = require('../src/rules/state
 const { deployUnit } = require('../src/rules/actions');
 const { dealDamage } = require('../src/rules/management');
 const { cloneState } = require('../src/rules/clone');
-const { scoreState, trashSynergyValue } = require('../src/ai/score');
+const { scoreState, trashSynergyValue, damagedSynergyValue, reactiveReserveValue, DEFAULT_WEIGHTS } = require('../src/ai/score');
 const {
   runMainPhase,
   runMainPhaseSimple,
@@ -155,6 +155,97 @@ test('trashSynergyValue does not double-count across multiple copies of the same
 
   assert.equal(trashSynergyValue(player), trashSynergyValue(playerOneCopy), 'a second copy of the same synergy card must not inflate the value further');
   assert.equal(trashSynergyValue(player), 1 / 3);
+});
+
+test('scoreState gives real credit for a damaged benefitsFromSelfDamage unit, not just a penalty for its lost HP', () => {
+  const player = createPlayer(0);
+  const state = createGame(player, createPlayer(1));
+  const barbatos = createInstance({ number: 'BAR', type: 'unit', ap: 3, hp: 2, benefitsFromSelfDamage: true }, 0);
+  player.battleArea.push(barbatos);
+
+  const undamaged = scoreState(state, 0);
+  dealDamage(barbatos, 1);
+  const damaged = scoreState(state, 0);
+
+  // 1 HP lost costs 1 point (boardStats weight 1); the damagedSynergy credit (weight 3) more than
+  // offsets it -- confirms this isn't just "a smaller penalty," the state is scored as genuinely better.
+  assert.equal(damaged - undamaged, DEFAULT_WEIGHTS.damagedSynergy - DEFAULT_WEIGHTS.boardStats);
+  assert.ok(damaged > undamaged, 'a damaged benefitsFromSelfDamage unit should score higher than the same unit undamaged, not lower');
+});
+
+test('damagedSynergyValue only counts benefitsFromSelfDamage units that are currently damaged, and ignores hand/undamaged copies', () => {
+  const player = createPlayer(0);
+  const undamagedOnBoard = createInstance({ number: 'BAR1', type: 'unit', ap: 3, hp: 2, benefitsFromSelfDamage: true }, 0);
+  const damagedOnBoard = createInstance({ number: 'BAR2', type: 'unit', ap: 3, hp: 2, benefitsFromSelfDamage: true }, 0);
+  const damagedButUnflagged = createInstance({ number: 'PLAIN', type: 'unit', ap: 3, hp: 2 }, 0);
+  player.battleArea.push(undamagedOnBoard, damagedOnBoard, damagedButUnflagged);
+  dealDamage(damagedOnBoard, 1);
+  dealDamage(damagedButUnflagged, 1);
+  const inHand = createInstance({ number: 'BAR3', type: 'unit', ap: 3, hp: 2, benefitsFromSelfDamage: true }, 0);
+  player.hand.push(inHand);
+
+  assert.equal(damagedSynergyValue(player), 1);
+});
+
+test('reactiveReserveValue is 0 with no [Action]-timing Command in hand to hold Resources open for', () => {
+  const player = createPlayer(0);
+  for (let i = 0; i < 4; i++) player.resourceArea.push(createInstance({ number: 'R' + i, type: 'resource' }, 0));
+  player.hand.push(createInstance({ number: 'MAIN', type: 'command', level: 1, cost: 1 }, 0)); // no actionTiming -- Main-phase only
+
+  assert.equal(reactiveReserveValue(player), 0);
+});
+
+test("reactiveReserveValue credits min(active Resources, held card cost) once a real [Action]-timing Command is in hand", () => {
+  const player = createPlayer(0);
+  for (let i = 0; i < 4; i++) player.resourceArea.push(createInstance({ number: 'R' + i, type: 'resource' }, 0));
+  player.hand.push(createInstance({ number: 'ACT', type: 'command', actionTiming: 'action', level: 3, cost: 2 }, 0));
+
+  assert.equal(reactiveReserveValue(player), 2, "all 4 Resources are active, but credit is capped at the held card's own cost");
+});
+
+test("reactiveReserveValue is capped by active Resources, not just the held card's cost, once some are already spent", () => {
+  const player = createPlayer(0);
+  for (let i = 0; i < 3; i++) player.resourceArea.push(createInstance({ number: 'R' + i, type: 'resource' }, 0));
+  const rested = createInstance({ number: 'R3', type: 'resource' }, 0);
+  rested.rested = true;
+  player.resourceArea.push(rested); // 4 total (Level satisfied), only 3 active
+  player.hand.push(createInstance({ number: 'ACT', type: 'command', actionTiming: 'action', level: 4, cost: 2 }, 0));
+  player.resourceArea.forEach((r, i) => { if (i < 2) r.rested = true; }); // tap 2 of the 3 active, only 1 left
+
+  assert.equal(reactiveReserveValue(player), 1, 'only 1 Resource is actually still payable, even though the held card costs 2 and Level is met');
+});
+
+test("reactiveReserveValue ignores an [Action]-timing Command whose Level isn't met yet", () => {
+  const player = createPlayer(0);
+  for (let i = 0; i < 2; i++) player.resourceArea.push(createInstance({ number: 'R' + i, type: 'resource' }, 0));
+  player.hand.push(createInstance({ number: 'ACT', type: 'command', actionTiming: 'action', level: 5, cost: 1 }, 0));
+
+  assert.equal(reactiveReserveValue(player), 0);
+});
+
+test('reactiveReserveValue also counts an actionTiming "both" Command, not just "action"', () => {
+  const player = createPlayer(0);
+  for (let i = 0; i < 3; i++) player.resourceArea.push(createInstance({ number: 'R' + i, type: 'resource' }, 0));
+  player.hand.push(createInstance({ number: 'BOTH', type: 'command', actionTiming: 'both', level: 1, cost: 1 }, 0));
+
+  assert.equal(reactiveReserveValue(player), 1);
+});
+
+test('scoreState credits a player holding Resources open for a real [Action] Command via the reactiveReserve weight, when a nonzero weight is set', () => {
+  // DEFAULT_WEIGHTS.reactiveReserve is 0 (see score.js's header comment -- tested negative via SPRT,
+  // n=2543, self-play win rate didn't move). This test confirms the wiring itself still works via an
+  // explicit aiWeights override, independent of what the shipped default happens to be.
+  const player = createPlayer(0);
+  player.aiWeights = { ...DEFAULT_WEIGHTS, reactiveReserve: 4 };
+  const state = createGame(player, createPlayer(1));
+  for (let i = 0; i < 3; i++) player.resourceArea.push(createInstance({ number: 'R' + i, type: 'resource' }, 0));
+  player.hand.push(createInstance({ number: 'ACT', type: 'command', actionTiming: 'action', level: 1, cost: 2 }, 0));
+
+  const withReserve = scoreState(state, 0);
+  player.resourceArea.forEach((r) => { r.rested = true; }); // spend everything -- no active Resources left
+  const tappedOut = scoreState(state, 0);
+
+  assert.equal(withReserve - tappedOut, 4 * 2, 'losing the 2-cost reserve costs exactly reactiveReserve x 2');
 });
 
 test('runDeploysLookahead prefers two mid-cost Units over one big Unit when it adds up to more total board value', () => {

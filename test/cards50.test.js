@@ -161,7 +161,7 @@ test('Overcoming Hardships GD05-108: redirects battle damage from the given targ
   const academyAlly = deployUnit(state, player, { number: 'U2', type: 'unit', ap: 1, hp: 5, traits: ['Academy'] });
   academyAlly.rested = true;
 
-  registry.overcomingHardshipsCommand(state, player, null, { target: underAttack });
+  registry.overcomingHardshipsCommand(state, player, null, { underAttack });
   const redirect = underAttack.buffs.find((b) => b.redirectDamageTarget);
   assert.equal(redirect && redirect.redirectDamageTarget, academyAlly, 'battle damage redirected to the rested academy ally (read by combat.js getBattleDamageRecipient)');
 });
@@ -236,14 +236,38 @@ test('Incendiary Spark GD05-118: AP-2 always; also rests the enemy Unit only if 
   assert.equal(enemy.rested, true);
 });
 
-test('A Wind Against Fires (R+) GD05-119: AP-3 during the battle to the given enemy target', () => {
+test('A Wind Against Fires (R+) GD05-119: AP-3 to the attacking enemy Unit, once the friendly Unit it\'s battling is confirmed Lv.5+', () => {
   const player = createPlayer(0);
   const opponent = createPlayer(1);
   const state = createGame(player, opponent);
   const enemy = deployUnit(state, opponent, { number: 'E1', type: 'unit', ap: 5, hp: 5 });
+  const friendlyUnderAttack = deployUnit(state, player, { number: 'F1', type: 'unit', level: 5, ap: 3, hp: 6 });
 
-  registry.aWindAgainstFiresRPlusCommand(state, player, null, { target: enemy });
+  registry.aWindAgainstFiresRPlusCommand(state, player, null, { attackingUnit: enemy, underAttack: friendlyUnderAttack });
   assert.equal(getAP(enemy), 2);
+});
+
+test("A Wind Against Fires (R+) GD05-119 does nothing if the friendly Unit being battled is under Lv.5 (its own printed condition)", () => {
+  const player = createPlayer(0);
+  const opponent = createPlayer(1);
+  const state = createGame(player, opponent);
+  const enemy = deployUnit(state, opponent, { number: 'E1', type: 'unit', ap: 5, hp: 5 });
+  const friendlyUnderAttack = deployUnit(state, player, { number: 'F1', type: 'unit', level: 4, ap: 3, hp: 6 });
+
+  registry.aWindAgainstFiresRPlusCommand(state, player, null, { attackingUnit: enemy, underAttack: friendlyUnderAttack });
+  assert.equal(getAP(enemy), 5, 'the friendly Unit under attack is Lv.4, below the printed Lv.5 threshold -- no debuff applied');
+});
+
+test('A Wind Against Fires (R+) GD05-119 does nothing if the friendly side under attack is a Base, not a Unit', () => {
+  const player = createPlayer(0);
+  const opponent = createPlayer(1);
+  const state = createGame(player, opponent);
+  const enemy = deployUnit(state, opponent, { number: 'E1', type: 'unit', ap: 5, hp: 5 });
+  const base = createInstance({ number: 'B1', type: 'base', ap: 0, hp: 5 }, 0);
+  player.base = base;
+
+  registry.aWindAgainstFiresRPlusCommand(state, player, null, { attackingUnit: enemy, underAttack: base });
+  assert.equal(getAP(enemy), 5, "\"one of your Units\" excludes a Base -- no debuff applied");
 });
 
 test('Archangel GD05-123: friendly (Orb) Units are immune to 2-or-less enemy effect damage during the opponent\'s turn', () => {

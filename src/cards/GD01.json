@@ -183,7 +183,7 @@
     "effectRefs": { "deploy": "wingGundamZeroGD01024Deploy" }
   },
   {
-    "number": "GD01-120",
+    "number": "GD01-120", "actionTiming": "action",
     "name": "Naval Bombardment",
     "type": "command",
     "color": "white",
@@ -1308,7 +1308,7 @@
     "effectRefs": { "burst": "elanCeresBurst", "activateAction": "elanCeresActivateAction" }
   },
   {
-    "number": "GD01-099",
+    "number": "GD01-099", "actionTiming": "both",
     "name": "Intercept Orders",
     "type": "command",
     "color": "blue",
@@ -1317,7 +1317,7 @@
     "effectRefs": { "burst": "interceptOrdersBurst", "command": "interceptOrdersCommand" }
   },
   {
-    "number": "GD01-101",
+    "number": "GD01-101", "actionTiming": "both",
     "name": "Deep Devotion",
     "type": "command",
     "color": "blue",
@@ -1401,7 +1401,7 @@
     "effectRefs": { "command": "thePathToVictoryOrDefeatCommand" }
   },
   {
-    "number": "GD01-110",
+    "number": "GD01-110", "actionTiming": "both",
     "name": "Rasid's Orders",
     "type": "command",
     "color": "green",
@@ -1421,7 +1421,7 @@
     "effectRefs": { "command": "extremeHatredCommand" }
   },
   {
-    "number": "GD01-113",
+    "number": "GD01-113", "actionTiming": "both",
     "name": "The Desert Tiger",
     "type": "command",
     "color": "red",
@@ -1431,7 +1431,7 @@
     "effectRefs": { "command": "theDesertTigerCommand" }
   },
   {
-    "number": "GD01-114",
+    "number": "GD01-114", "actionTiming": "action",
     "name": "Assault on Torrington Base",
     "type": "command",
     "color": "red",
@@ -1441,7 +1441,7 @@
     "effectRefs": { "command": "assaultOnTorringtonBaseCommand" }
   },
   {
-    "number": "GD01-115",
+    "number": "GD01-115", "actionTiming": "both",
     "name": "Zeon Remnant Forces",
     "type": "command",
     "color": "red",
@@ -1450,7 +1450,7 @@
     "effectRefs": { "command": "zeonRemnantForcesCommand" }
   },
   {
-    "number": "GD01-116",
+    "number": "GD01-116", "actionTiming": "both",
     "name": "Stealth Stratagem",
     "type": "command",
     "color": "red",
@@ -1460,7 +1460,7 @@
     "effectRefs": { "command": "stealthStratagemCommand" }
   },
   {
-    "number": "GD01-117",
+    "number": "GD01-117", "actionTiming": "both",
     "name": "The Witch and the Bride",
     "type": "command",
     "color": "white",
@@ -1469,7 +1469,7 @@
     "effectRefs": { "burst": "theWitchAndTheBrideBurst", "command": "theWitchAndTheBrideCommand" }
   },
   {
-    "number": "GD01-119",
+    "number": "GD01-119", "actionTiming": "both",
     "name": "Iron-Fisted Discipline",
     "type": "command",
     "color": "white",

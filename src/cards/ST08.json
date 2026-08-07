@@ -65,7 +65,7 @@
     "effectRefs": { "command": "wordsForHathawayCommand" }
   },
   {
-    "number": "ST08-013", "name": "Lady Luck", "type": "command", "color": "red",
+    "number": "ST08-013", "actionTiming": "both", "name": "Lady Luck", "type": "command", "color": "red",
     "level": 5, "cost": 1,
     "effectRefs": { "command": "ladyLuckCommand" }
   },

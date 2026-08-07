@@ -1,4 +1,4 @@
-const { getAP, getRemainingHP, getKeywords, trashSynergyValue } = require('../rules/management');
+const { getAP, getRemainingHP, getKeywords, trashSynergyValue, reactiveReserveValue } = require('../rules/management');
 const { collectActivateCandidates } = require('./activations');
 const { LIMITS } = require('../rules/constants');
 
@@ -10,6 +10,7 @@ const BOARD_STAT_CAP = 30; // per side, for summed AP or summed remaining HP acr
 const ACTIVATION_POTENTIAL_CAP = 5;
 const BLOCKER_CAP = 3; // generous ceiling on simultaneous untapped Blocker-keyword units
 const TURN_CAP = 30;
+const REACTIVE_RESERVE_CAP = 6; // reactiveReserveValue is capped by a held card's own cost, and real Command costs top out around here
 
 /**
  * Converts a game state into a fixed-length array of normalized numbers for valueNet.js, symmetric
@@ -29,6 +30,23 @@ const TURN_CAP = 30;
  * positions. activeUnitCount/activeBoardAP/blockerCount (untapped only) and the two threatRatio
  * features below (this side's active board AP against the *other* side's remaining life) all target
  * that gap specifically, rather than just scaling up the existing aggregate-stat shape.
+ *
+ * vulnerableUnitCount (added 2026-08-05, appended at the end -- see FEATURE_COUNT's comment on why the
+ * position matters): `trashSynergyValue` already credits progress toward a trash-gated payoff like Nu
+ * Gundam GD05-017's [When Paired] safe-kill snipe, but only as a generic "some payoff is getting
+ * closer" scalar -- it has no idea whether a specific unit on the board is actually the free kill that
+ * payoff would take. This counts units in a genuinely unsafe spot right now: the same
+ * remaining-HP-vs-attacker-AP / own-AP-vs-attacker-remaining-HP shape `chooseBlocker`'s own badTrade
+ * check already uses (src/ai/heuristic.js), just aggregated across the whole board instead of one
+ * declared attack. Not Nu-Gundam-specific by construction -- it's "how exposed is this board to a free
+ * kill, period," which is the actual thing worth knowing regardless of which specific card would cash
+ * it in.
+ *
+ * reactiveReserve (added 2026-08-07, appended at the end for the same old-net-compatibility reason as
+ * vulnerableUnitCount above): `normalResources` below counts total Resources, active or rested,
+ * identically -- no signal anywhere for whether a player tapped out or is holding Resources open for a
+ * real `[Action]`-timing Command in hand. See management.js's reactiveReserveValue for the full
+ * reasoning (deploy-timing/board-flooding investigation).
  */
 function extractFeatures(state, playerIdx) {
   const self = state.players[playerIdx];
@@ -45,7 +63,28 @@ function extractFeatures(state, playerIdx) {
   f.push(clamp01(selfRaw.activeBoardAP / enemyRaw.remainingLife));
   f.push(clamp01(enemyRaw.activeBoardAP / selfRaw.remainingLife));
 
+  // Appended last, not interspersed -- keeps every existing net's first 29 inputs byte-identical to
+  // before (forward()'s loop bound is the net's own stored inputSize, not this file's live
+  // FEATURE_COUNT, so an old net just ignores these two tail entries until it's retrained; see
+  // valueNet.js's forwardWithCache). A currently-shipped net's predictions are unaffected by this
+  // change on their own -- it only starts mattering once a net is trained with the wider vector.
+  f.push(clamp01(vulnerableUnitCount(self, enemy) / LIMITS.MAX_BATTLE_AREA));
+  f.push(clamp01(vulnerableUnitCount(enemy, self) / LIMITS.MAX_BATTLE_AREA));
+
+  f.push(clamp01(reactiveReserveValue(self) / REACTIVE_RESERVE_CAP));
+  f.push(clamp01(reactiveReserveValue(enemy) / REACTIVE_RESERVE_CAP));
+
   return f;
+}
+
+/** Counts `defender`'s battleArea units that at least one of `attacker`'s units could kill in a
+ * straight fight without dying back -- same two-sided check chooseBlocker's badTrade gate already
+ * uses, just asking "does ANY enemy unit threaten this" per friendly unit instead of one declared
+ * attacker. */
+function vulnerableUnitCount(defender, attacker) {
+  return defender.battleArea.filter((u) =>
+    attacker.battleArea.some((e) => getAP(e) >= getRemainingHP(u) && getAP(u) < getRemainingHP(e))
+  ).length;
 }
 
 function pushSide(f, player, state, playerIdxForActivations) {
@@ -86,6 +125,6 @@ function clamp01(x) {
   return x < 0 ? 0 : x > 1 ? 1 : x;
 }
 
-const FEATURE_COUNT = 29; // 13 per side x 2 + turnNumber + 2 threatRatio
+const FEATURE_COUNT = 33; // 13 per side x 2 + turnNumber + 2 threatRatio + 2 vulnerableUnitCount + 2 reactiveReserve
 
 module.exports = { extractFeatures, FEATURE_COUNT };

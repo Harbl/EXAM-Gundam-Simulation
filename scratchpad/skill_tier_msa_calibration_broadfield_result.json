@@ -1,0 +1,36 @@
+[
+  {
+    "tier": "tight",
+    "mad": 11.925257731958764,
+    "rows": [
+      {
+        "slug": "shining-and-master-gundam",
+        "real": 49,
+        "sim": 30.240549828178693,
+        "deviation": -18.759450171821307,
+        "total": 1164
+      },
+      {
+        "slug": "strike-freedom-and-maridas-banshee",
+        "real": 49,
+        "sim": 31.872852233676973,
+        "deviation": -17.127147766323027,
+        "total": 1164
+      },
+      {
+        "slug": "strike-freedom-and-barbatos-lupus",
+        "real": 56,
+        "sim": 54.55326460481099,
+        "deviation": -1.446735395189009,
+        "total": 1164
+      },
+      {
+        "slug": "barbatos-rush-char-aznable",
+        "real": 62,
+        "sim": 51.63230240549829,
+        "deviation": -10.367697594501713,
+        "total": 1164
+      }
+    ]
+  }
+]

@@ -1,4 +1,5 @@
 const { LIMITS } = require('./constants');
+const { effectiveCost } = require('./cost');
 
 /**
  * "Pilot Command" cards (e.g. Deep Devotion GD01-101, "[Pilot][Lucrezia Noin]") are Command cards
@@ -341,6 +342,59 @@ function trashSynergyValue(player) {
   return value;
 }
 
+/**
+ * Count of `player.battleArea` units that are both flagged `benefitsFromSelfDamage` (already used
+ * elsewhere -- e.g. Gundam Barbatos Adapt's optional friendly-damage targeting in effects/registry.js
+ * -- to seek these units out as a damage target) and currently damaged. Unlike trashSynergyValue's
+ * threshold-fraction shape, this is a direct boolean condition on the unit's own live state, not
+ * "progress toward a trash-count threshold" -- so it's simpler, and deliberately scoped to
+ * battleArea only (not hand, unlike trashSynergy): a card not yet deployed can't be "currently
+ * damaged," so counting it there wouldn't mean anything.
+ *
+ * Exists because boardValue's `boardStats = AP + remainingHP` (ai/score.js) and valueFeatures.js's
+ * analogous boardHP/baseHP scalars score any damage taken as pure loss, with zero credit for cards
+ * whose kit is explicitly built around being damaged (e.g. Gundam Barbatos 1st Form GD02-054 draws a
+ * card on Attack while damaged; Gundam Barbatos 4th Form ST05-001 gains <Suppression> while damaged,
+ * invisible to both AP and HP) -- the same "a card's real payoff invisible to a stat-tally eval" shape
+ * as the trashSynergy gap already fixed for Nu Gundam's side of the Barbatos-Rush-vs-Nu-Gundam
+ * benchmark investigation (see score.js's trashSynergy doc comment).
+ */
+function damagedSynergyValue(player) {
+  return player.battleArea.filter((u) => u.def.benefitsFromSelfDamage && u.damage > 0).length;
+}
+
+/**
+ * How much a player benefits from Resources it's currently keeping active (untapped), rather than
+ * spent. Deliberately NOT a flat "reward any unspent Resource" -- that would just make the AI
+ * generically passive, holding back for no reason. It only pays off when there's a real card to hold
+ * up for: the cheapest `[Action]`-timing Command in hand whose Level is already met (2-9-1: Level only
+ * cares about total Resource count, active or rested -- so this check ignores tapped state, same as
+ * canAfford's own level gate). Value is `min(active Resources, that Command's cost)` -- credit for
+ * keeping *at least enough* open to actually cast the held answer, capped there, no reward for
+ * hoarding beyond what it needs.
+ *
+ * Exists because `phases.js`'s runStartPhase only untaps a player's own Resources at the start of
+ * their own turn -- there's no universal untap -- so a player who spends every active Resource during
+ * their Main Phase has zero payable Resources for their opponent's entire following turn, unable to
+ * pay for any reactive `[Action]`-timing Command or `[Activate·Action]` ability no matter how good the
+ * card in hand is. Neither `score.js`'s boardValue nor `valueFeatures.js`'s trained-net input had any
+ * signal for this before -- both counted `resourceArea.length` (total, active+rested) identically,
+ * the exact same "a card's real payoff invisible to a stat-tally eval" shape as trashSynergyValue/
+ * damagedSynergyValue above, just on the resource-reservation side instead of a specific card's kit.
+ */
+function reactiveReserveValue(player) {
+  const qualifying = player.hand.filter(
+    (c) =>
+      c.def.type === 'command' &&
+      (c.def.actionTiming === 'action' || c.def.actionTiming === 'both') &&
+      player.resourceArea.length >= (c.def.level || 0)
+  );
+  if (qualifying.length === 0) return 0;
+  const cheapestCost = Math.min(...qualifying.map((c) => effectiveCost(player, c.def, {})));
+  const activeResources = player.resourceArea.filter((r) => !r.rested).length;
+  return Math.min(activeResources, cheapestCost);
+}
+
 /** Discards a specific card from hand (effect-driven "draw N, discard 1"-style text), as opposed to
  * enforceHandLimit's end-of-turn discard-to-limit. Pulled out so the replay trace can observe every
  * effect discard the same way it already observes destroys/damage, rather than each registry.js
@@ -466,11 +520,17 @@ function returnUnitToHand(player, unit) {
   return pilot;
 }
 
+/**
+ * `chooseDiscards`, if given, is called as `(player, excess)` -- the whole player, not just their
+ * hand, so a real heuristic can weigh hand cards against board/deck state (e.g. "is this Pilot being
+ * held for a combo target still in the deck," see heuristic.js's chooseDiscards). Falls back to
+ * discarding the first `excess` cards in hand order when no callback is given.
+ */
 function enforceHandLimit(player, chooseDiscards) {
   while (player.hand.length > LIMITS.MAX_HAND) {
     const excess = player.hand.length - LIMITS.MAX_HAND;
     const discards = chooseDiscards
-      ? chooseDiscards(player.hand, excess)
+      ? chooseDiscards(player, excess)
       : player.hand.slice(0, excess);
     for (const card of discards) {
       const idx = player.hand.indexOf(card);
@@ -527,5 +587,7 @@ module.exports = {
   removeFromTrash,
   placeRestedResource,
   trashSynergyValue,
+  damagedSynergyValue,
+  reactiveReserveValue,
   checkDefeat
 };

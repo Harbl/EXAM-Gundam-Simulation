@@ -728,7 +728,7 @@
     "effectRefs": { "command": "aHealthyCuriosityRPlusCommand" }
   },
   {
-    "number": "GD03-102", "name": "Privileged Position", "type": "command", "color": "blue",
+    "number": "GD03-102", "actionTiming": "action", "name": "Privileged Position", "type": "command", "color": "blue",
     "level": 6, "cost": 2,
     "effectRefs": { "burst": "privilegedPositionBurst", "command": "privilegedPositionCommand" }
   },
@@ -738,7 +738,7 @@
     "effectRefs": { "burst": "fieldDirectiveBurst", "command": "fieldDirectiveCommand" }
   },
   {
-    "number": "GD03-104", "name": "Reccoa's Shadow", "type": "command", "color": "blue",
+    "number": "GD03-104", "actionTiming": "action", "name": "Reccoa's Shadow", "type": "command", "color": "blue",
     "level": 3, "cost": 1, "traits": ["Titans", "Jupitris"],
     "pilotMode": { "name": "Reccoa Londe", "apBonus": 1, "hpBonus": 0 },
     "effectRefs": { "command": "reccoasShadowCommand" }
@@ -766,39 +766,39 @@
     "effectRefs": { "command": "howManyMilesToTheBattlefieldCommand" }
   },
   {
-    "number": "GD03-110", "name": "Eliminate Target", "type": "command", "color": "red",
+    "number": "GD03-110", "actionTiming": "action", "name": "Eliminate Target", "type": "command", "color": "red",
     "level": 6, "cost": 1,
     "effectRefs": { "command": "eliminateTargetCommand" }
   },
   {
-    "number": "GD03-111", "name": "Infiltrator Present", "type": "command", "color": "red",
+    "number": "GD03-111", "actionTiming": "action", "name": "Infiltrator Present", "type": "command", "color": "red",
     "level": 3, "cost": 1, "traits": ["Mafty"],
     "pilotMode": { "name": "Emeralda Zubin", "apBonus": 0, "hpBonus": 1 },
     "effectRefs": { "command": "infiltratorPresentCommand" }
   },
   {
-    "number": "GD03-112", "name": "Warped Intent", "type": "command", "color": "red",
+    "number": "GD03-112", "actionTiming": "action", "name": "Warped Intent", "type": "command", "color": "red",
     "level": 4, "cost": 1,
     "effectRefs": { "burst": "warpedIntentBurst", "command": "warpedIntentCommand" }
   },
   {
-    "number": "GD03-113", "name": "Human Karma", "type": "command", "color": "red",
+    "number": "GD03-113", "actionTiming": "action", "name": "Human Karma", "type": "command", "color": "red",
     "level": 3, "cost": 2,
     "effectRefs": { "command": "humanKarmaCommand" }
   },
   {
-    "number": "GD03-114", "name": "Look of Determination (R+)", "type": "command", "color": "purple",
+    "number": "GD03-114", "actionTiming": "action", "name": "Look of Determination (R+)", "type": "command", "color": "purple",
     "level": 2, "cost": 2,
     "effectRefs": { "burst": "lookOfDeterminationCommand", "command": "lookOfDeterminationCommand" }
   },
   {
-    "number": "GD03-115", "name": "Distant Reunion", "type": "command", "color": "purple",
+    "number": "GD03-115", "actionTiming": "action", "name": "Distant Reunion", "type": "command", "color": "purple",
     "level": 3, "cost": 1, "traits": ["Civilian", "Vagan", "X-Rounder"],
     "pilotMode": { "name": "Yurin L'Ciel", "apBonus": 1, "hpBonus": 0 },
     "effectRefs": { "command": "distantReunionCommand" }
   },
   {
-    "number": "GD03-116", "name": "Towards Destiny", "type": "command", "color": "purple",
+    "number": "GD03-116", "actionTiming": "action", "name": "Towards Destiny", "type": "command", "color": "purple",
     "level": 3, "cost": 1,
     "effectRefs": { "command": "towardsDestinyCommand" }
   },
@@ -808,7 +808,7 @@
     "effectRefs": { "command": "orgasOrderCommand" }
   },
   {
-    "number": "GD03-118", "name": "Awakened Potential (R+)", "type": "command", "color": "white",
+    "number": "GD03-118", "actionTiming": "action", "name": "Awakened Potential (R+)", "type": "command", "color": "white",
     "level": 4, "cost": 1,
     "effectRefs": { "burst": "awakenedPotentialRPlusBurst", "command": "awakenedPotentialRPlusCommand" }
   },
@@ -824,13 +824,13 @@
     "effectRefs": { "command": "immortalColasourCommand" }
   },
   {
-    "number": "GD03-121", "name": "Unheralded Attack", "type": "command", "color": "white",
+    "number": "GD03-121", "actionTiming": "action", "name": "Unheralded Attack", "type": "command", "color": "white",
     "level": 1, "cost": 1, "traits": ["AEUG", "Newtype"],
     "pilotMode": { "name": "Katz Kobayashi", "apBonus": 1, "hpBonus": 0 },
     "effectRefs": { "command": "unheraldedAttackCommand" }
   },
   {
-    "number": "GD03-122", "name": "Veteran Tactics", "type": "command", "color": "white",
+    "number": "GD03-122", "actionTiming": "action", "name": "Veteran Tactics", "type": "command", "color": "white",
     "level": 2, "cost": 1, "traits": ["Superpower Bloc", "UN"],
     "pilotMode": { "name": "Sergei Smirnov", "apBonus": 0, "hpBonus": 1 },
     "effectRefs": { "command": "veteranTacticsCommand" }

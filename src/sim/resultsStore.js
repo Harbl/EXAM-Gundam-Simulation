@@ -39,4 +39,4 @@ function deleteBatch(dir, name) {
   if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
 }
 
-module.exports = { listBatches, saveBatch, deleteBatch };
+module.exports = { listBatches, saveBatch, deleteBatch, filePathFor };

@@ -100,13 +100,13 @@
     "effectRefs": { "command": "simultaneousFireCommand" }
   },
   {
-    "number": "ST02-013", "name": "Peaceful Timbre", "type": "command", "color": "green",
+    "number": "ST02-013", "actionTiming": "action", "name": "Peaceful Timbre", "type": "command", "color": "green",
     "level": 4, "cost": 1,
     "pilotMode": { "name": "Quatre Raberba Winner", "apBonus": 1, "hpBonus": 1 },
     "effectRefs": { "command": "peacefulTimbreCommand" }
   },
   {
-    "number": "ST02-014", "name": "Siege Ploy", "type": "command", "color": "blue",
+    "number": "ST02-014", "actionTiming": "both", "name": "Siege Ploy", "type": "command", "color": "blue",
     "level": 3, "cost": 1,
     "effectRefs": { "command": "siegePloyCommand", "burst": "siegePloyBurst" }
   },

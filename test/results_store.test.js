@@ -4,7 +4,7 @@ const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
 
-const { listBatches, saveBatch, deleteBatch } = require('../src/sim/resultsStore');
+const { listBatches, saveBatch, deleteBatch, filePathFor } = require('../src/sim/resultsStore');
 
 function tempDir() {
   return fs.mkdtempSync(path.join(os.tmpdir(), 'gundam-results-store-'));
@@ -22,6 +22,14 @@ test('saveBatch writes a batch and listBatches reads it back with stats/context 
   assert.equal(typeof batches[0].savedAt, 'number');
   assert.deepEqual(batches[0].stats, STATS);
   assert.deepEqual(batches[0].context, CONTEXT);
+});
+
+test('filePathFor resolves to the real file saveBatch writes -- used by the Settings backup feature to zip a selected batch by name', () => {
+  const dir = tempDir();
+  saveBatch(dir, 'My Batch', STATS, CONTEXT);
+  const resolvedPath = filePathFor(dir, 'My Batch');
+  assert.ok(fs.existsSync(resolvedPath));
+  assert.equal(JSON.parse(fs.readFileSync(resolvedPath, 'utf8')).name, 'My Batch');
 });
 
 test('saving a batch under the same name overwrites the previous save', () => {

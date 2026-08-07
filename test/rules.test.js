@@ -56,6 +56,16 @@ test('simultaneous mutual destruction: both units die in a straight trade', () =
   assert.ok(defendingPlayer.trash.includes(defender));
 });
 
+test('mutual destruction: the active (attacking) player\'s [Destroyed] reaction fires before the standby (defending) player\'s (10-1-6-6/Q108)', () => {
+  const order = [];
+  const { state, attacker, defender } = makeMatch({
+    attackerDef: unitDef({ ap: 2, hp: 2, effects: { destroyed: () => order.push('attacker') } }),
+    defenderDef: unitDef({ ap: 2, hp: 2, effects: { destroyed: () => order.push('defender') } })
+  });
+  resolveAttack(state, 0, attacker, { type: 'unit', instance: defender });
+  assert.deepEqual(order, ['attacker', 'defender']);
+});
+
 test('First Strike: a killed defender deals no return damage', () => {
   const { state, attackingPlayer, attacker, defender } = makeMatch({
     attackerDef: unitDef({ ap: 3, hp: 1, keywords: { firstStrike: true } }),

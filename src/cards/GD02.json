@@ -1283,7 +1283,7 @@
     "effectRefs": { "burst": "dramaticTurnaboutBurst", "command": "dramaticTurnaboutCommand" }
   },
   {
-    "number": "GD02-101",
+    "number": "GD02-101", "actionTiming": "both",
     "name": "Beneath the Mask",
     "type": "command",
     "color": "blue",
@@ -1292,7 +1292,7 @@
     "effectRefs": { "command": "beneathTheMaskCommand" }
   },
   {
-    "number": "GD02-102",
+    "number": "GD02-102", "actionTiming": "both",
     "name": "Mouar's Determination",
     "type": "command",
     "color": "blue",
@@ -1321,7 +1321,7 @@
     "effectRefs": { "command": "turningPointOfHistoryCommand" }
   },
   {
-    "number": "GD02-105",
+    "number": "GD02-105", "actionTiming": "action",
     "name": "Valedictorian",
     "type": "command",
     "color": "green",
@@ -1331,7 +1331,7 @@
     "effectRefs": { "command": "valedictorianCommand" }
   },
   {
-    "number": "GD02-106",
+    "number": "GD02-106", "actionTiming": "action",
     "name": "White Wolf",
     "type": "command",
     "color": "green",
@@ -1360,7 +1360,7 @@
     "effectRefs": { "command": "thatOneLooksALotStrongerCommand" }
   },
   {
-    "number": "GD02-109",
+    "number": "GD02-109", "actionTiming": "both",
     "name": "Undying Persistence",
     "type": "command",
     "color": "red",
@@ -1389,7 +1389,7 @@
     "effectRefs": { "burst": "momentaryRespiteBurst", "command": "momentaryRespiteCommand" }
   },
   {
-    "number": "GD02-113",
+    "number": "GD02-113", "actionTiming": "both",
     "name": "Sisterly Care",
     "type": "command",
     "color": "purple",
@@ -1400,7 +1400,7 @@
     "effectRefs": { "command": "sisterlyCareCommand" }
   },
   {
-    "number": "GD02-114",
+    "number": "GD02-114", "actionTiming": "both",
     "name": "It's Name is Ryusei-Go",
     "type": "command",
     "color": "purple",
@@ -1411,7 +1411,7 @@
     "effectRefs": { "command": "itsNameIsRyuseiGoCommand" }
   },
   {
-    "number": "GD02-115",
+    "number": "GD02-115", "actionTiming": "both",
     "name": "Familial Devotion",
     "type": "command",
     "color": "purple",
@@ -1442,7 +1442,7 @@
     "effectRefs": { "burst": "aNewSignBurst", "command": "aNewSignCommand" }
   },
   {
-    "number": "GD02-118",
+    "number": "GD02-118", "actionTiming": "action",
     "name": "Heart Set on Revenge",
     "type": "command",
     "color": "white",
@@ -1453,7 +1453,7 @@
     "effectRefs": { "command": "heartSetOnRevengeCommand" }
   },
   {
-    "number": "GD02-119",
+    "number": "GD02-119", "actionTiming": "action",
     "name": "Persistent and Fortitudinous",
     "type": "command",
     "color": "white",
@@ -1464,7 +1464,7 @@
     "effectRefs": { "command": "persistentAndFortitudinousCommand" }
   },
   {
-    "number": "GD02-120",
+    "number": "GD02-120", "actionTiming": "action",
     "name": "Aspiring Pilot",
     "type": "command",
     "color": "white",

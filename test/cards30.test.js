@@ -214,11 +214,12 @@ test('Diva GD02-124 grants all friendly green (Earth Federation) Units AP+1 duri
   const { divaStartOfTurn } = require('../src/effects/registry');
 
   const efUnit = deployUnit(state, player, { number: 'E', type: 'unit', ap: 2, hp: 2, color: 'green', traits: ['Earth Federation'] });
-  divaStartOfTurn(state, player);
+  const diva = { id: 'diva-test' };
+  divaStartOfTurn(state, player, diva);
   assert.equal(getAP(efUnit), 2, 'below Lv.7 -- no buff');
 
   for (let i = 0; i < 7; i++) player.resourceArea.push(createInstance({ number: 'R', type: 'resource' }, 0));
-  divaStartOfTurn(state, player);
+  divaStartOfTurn(state, player, diva);
   assert.equal(getAP(efUnit), 3, 'Lv.7+ -- AP+1 applied');
 });
 

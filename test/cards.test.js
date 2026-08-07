@@ -132,7 +132,10 @@ test('Amuro Ray rests a low-HP enemy Unit When Paired, and can be Burst back to 
   pairPilot(state, player, gundam, amuro);
 
   assert.equal(lowHpEnemy.rested, true);
-  assert.equal(getAP(gundam), 3 + 2, "Amuro's AP+2 applies while paired");
+  // 3 base + 2 Amuro apBonus + 1 from Gundam's own "During Pair, all your Units get AP+1" -- pairing
+  // now re-syncs that live aura immediately (actions.js's pairPilot), so it applies to Gundam itself
+  // the instant it's paired, not just from next turn's start phase.
+  assert.equal(getAP(gundam), 3 + 2 + 1, "Amuro's AP+2 and Gundam's own During-Pair AP+1 both apply while paired");
 
   const burstAmuro = createInstance(lookupCard('ST01-010'), 0);
   burstAmuro.def.effects.burst(state, player, burstAmuro);
@@ -155,6 +158,26 @@ test("Gundam's During Pair buffs the whole team AP+1, only on its owner's turn",
   ally.buffs = [];
   runStartPhase(state);
   assert.equal(getAP(ally), 1, "no buff on the opponent's turn");
+});
+
+test("Gundam's During Pair aura activates immediately when paired mid-turn, not just from next turn's start phase", () => {
+  // Regression test for a real bug report: a GM already paired with one Amuro Ray copy, then a
+  // Gundam deployed and paired with a second Amuro Ray copy later the SAME turn, should have its
+  // "all your Units get AP+1" aura apply to the GM's own attack this turn too -- "During Pair" is a
+  // continuous static ability, not a one-time trigger, so it shouldn't wait for a fresh start phase.
+  const player = createPlayer(0);
+  const state = createGame(player, createPlayer(1));
+  state.activePlayerIdx = 0;
+
+  const gm = deployUnit(state, player, lookupCard('ST01-005'));
+  pairPilot(state, player, gm, createInstance(lookupCard('ST01-010'), 0));
+  assert.equal(getAP(gm), 2 + 2, 'GM base 2 + Amuro apBonus 2, before Gundam is even in play');
+
+  const gundam = deployUnit(state, player, lookupCard('ST01-001'));
+  pairPilot(state, player, gundam, createInstance(lookupCard('ST01-010'), 0));
+
+  assert.equal(getAP(gm), 2 + 2 + 1, "GM immediately gets Gundam's During-Pair AP+1 too, same turn");
+  assert.equal(getAP(gundam), 3 + 2 + 1, "Gundam's own aura buffs itself as well");
 });
 
 test('A Show of Resolve draws 2 cards', () => {

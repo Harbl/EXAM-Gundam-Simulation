@@ -1,16 +1,25 @@
 const { contextBridge, ipcRenderer } = require('electron');
 const { SKILL_PRESETS } = require('../src/ai/skillPresets');
+const { ARCHETYPE_HANDICAPS } = require('../src/ai/archetypeHandicaps');
 
 // Static reference data, not a live IPC round-trip -- just the preset names/labels the renderer's
 // skill dropdowns need, so the definitions stay in one place (src/ai/skillPresets.js) instead of
 // being duplicated in index.html.
 const skillPresetList = Object.entries(SKILL_PRESETS).map(([id, preset]) => ({ id, label: preset.label }));
 
+// Same "static data, no live round-trip" pattern -- lets the renderer detect a known AI-advantaged
+// archetype (for the Newtype Awakening warning banner) by summing card quantities itself against
+// `cardNumbers`/`minCopies`, without a new IPC call per keystroke. Only inert data crosses the bridge
+// (no `override`/functions) -- the actual handicap decision still only ever happens in the worker via
+// applyArchetypeHandicap, this is purely for the renderer's own warning-display judgment call.
+const archetypeHandicapList = ARCHETYPE_HANDICAPS.map(({ name, cardNumbers, minCopies }) => ({ name, cardNumbers, minCopies }));
+
 contextBridge.exposeInMainWorld('sim', {
-  run: (deckAText, deckBText, games, skillA, skillB) =>
-    ipcRenderer.invoke('run-batch', { deckAText, deckBText, games, skillA, skillB }),
+  run: (deckAText, deckBText, games, skillA, skillB, bypassHandicaps) =>
+    ipcRenderer.invoke('run-batch', { deckAText, deckBText, games, skillA, skillB, bypassHandicaps }),
   cancel: () => ipcRenderer.invoke('cancel-batch'),
   skillPresets: skillPresetList,
+  archetypeHandicaps: archetypeHandicapList,
   onProgress: (callback) => ipcRenderer.on('batch-progress', (_event, msg) => callback(msg)),
   // Payload is {stats, context} -- context (deck texts + engine/mctsConfig) rides along so the
   // renderer can hand it straight to resultsStore.save without a separate round trip.
@@ -42,7 +51,8 @@ contextBridge.exposeInMainWorld('exporter', {
 });
 
 contextBridge.exposeInMainWorld('tournament', {
-  run: (entrants, bestOf, skill, format) => ipcRenderer.invoke('run-tournament', { entrants, bestOf, skill, format }),
+  run: (entrants, bestOf, skill, format, bypassHandicaps) =>
+    ipcRenderer.invoke('run-tournament', { entrants, bestOf, skill, format, bypassHandicaps }),
   cancel: () => ipcRenderer.invoke('cancel-batch'), // shares the batch worker's cancel channel, see main.js
   onProgress: (callback) => ipcRenderer.on('tournament-progress', (_event, msg) => callback(msg)),
   // Payload is {result, context} -- context (each entrant's decklist + resolved engine/mctsConfig)
@@ -56,6 +66,14 @@ contextBridge.exposeInMainWorld('tournamentStore', {
   list: () => ipcRenderer.invoke('list-tournaments'),
   save: (name, result, context) => ipcRenderer.invoke('save-tournament', { name, result, context }),
   delete: (name) => ipcRenderer.invoke('delete-tournament', name)
+});
+
+contextBridge.exposeInMainWorld('backup', {
+  run: (selection) => ipcRenderer.invoke('backup-selected', selection)
+});
+
+contextBridge.exposeInMainWorld('changelog', {
+  check: () => ipcRenderer.invoke('check-changelog')
 });
 
 contextBridge.exposeInMainWorld('updater', {

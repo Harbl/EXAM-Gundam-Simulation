@@ -1,6 +1,6 @@
 const { createInstance } = require('./state');
 const { enforceBattleAreaLimit, destroyCard, effectivePilotDef } = require('./management');
-const { fireCardEffect } = require('./effects');
+const { fireCardEffect, triggerEvent } = require('./effects');
 
 function matchesLinkCondition(pilotDef, linkCondition) {
   if (!linkCondition) return false;
@@ -11,6 +11,70 @@ function matchesLinkCondition(pilotDef, linkCondition) {
   const alias = pilotDef.nameAlias || '';
   // Some cards link off either of two named Pilots (e.g. "Christina Mackenzie/Amuro Ray").
   return linkCondition.split('/').some((cond) => name.includes(cond) || alias.includes(cond) || traits.includes(cond));
+}
+
+/**
+ * True if a still-undrawn copy of a Unit `pilot` would Link with remains in the player's own deck,
+ * AND its `level` beats `currentBestLevel` (default -1, i.e. "nothing at all yet" -- so the default
+ * call just asks "is there any Link target left in the deck"). A real player knows their whole
+ * decklist (just not draw order, 8-1-3) -- this mirrors that knowledge so the AI can recognize "my
+ * real target for this Pilot just hasn't been drawn yet," or "what I've already got isn't as good as
+ * what's still coming," instead of only ever reasoning about what's already on board.
+ *
+ * `level` is a coarse but real proxy for "which Link target is better" -- not universally true (a
+ * cheap support piece can occasionally out-value a bigger body), but a defensible default absent any
+ * card-specific value model, same kind of judgment call as the "Heuristic default" choices documented
+ * throughout registry.js. Used by runPairings/resolvePairingSubset (heuristic.js) and
+ * collectPairCandidates/the 'pair' action executor (mcts.js) to decide whether pairing this Pilot onto
+ * whatever's available right now (nothing, or an already-in-play but lesser match) is worth giving up
+ * a shot at a stronger target once drawn.
+ */
+function hasBetterLinkTargetInDeck(player, pilot, currentBestLevel = -1) {
+  const pilotDef = effectivePilotDef(pilot);
+  return player.deck.some(
+    (c) => c.def.type === 'unit' && matchesLinkCondition(pilotDef, c.def.linkCondition) && (c.def.level || 0) > currentBestLevel
+  );
+}
+
+/**
+ * Highest-`level` unpaired Unit among `targets` whose Link condition `pilot` satisfies, or null if
+ * none match -- "best" by the same level proxy hasBetterLinkTargetInDeck uses, so the two stay
+ * consistent (comparing an in-play candidate against what the deck could still offer).
+ */
+function bestLinkMatch(targets, pilot) {
+  const pilotDef = effectivePilotDef(pilot);
+  const matches = targets.filter((u) => matchesLinkCondition(pilotDef, u.def.linkCondition));
+  if (matches.length === 0) return null;
+  return matches.reduce((best, u) => ((u.def.level || 0) > (best.def.level || 0) ? u : best));
+}
+
+/**
+ * Legitimate, non-peeking "how good are my odds" signal for whether digging (playing a draw-producing
+ * Command) is worth prioritizing right now -- for the first unpaired hand Pilot whose best available
+ * in-play Link match (if any) is still beaten by something left in the deck (the exact same "worth
+ * holding out for" gate runPairings/chooseDiscards already use), returns
+ * `copies of its real Link target still in the deck / total deck size`. Both are real "knows the whole
+ * decklist" facts (8-1-3 draw order stays hidden) -- this deliberately never looks at which specific
+ * card any particular draw would reveal, only the aggregate odds, so it can't be used to retroactively
+ * credit a lucky simulated draw. Naturally rises over the course of a real game as the deck thins from
+ * ordinary turn draws, without knowing anything about draw order -- see runCommandsLookahead
+ * (heuristic.js) for why that distinction is the whole point of this function existing separately from
+ * a simpler "is there a target left" boolean.
+ */
+function comboSearchOdds(player) {
+  const deckSize = player.deck.length;
+  if (deckSize === 0) return 0;
+  const targets = player.battleArea.filter((u) => u.def.type === 'unit' && !u.pilot && !u.def.cannotBePaired);
+  const pilot = player.hand.find((c) => {
+    if (c.def.type !== 'pilot' && !c.def.pilotMode) return false;
+    const best = bestLinkMatch(targets, c);
+    const bestLevel = best ? (best.def.level || 0) : -1;
+    return hasBetterLinkTargetInDeck(player, c, bestLevel);
+  });
+  if (!pilot) return 0;
+  const pilotDef = effectivePilotDef(pilot);
+  const copies = player.deck.filter((c) => c.def.type === 'unit' && matchesLinkCondition(pilotDef, c.def.linkCondition)).length;
+  return copies / deckSize;
 }
 
 /** Deploys a Unit from a card def (3-2), firing its Deploy effect. Cost payment happens upstream. */
@@ -113,14 +177,17 @@ function deployByEvolve(state, player, def, target) {
   return deployUnit(state, player, def);
 }
 
-/** Plays a Command card (3-4): fires its effect, then trashes it once activation finishes (4-9-1). */
+/** Plays a Command card (3-4): fires its effect, then trashes it once activation finishes (4-9-1).
+ * `opts.extraContext`, if given, is merged into the 'command' handler's context -- used by an
+ * Action-step reactive play (see combat.js's actionStep hook) to pass a mutable `battleTarget`
+ * {type,instance} ref and `hooks.chooseUnit` through, the same shape those cards already expect. */
 function playCommand(state, player, def, opts = {}) {
   const instance = createInstance(def, player.id);
   state.resolvingCommand = true;
   // Indiscriminate Violence GD04-106 / Witches from Earth GD04-108: "If you use an EX Resource to
   // play this card, ..." -- a self-referential check the card's own `command` handler needs,
   // distinct from the friendlyPlaysCommand broadcast below (which tells OTHER cards about this).
-  fireCardEffect(state, player, instance, 'command', { usedExResource: opts.usedExResource });
+  fireCardEffect(state, player, instance, 'command', { usedExResource: opts.usedExResource, ...opts.extraContext });
   state.resolvingCommand = false;
   player.trash.push(instance);
   // Gundam Lfrith Ur GD04-020 / Gundam Lfrith Thorn GD04-021: "when you play and activate a (Dawn of
@@ -162,6 +229,21 @@ function pairPilot(state, player, unit, pilotInstance) {
     if (handler) handler(state, player, source, { pairedUnit: unit, pilot: pilotInstance });
   }
 
+  // "During Pair"/"During Link" text (e.g. Gundam ST01-001's "all your Units get AP+1") is a
+  // continuous static ability, live for as long as the pairing holds -- NOT a one-time trigger like
+  // When Paired above. Every card in the pool that implements one of these (grep confirms ~15+,
+  // Gundam ST01-001/Freedom Gundam/Cyclops Team/etc.) does so via a `startOfTurn`-wired handler that
+  // recomputes a `grantedStatBonus`/`grantedKeywords`/turn-scoped-buff value, on the assumption it
+  // only needs re-checking once per turn. That's correct for triggerEvent's own real start-of-turn
+  // call (phases.js), but wrong here: pairing mid-turn (as just happened above) should activate any
+  // "During Pair" aura this unit (or pilot) grants immediately, for the rest of THIS turn too, not
+  // just from next turn's start phase onward. Every startOfTurn handler in the pool is a pure,
+  // idempotent stat/keyword recompute (verified: none of them draw/damage/destroy/place resources),
+  // so re-broadcasting the same event here is safe and just re-syncs every aura to the new board
+  // state -- both players', since a pairing can also flip off an opponent-facing condition (e.g. "no
+  // enemy Base in play").
+  triggerEvent(state, 'startOfTurn', {});
+
   return unit;
 }
 
@@ -184,6 +266,9 @@ module.exports = {
   pairPilot,
   pairPilotFromTrash,
   matchesLinkCondition,
+  hasBetterLinkTargetInDeck,
+  bestLinkMatch,
+  comboSearchOdds,
   findEvolveTarget,
   deployByEvolve
 };

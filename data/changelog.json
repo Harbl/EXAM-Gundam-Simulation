@@ -1,0 +1,15 @@
+[
+  {
+    "version": "0.2.0",
+    "date": "2026-08-07",
+    "notes": [
+      "New trained AI evaluator -- sharper decision-making across every skill tier.",
+      "AI now holds a Pilot for its real combo target instead of pairing onto whatever's on board, and won't discard a held Pilot at hand-limit either.",
+      "AI values digging for a combo piece via card draw, weighted by real deck odds -- never by peeking at what's actually drawn. Applies to every skill tier except Expert, which stays full-strength/unrestricted.",
+      "Fixed: team-wide \"During Pair\" auras (e.g. Gundam's AP+1) now update immediately instead of waiting for the next turn.",
+      "Fixed: replaying a game from a handicapped tournament match now reproduces the actual engine that played it.",
+      "Nu Gundam's AI handicap can now be bypassed (\"Newtype Awakening\") for anyone who wants to see the deck piloted at full, unrealistic strength.",
+      "New Settings screen: back up your saved decks, batch logs, and tournament results to a single zip file."
+    ]
+  }
+]

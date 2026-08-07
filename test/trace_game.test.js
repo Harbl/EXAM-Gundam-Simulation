@@ -149,9 +149,13 @@ test('payResources events name real Resource instances that were actually placed
   }
 });
 
-test('a real Burst reveal (Jaburo, seed 2) logs the shield card and whether it activated', () => {
+test('a real Burst reveal (Jaburo, seed 1) logs the shield card and whether it activated', () => {
   const deck = buildJakesDeck();
-  const events = traceGame(deck, deck, 2);
+  // Was seed 2 -- no longer produces a Jaburo Burst after the pairing-hold fix (a Pilot with no
+  // in-play Link match now waits for a better target still in the deck instead of pairing onto
+  // whatever's available, which shifts this seed's whole game trajectory). Re-picked a seed that
+  // still exercises the same Jaburo Burst behavior this test actually cares about.
+  const events = traceGame(deck, deck, 1);
   // Filtered by card, not just "the first burst in the log" -- which specific shield gets hit first is
   // an AI-decision outcome (sensitive to card-data/search changes like the GD01-006/GD01-026/ST01-001/
   // ST03-006 linkCondition fixes), not a rules fact this test is meant to pin down. What's meant to be

@@ -3,19 +3,27 @@ const { autoUpdater } = require('electron-updater');
 const { Worker } = require('node:worker_threads');
 const path = require('node:path');
 const fs = require('node:fs');
-const { listDecks, saveDeck, loadDeck, deleteDeck } = require('../src/deck/store');
-const { listBatches, saveBatch, deleteBatch } = require('../src/sim/resultsStore');
-const { listTournaments, saveTournament, deleteTournament } = require('../src/sim/tournamentStore');
+const AdmZip = require('adm-zip');
+const { listDecks, saveDeck, loadDeck, deleteDeck, filePathFor: deckFilePathFor } = require('../src/deck/store');
+const { listBatches, saveBatch, deleteBatch, filePathFor: batchFilePathFor } = require('../src/sim/resultsStore');
+const {
+  listTournaments,
+  saveTournament,
+  deleteTournament,
+  filePathFor: tournamentFilePathFor
+} = require('../src/sim/tournamentStore');
 const { listAllCards } = require('../src/cards/index');
 const { parseDecklistText } = require('../src/deck/parser');
 const { validateDeck } = require('../src/deck/validator');
 const banlist = require('../data/banlist.json');
+const changelog = require('../data/changelog.json');
 
 let mainWindow;
 let activeWorker = null;
 const DECKS_DIR = () => path.join(app.getPath('userData'), 'decks');
 const BATCHES_DIR = () => path.join(app.getPath('userData'), 'batches');
 const TOURNAMENTS_DIR = () => path.join(app.getPath('userData'), 'tournaments');
+const APP_STATE_FILE = () => path.join(app.getPath('userData'), 'app-state.json');
 
 function createWindow() {
   mainWindow = new BrowserWindow({
@@ -84,11 +92,11 @@ app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') app.quit();
 });
 
-ipcMain.handle('run-batch', (event, { deckAText, deckBText, games, skillA, skillB }) => {
+ipcMain.handle('run-batch', (event, { deckAText, deckBText, games, skillA, skillB, bypassHandicaps }) => {
   if (activeWorker) activeWorker.terminate();
 
   activeWorker = new Worker(path.join(__dirname, 'worker', 'batchWorker.js'), {
-    workerData: { deckAText, deckBText, games, skillA, skillB }
+    workerData: { deckAText, deckBText, games, skillA, skillB, bypassHandicaps }
   });
 
   activeWorker.on('message', (msg) => {
@@ -121,11 +129,11 @@ ipcMain.handle('cancel-batch', () => {
 // Same activeWorker slot / cancel-batch channel as a batch run -- only one of either can usefully run
 // at a time anyway (both are CPU-bound simulation work), so reusing the single-worker-slot cancellation
 // path needs no new IPC channel.
-ipcMain.handle('run-tournament', (event, { entrants, bestOf, skill, format }) => {
+ipcMain.handle('run-tournament', (event, { entrants, bestOf, skill, format, bypassHandicaps }) => {
   if (activeWorker) activeWorker.terminate();
 
   activeWorker = new Worker(path.join(__dirname, 'worker', 'tournamentWorker.js'), {
-    workerData: { entrants, bestOf, skill, format }
+    workerData: { entrants, bestOf, skill, format, bypassHandicaps }
   });
 
   activeWorker.on('message', (msg) => {
@@ -161,6 +169,27 @@ ipcMain.handle('list-cards', () =>
     traits
   }))
 );
+
+/** "What's new" splash gate: shows the newest changelog entry once per version, on the first launch
+ * after an update -- never on a brand-new install (nothing to catch a new user up on), since app-state
+ * only exists once a version has actually been recorded. A missing/corrupt state file is treated the
+ * same as a fresh install (write current version, stay silent) rather than erroring the app open. */
+ipcMain.handle('check-changelog', () => {
+  const stateFile = APP_STATE_FILE();
+  let lastSeenVersion = null;
+  try {
+    lastSeenVersion = JSON.parse(fs.readFileSync(stateFile, 'utf8')).lastSeenVersion;
+  } catch {
+    // no state file yet (fresh install) or unreadable -- treated as "nothing seen yet" below
+  }
+  const currentVersion = app.getVersion();
+  const isFreshInstall = lastSeenVersion === null;
+  fs.mkdirSync(path.dirname(stateFile), { recursive: true });
+  fs.writeFileSync(stateFile, JSON.stringify({ lastSeenVersion: currentVersion }));
+  if (isFreshInstall || lastSeenVersion === currentVersion) return { show: false };
+  const entry = changelog[0];
+  return entry ? { show: true, version: entry.version, date: entry.date, notes: entry.notes } : { show: false };
+});
 
 ipcMain.handle('validate-decklist', (event, text) => {
   try {
@@ -201,6 +230,41 @@ ipcMain.handle('save-tournament', (event, { name, result, context }) =>
   saveTournament(TOURNAMENTS_DIR(), name, result, context)
 );
 ipcMain.handle('delete-tournament', (event, name) => deleteTournament(TOURNAMENTS_DIR(), name));
+
+/** Zips a user-selected subset of saved decks/batches/tournaments into a single archive, saved
+ * wherever the user picks via a native Save dialog -- same dialog.showSaveDialog pattern as
+ * save-image above, just producing a zip (via adm-zip) instead of writing a raw buffer. `selection`
+ * is `{decks: [name], batches: [name], tournaments: [name]}`; each name is resolved to its real file
+ * on disk via the same store module's own filePathFor (never reimplemented here), and archived under
+ * a same-named top-level folder (decks/, batches/, tournaments/) so an extracted backup is
+ * self-explanatory. Silently skips a name whose file no longer exists (deleted between listing and
+ * backing up) rather than failing the whole export over one stale entry. */
+ipcMain.handle('backup-selected', async (event, selection) => {
+  const { canceled, filePath } = await dialog.showSaveDialog(mainWindow, {
+    title: 'Back Up Selected Data',
+    defaultPath: `exam-backup-${new Date().toISOString().slice(0, 10)}.zip`,
+    filters: [{ name: 'Zip Archive', extensions: ['zip'] }]
+  });
+  if (canceled || !filePath) return { saved: false };
+
+  const zip = new AdmZip();
+  let fileCount = 0;
+  const groups = [
+    { names: selection.decks || [], dir: DECKS_DIR(), zipFolder: 'decks', pathFor: deckFilePathFor },
+    { names: selection.batches || [], dir: BATCHES_DIR(), zipFolder: 'batches', pathFor: batchFilePathFor },
+    { names: selection.tournaments || [], dir: TOURNAMENTS_DIR(), zipFolder: 'tournaments', pathFor: tournamentFilePathFor }
+  ];
+  for (const { names, dir, zipFolder, pathFor } of groups) {
+    for (const name of names) {
+      const sourcePath = pathFor(dir, name);
+      if (!fs.existsSync(sourcePath)) continue;
+      zip.addLocalFile(sourcePath, zipFolder);
+      fileCount++;
+    }
+  }
+  await zip.writeZipPromise(filePath);
+  return { saved: true, filePath, fileCount };
+});
 
 /** Re-simulates one past game (by seed), given the deck/AI context it was originally run with -- a
  * batch (this session's or saved), or one match from a tournament (this session's or saved, with the

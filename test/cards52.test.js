@@ -148,13 +148,20 @@ test('Big-Rang EB01-030 / Gundam Lfrith Ur EB01-034: look at top 3, take a (G Ge
   assert.equal(player.deck.length, 2);
 });
 
-test("Taurus (Sanc Kingdom) EB01-033: ActivateAction gives a chosen other Unit AP+1 for the battle", () => {
+test("Taurus (Sanc Kingdom) EB01-033: ActivateAction gives a chosen other Unit AP+1 for the battle, gated on (1) cost + Once per Turn", () => {
   const player = createPlayer(0);
   const state = createGame(player, createPlayer(1));
   const instance = deployUnit(state, player, { number: 'U1', type: 'unit', ap: 2, hp: 3 });
   const target = deployUnit(state, player, { number: 'U2', type: 'unit', ap: 1, hp: 1 });
-  registry.taurusSancKingdomActivateAction(state, player, instance, { target });
+
+  assert.equal(registry.taurusSancKingdomActivateAction(state, player, instance, { target }), false, 'no active Resource to pay the (1) cost -- fails');
+
+  player.resourceArea.push(createInstance({ number: 'R1', type: 'resource', color: 'blue' }, 0));
+  assert.equal(registry.taurusSancKingdomActivateAction(state, player, instance, { target }), true);
   assert.equal(target.buffs.some((b) => b.ap === 1 && b.scope === 'battle'), true);
+  assert.equal(player.resourceArea[0].rested, true, 'paid the (1) cost');
+
+  assert.equal(registry.taurusSancKingdomActivateAction(state, player, instance, { target }), false, 'Once per Turn -- already used');
 });
 
 test('Gundam Lfrith Thorn EB01-035: friendlyUnitDeployed grants Breach 1 for the turn when another (G Generation) Lv.3 Unit deploys', () => {

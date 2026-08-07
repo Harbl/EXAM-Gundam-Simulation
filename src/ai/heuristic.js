@@ -6,6 +6,9 @@ const {
   pairPilot,
   pairPilotFromTrash,
   matchesLinkCondition,
+  hasBetterLinkTargetInDeck,
+  bestLinkMatch,
+  comboSearchOdds,
   findEvolveTarget,
   deployByEvolve
 } = require('../rules/actions');
@@ -14,7 +17,7 @@ const { resolveAttack, resolveFromBlockDecision } = require('../rules/combat');
 const { runStartPhase, runDrawPhase, runResourcePhase, runEndPhase, passTurn } = require('../rules/phases');
 const { cloneState } = require('../rules/clone');
 const { scoreState } = require('./score');
-const { collectActivateCandidates } = require('./activations');
+const { collectActivateCandidates, collectActivateActionCandidates, ATTACKER_ACTION_RESOLVERS } = require('./activations');
 
 /**
  * A simple heuristic bot for relative deck comparison, not tournament-strength play: mulligan
@@ -73,7 +76,7 @@ function runDeploys(state, player) {
 /** Plays every affordable Command in hand, earliest in the main phase so any cards it draws are available for this turn's deploys/pairings too. */
 function runCommands(state, player) {
   for (;;) {
-    const playable = player.hand.filter((c) => c.def.type === 'command' && canAfford(player, c.def, { state }));
+    const playable = player.hand.filter((c) => c.def.type === 'command' && c.def.actionTiming !== 'action' && canAfford(player, c.def, { state }));
     const choice = playable[0];
     if (!choice) return;
 
@@ -91,10 +94,12 @@ function runCommands(state, player) {
   }
 }
 
-/** Every Command in hand currently affordable. */
+/** Every Command in hand currently affordable and legal to play in the Main phase -- excludes
+ * Action-only commands (13-2-2: `[Action]` timing is only legal during an Action Step, see
+ * resolveFromBlockDecision's actionStep hook in combat.js for where those get their own chance). */
 function collectCommandCandidates(state, playerIdx) {
   const player = state.players[playerIdx];
-  return player.hand.filter((c) => c.def.type === 'command' && canAfford(player, c.def, { state }));
+  return player.hand.filter((c) => c.def.type === 'command' && c.def.actionTiming !== 'action' && canAfford(player, c.def, { state }));
 }
 
 /** Plays exactly the hand Commands whose id is in `subsetIds`, highest-cost first; a card that's no longer affordable partway through is simply skipped. */
@@ -117,6 +122,14 @@ function resolveCommandSubset(state, playerIdx, subsetIds) {
   }
 }
 
+// Reasoned starting magnitude for runCommandsLookahead's combo-search bonus below, same order as this
+// session's other bonus weights (activationPotential:4, trashSynergy:3 in score.js's DEFAULT_WEIGHTS).
+// Deliberately NOT part of DEFAULT_WEIGHTS/boardValue's weighted sum -- this is a separate,
+// decision-time-only mechanism (see runCommandsLookahead), not a generic post-state feature, so it
+// can't live in that table. Read via player.aiWeights?.comboSearch so a scratch script can still
+// override it for a direct A/B behavioral check without a whole SPRT harness.
+const COMBO_SEARCH_WEIGHT = 4;
+
 /**
  * Same subset-search pattern as runDeploysLookahead/runPairingsLookahead: tries every combination of
  * affordable hand Commands (bounded by hand size), scores each with scoreState right after playing
@@ -126,10 +139,28 @@ function resolveCommandSubset(state, playerIdx, subsetIds) {
  * available for them; the search just replaces "always take every affordable Command in hand order"
  * with "take whichever affordable combination leaves the best board," which matters once more than
  * one Command competes for the same limited resource pool.
+ *
+ * Also adds a real-but-strictly-non-peeking bonus for digging while a combo search is open (Jake's
+ * design principle: "the AI should have the same restrictions as a real life player -- not knowing
+ * what the next draw will be"). `comboSearchOdds` (actions.js) is snapshotted ONCE from the real
+ * pre-decision state, before any subset is resolved -- recomputing it from a resolved clone would
+ * immediately reintroduce peeking, since the post-draw copies-remaining count is itself correlated
+ * with whether that specific simulated draw happened to hit. Each subset's bonus scales by a bare
+ * COUNT of how many cards its Commands collectively drew (hand-size delta, adjusting for the
+ * subset's own cards leaving hand when played) -- never which cards, only how many, exactly the
+ * "how much I dug" information a real player would have. A drawn card's own ordinary contribution to
+ * scoreState (flat hand-size credit, or an immediate on-draw trigger) still flows through normally on
+ * top of this -- this bonus only adds the piece that was otherwise completely absent.
  */
 function runCommandsLookahead(state, playerIdx) {
+  const player = state.players[playerIdx];
   const candidates = collectCommandCandidates(state, playerIdx);
   if (candidates.length === 0) return;
+
+  const searchOdds = comboSearchOdds(player);
+  const handSizeBefore = player.hand.length;
+  const trashCountBefore = player.trash.length;
+  const comboWeight = player.aiWeights?.comboSearch ?? COMBO_SEARCH_WEIGHT;
 
   let bestScore = -Infinity;
   let bestSubset = new Set();
@@ -142,7 +173,16 @@ function runCommandsLookahead(state, playerIdx) {
 
     const clone = cloneState(state);
     resolveCommandSubset(clone, playerIdx, subsetIds);
-    const score = scoreState(clone, playerIdx);
+    let score = scoreState(clone, playerIdx);
+    if (searchOdds > 0) {
+      // subsetIds.size isn't always how many commands actually resolved -- resolveCommandSubset skips
+      // one partway through if resources run out (e.g. two same-cost Commands both requested but only
+      // one affordable), so the "how many actually got played" baseline has to come from the real
+      // outcome (a trash-count delta, itself just a COUNT, not card identity) rather than the request.
+      const actuallyPlayed = clone.players[playerIdx].trash.length - trashCountBefore;
+      const cardsDrawn = Math.max(0, clone.players[playerIdx].hand.length - (handSizeBefore - actuallyPlayed));
+      score += cardsDrawn * searchOdds * comboWeight;
+    }
     if (score > bestScore) {
       bestScore = score;
       bestSubset = subsetIds;
@@ -240,10 +280,30 @@ function runPairings(state, player) {
     });
     if (pilots.length === 0 || targets.length === 0) return;
 
-    let pilot = pilots.find((p) => targets.some((u) => matchesLinkCondition(effectivePilotDef(p), u.def.linkCondition)));
-    let unit = pilot && targets.find((u) => matchesLinkCondition(effectivePilotDef(pilot), u.def.linkCondition));
+    // For each hand Pilot, find the best Link match already in play (if any) and check whether the
+    // deck still holds something better for it -- a real player wouldn't commit a Pilot to a lesser
+    // body while its real target is one draw away. Take the first Pilot whose best available in-play
+    // match ISN'T beaten by anything left in the deck.
+    let pilot = null;
+    let unit = null;
+    for (const p of pilots) {
+      const best = bestLinkMatch(targets, p);
+      const bestLevel = best ? (best.def.level || 0) : -1;
+      if (best && !hasBetterLinkTargetInDeck(player, p, bestLevel)) {
+        pilot = p;
+        unit = best;
+        break;
+      }
+    }
     if (!pilot) {
-      pilot = pilots[0];
+      // No hand Pilot has a good-enough Link match already on board (either no match at all, or the
+      // best one available is worse than what's still coming). Rather than dumping the first
+      // affordable Pilot onto the first open Unit (the old behavior -- burns a Pilot's real combo body
+      // on a lesser one, or the moment it's drawn if that body just hasn't shown up yet), only take a
+      // Pilot that has no better target left anywhere in the deck. If every hand Pilot still has a
+      // real target coming, hold them all rather than force a bad pairing.
+      pilot = pilots.find((p) => !hasBetterLinkTargetInDeck(player, p));
+      if (!pilot) return;
       unit = targets[0];
     }
 
@@ -252,7 +312,7 @@ function runPairings(state, player) {
   }
 }
 
-/** Pairs exactly the hand Pilot/pilotMode cards whose id is in `subsetIds`, same target-selection rule as runPairings (prefer a Link-condition match). */
+/** Pairs exactly the hand Pilot/pilotMode cards whose id is in `subsetIds`, same target-selection rule as runPairings (prefer the best Link-condition match not beaten by the deck). */
 function resolvePairingSubset(state, playerIdx, subsetIds) {
   const player = state.players[playerIdx];
   for (;;) {
@@ -267,10 +327,22 @@ function resolvePairingSubset(state, playerIdx, subsetIds) {
     });
     if (pilots.length === 0 || targets.length === 0) return;
 
-    let pilot = pilots.find((p) => targets.some((u) => matchesLinkCondition(effectivePilotDef(p), u.def.linkCondition)));
-    let unit = pilot && targets.find((u) => matchesLinkCondition(effectivePilotDef(pilot), u.def.linkCondition));
+    // Same reasoning as runPairings above: don't burn a Pilot on a lesser Unit (or a mismatched one)
+    // while its real, better target is still sitting undrawn in the deck.
+    let pilot = null;
+    let unit = null;
+    for (const p of pilots) {
+      const best = bestLinkMatch(targets, p);
+      const bestLevel = best ? (best.def.level || 0) : -1;
+      if (best && !hasBetterLinkTargetInDeck(player, p, bestLevel)) {
+        pilot = p;
+        unit = best;
+        break;
+      }
+    }
     if (!pilot) {
-      pilot = pilots[0];
+      pilot = pilots.find((p) => !hasBetterLinkTargetInDeck(player, p));
+      if (!pilot) return;
       unit = targets[0];
     }
 
@@ -632,8 +704,136 @@ function chooseBurst(shieldInstance) {
   return !!(shieldInstance.def.effects && shieldInstance.def.effects.burst);
 }
 
+/**
+ * Reactively plays one Action-eligible Command from the defending player's hand, then tries one
+ * [Activate·Action] ability off their board, during the Action Step (8-4) -- if either is legal,
+ * affordable, and the battle is actually worth reacting to. Same facingLethal/badTrade gate as
+ * chooseBlocker (13-1-4's own reactive answer), reused here since it's the same underlying question --
+ * "is this attack dangerous enough to spend a card/ability stopping it" -- just answered with a
+ * Command or an Activate·Action instead of a Blocker. Doesn't rank *which* eligible card/ability is
+ * best for the situation (that would mean modeling all ~85 different effect shapes); picks the first
+ * legal one of each and lets its own already-designed fallback targeting choose the rest, same as it
+ * already does when played from the Main phase. A real first step, not a claim of optimal reactive
+ * play or full priority-alternation -- see project gaps doc for the fuller picture.
+ *
+ * Also tries the *attacking* player's own [Activate·Action] options (Gamow GD01-127, Moebius
+ * Peacemaker GD02-011 -- naturally attacker-side, via `ATTACKER_ACTION_RESOLVERS`), independent of the
+ * facingLethal/badTrade gate above: those two cards are proactive value-adds while attacking, not
+ * reactions to danger, so gating them on the defender's peril would skip them almost every real turn.
+ */
+function actionStep(state, { attacker, target, battleTarget }) {
+  const attackingPlayer = state.players.find((p) => p.battleArea.includes(attacker));
+  const defendingPlayer = state.players.find((p) => p !== attackingPlayer);
+  if (!attackingPlayer || !defendingPlayer) return;
+  const defendingPlayerIdx = state.players.indexOf(defendingPlayer);
+  const attackingPlayerIdx = state.players.indexOf(attackingPlayer);
+
+  const attackerAP = getAP(attacker);
+  const facingLethal = target.type === 'player' && defendingPlayer.shields.length === 0 && !defendingPlayer.base;
+  const badTrade =
+    target.type === 'unit' &&
+    getRemainingHP(target.instance) <= attackerAP &&
+    getAP(target.instance) < attackerAP;
+
+  // The defending player's reactive window -- only worth spending a card/ability on when the attack is
+  // actually dangerous (facingLethal/badTrade), same gate chooseBlocker uses. Gated in its own block
+  // (rather than an early return) so the attacking player's own options below still get a chance even
+  // when the defender isn't in any danger -- those are proactive value-adds, not reactions to peril.
+  if (facingLethal || badTrade) {
+    const candidates = defendingPlayer.hand.filter(
+      (c) =>
+        c.def.type === 'command' &&
+        (c.def.actionTiming === 'action' || c.def.actionTiming === 'both') &&
+        canAfford(defendingPlayer, c.def, { state })
+    );
+    const choice = candidates[0];
+    if (choice) {
+      const usedExResource = payCost(defendingPlayer, choice.def, { state });
+      defendingPlayer.hand.splice(defendingPlayer.hand.indexOf(choice), 1);
+      const underAttack = target.type === 'unit' ? target.instance : defendingPlayer.base;
+      playCommand(state, defendingPlayer, choice.def, {
+        usedExResource,
+        extraContext: { battleTarget, underAttack, attackingUnit: attacker }
+      });
+    }
+
+    // A reactive Command above (e.g. Wings of Light bouncing the attacker) can already end this battle
+    // -- re-check before trying an [Activate·Action] ability so it never targets a unit that's no
+    // longer actually in the fight (same attackerStillIn/targetStillIn guard combat.js itself uses).
+    const battleStillOnForDefender =
+      attackingPlayer.battleArea.includes(attacker) &&
+      (battleTarget.type === 'player' || defendingPlayer.battleArea.includes(battleTarget.instance));
+    if (battleStillOnForDefender) {
+      const activateChoice = collectActivateActionCandidates(state, defendingPlayerIdx, { attacker, target: battleTarget })[0];
+      if (activateChoice) {
+        const prevSource = state.resolvingSource;
+        state.resolvingSource = activateChoice.source;
+        try {
+          activateChoice.handler(state, defendingPlayer, activateChoice.source, activateChoice.args);
+        } finally {
+          state.resolvingSource = prevSource;
+        }
+      }
+    }
+  }
+
+  // The attacking player's own [Activate·Action] options (Gamow GD01-127, Moebius Peacemaker
+  // GD02-011) -- naturally attacker-side (Breach/damage forward only matters while attacking), so
+  // unlike the defender's reactive window above these aren't gated on facingLethal/badTrade at all.
+  // Re-check the battle is still on first, since the defender's own reaction above could already have
+  // ended it (e.g. bouncing the attacker away).
+  const battleStillOnForAttacker =
+    attackingPlayer.battleArea.includes(attacker) &&
+    (battleTarget.type === 'player' || defendingPlayer.battleArea.includes(battleTarget.instance));
+  if (!battleStillOnForAttacker) return;
+
+  const attackerActivateChoice = collectActivateActionCandidates(
+    state,
+    attackingPlayerIdx,
+    { attacker, target: battleTarget },
+    ATTACKER_ACTION_RESOLVERS
+  )[0];
+  if (!attackerActivateChoice) return;
+  const prevAttackerSource = state.resolvingSource;
+  state.resolvingSource = attackerActivateChoice.source;
+  try {
+    attackerActivateChoice.handler(state, attackingPlayer, attackerActivateChoice.source, attackerActivateChoice.args);
+  } finally {
+    state.resolvingSource = prevAttackerSource;
+  }
+}
+
+/**
+ * End-of-turn hand-limit discard choice (7-6-3), the second real testbed for "the AI should know what
+ * it's holding a card for" (after the pairing-hold fix, actions.js's hasBetterLinkTargetInDeck/
+ * bestLinkMatch). Previously unimplemented -- hooks.chooseDiscards was always undefined in real play,
+ * so enforceHandLimit's naive fallback (discard the first `excess` cards in raw hand order) ran every
+ * game. That's a real problem specifically because of the pairing fix: a Pilot the AI just
+ * deliberately held onto (because a better Link target is still in the deck) could get thrown away by
+ * this completely separate code path moments later, undoing the whole point of holding it.
+ *
+ * Ranks every hand card by "how bad it'd be to lose this," ascending, and discards the `excess`
+ * lowest-ranked:
+ *   - A Pilot/pilotMode card currently being held for a real reason (its best available target, in
+ *     play or not, is beaten by something still undrawn in the deck) ranks infinitely high -- never
+ *     the first thing discarded while anything else could go instead.
+ *   - Everything else ranks by printed cost, low to high -- a rough "how big an investment is this"
+ *     proxy absent a real per-card value model, so cheap filler goes before your actual bombs. Same
+ *     kind of judgment call as the "Heuristic default" choices documented throughout registry.js.
+ */
+function chooseDiscards(player, excess) {
+  const targets = player.battleArea.filter((u) => u.def.type === 'unit' && !u.pilot && !u.def.cannotBePaired);
+  const rank = (card) => {
+    if (card.def.type !== 'pilot' && !card.def.pilotMode) return card.def.cost || 0;
+    const best = bestLinkMatch(targets, card);
+    const bestLevel = best ? (best.def.level || 0) : -1;
+    return hasBetterLinkTargetInDeck(player, card, bestLevel) ? Infinity : card.def.cost || 0;
+  };
+  return [...player.hand].sort((a, b) => rank(a) - rank(b)).slice(0, excess);
+}
+
 function defaultHooks() {
-  return { chooseBlocker, chooseBurst };
+  return { chooseBlocker, chooseBurst, actionStep, chooseDiscards };
 }
 
 /** Finds the clone-side instance matching a real-state instance's stable id (attacker/target/blocker candidates are always currently in a battleArea). */
@@ -685,7 +885,9 @@ function lookaheadHooks(state) {
   return {
     chooseBlocker: (defendingPlayer, attacker, target, attackingPlayer) =>
       chooseBlockerLookahead(state, defendingPlayer, attacker, target, attackingPlayer),
-    chooseBurst
+    chooseBurst,
+    actionStep,
+    chooseDiscards
   };
 }
 
@@ -736,7 +938,10 @@ module.exports = {
   chooseAttackTarget,
   chooseBlocker,
   chooseBlockerLookahead,
+  actionStep,
   getForcedAttackTargets,
+  chooseDiscards,
   defaultHooks,
-  lookaheadHooks
+  lookaheadHooks,
+  COMBO_SEARCH_WEIGHT
 };

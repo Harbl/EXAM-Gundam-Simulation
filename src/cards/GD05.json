@@ -996,6 +996,7 @@
     "traits": ["Tekkadan", "Gundam Frame"],
     "linkCondition": "Mikazuki Augus",
     "apBonusEqualToDamage": true,
+    "benefitsFromSelfDamage": true,
     "effectRefs": { "endOfTurn": "gundamBarbatosLupusRexEndOfTurn" }
   },
   {
@@ -1413,7 +1414,7 @@
     "effectRefs": { "burst": "addSelfToHandBurst", "friendlyPaysAbilityCost": "gavaneGoonnyGD05FriendlyPaysAbilityCost" }
   },
   {
-    "number": "GD05-102",
+    "number": "GD05-102", "actionTiming": "action",
     "name": "Wings of Light (R+)",
     "type": "command",
     "color": "blue",
@@ -1422,7 +1423,7 @@
     "effectRefs": { "command": "wingsOfLightRPlusCommand" }
   },
   {
-    "number": "GD05-103",
+    "number": "GD05-103", "actionTiming": "both",
     "name": "Not with Scattershot!",
     "type": "command",
     "color": "blue",
@@ -1433,7 +1434,7 @@
     "effectRefs": { "command": "notWithScattershotCommand" }
   },
   {
-    "number": "GD05-104",
+    "number": "GD05-104", "actionTiming": "action",
     "name": "At the Risk of One's Life",
     "type": "command",
     "color": "blue",
@@ -1444,7 +1445,7 @@
     "effectRefs": { "command": "atTheRiskOfOnesLifeCommand" }
   },
   {
-    "number": "GD05-105",
+    "number": "GD05-105", "actionTiming": "both",
     "name": "Exclusively Defense-Oriented Policy",
     "type": "command",
     "color": "blue",
@@ -1471,7 +1472,7 @@
     "effectRefs": { "command": "interwovenBlessingsCommand", "burst": "interwovenBlessingsBurst" }
   },
   {
-    "number": "GD05-108",
+    "number": "GD05-108", "actionTiming": "action",
     "name": "Overcoming Hardships",
     "type": "command",
     "color": "green",
@@ -1482,7 +1483,7 @@
     "effectRefs": { "command": "overcomingHardshipsCommand" }
   },
   {
-    "number": "GD05-109",
+    "number": "GD05-109", "actionTiming": "action",
     "name": "Felsi's Plea",
     "type": "command",
     "color": "green",
@@ -1514,7 +1515,7 @@
     "effectRefs": { "command": "newtypeLabsDirectorCommand", "burst": "newtypeLabsDirectorBurst" }
   },
   {
-    "number": "GD05-116",
+    "number": "GD05-116", "actionTiming": "both",
     "name": "Veteran's Pride",
     "type": "command",
     "color": "purple",
@@ -1545,7 +1546,7 @@
     "effectRefs": { "command": "incendiarySparkCommand" }
   },
   {
-    "number": "GD05-119",
+    "number": "GD05-119", "actionTiming": "action",
     "name": "A Wind Against Fires (R+)",
     "type": "command",
     "color": "white",

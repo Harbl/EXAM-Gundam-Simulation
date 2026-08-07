@@ -5,7 +5,7 @@ const { parseDecklistText } = require('../src/deck/parser');
 const { validateDeck } = require('../src/deck/validator');
 const { buildGameDeck } = require('../src/deck/build');
 const { lookupCard } = require('../src/cards/index');
-const { buildBracket, playMatch, runTournament, runDoubleElimTournament, deckStats } = require('../src/sim/tournament');
+const { buildBracket, playMatch, runTournament, runDoubleElimTournament, deckStats, withArchetypeHandicaps } = require('../src/sim/tournament');
 const banlist = require('../data/banlist.json');
 
 const JAKES_DECKLIST = `
@@ -60,6 +60,81 @@ test('playMatch stops at the first majority and reports a consistent score', () 
   assert.ok(result.scoreA === 2 || result.scoreB === 2);
   assert.ok(result.scoreA < 2 || result.scoreB < 2);
   assert.equal(result.games.length, result.scoreA + result.scoreB);
+});
+
+// Same 50-card legal shape as JAKES_DECKLIST, with Rick Dom/Delta Plus swapped for 4x Nu Gundam +
+// 2x Londo Bell -- 6 combined copies, well over archetypeHandicaps.js's 4-copy threshold.
+const NU_GUNDAM_DECKLIST = `
+4 GM ST01-005
+4 Guntank GD01-008
+4 Zaku II ST03-008
+4 Char's Zaku II GD01-026
+4 Char's Zaku II ST03-006
+4 Char Aznable ST03-011
+4 Nu Gundam GD05-017
+4 ReZEL GD01-018
+4 Amuro Ray ST01-010
+4 Gundam ST01-001
+4 A Show of Resolve GD01-100
+2 Londo Bell GD05-020
+2 Jaburo GD04-122
+2 Zeong GD04-017
+`;
+
+function buildNuGundamDeck() {
+  const parsed = parseDecklistText(NU_GUNDAM_DECKLIST);
+  validateDeck(parsed, lookupCard, banlist);
+  return buildGameDeck({ main: parsed.main }, lookupCard);
+}
+
+test("playMatch's result surfaces the actually-resolved per-side engine (post-archetype-handicap), not just the nominal preset -- the tournament replay fix", () => {
+  const nuGundamDeck = buildNuGundamDeck();
+  const otherDeck = buildJakesDeck();
+  const options = { engineA: 'mcts', engineB: 'mcts', mctsConfigA: { playoutBudget: 5 }, mctsConfigB: { playoutBudget: 5 } };
+
+  const result = playMatch(nuGundamDeck, otherDeck, 1, options);
+
+  assert.equal(result.engineA, 'lookahead', "Nu Gundam (side A) gets downgraded by the handicap");
+  assert.equal(result.engineB, 'mcts', 'the non-archetype side (B) stays at the nominal engine');
+});
+
+test('withArchetypeHandicaps downgrades a known AI-advantaged deck (Nu Gundam) on whichever side it plays, per-match, regardless of the tournament-wide options', () => {
+  const nuGundamDeck = {
+    main: [
+      { number: 'GD05-017' }, { number: 'GD05-017' }, { number: 'GD05-017' }, { number: 'GD05-017' },
+      { number: 'GD05-020' }, { number: 'GD05-020' }, { number: 'GD05-020' }
+    ]
+  };
+  const otherDeck = { main: [{ number: 'ST01-010' }, { number: 'ST01-010' }] };
+  const sharedOptions = { engineA: 'mcts', engineB: 'mcts', mctsConfigA: { playoutBudget: 25 }, mctsConfigB: { playoutBudget: 25 } };
+
+  const asA = withArchetypeHandicaps(nuGundamDeck, otherDeck, sharedOptions);
+  assert.equal(asA.engineA, 'lookahead');
+  assert.equal(asA.engineB, 'mcts');
+
+  const asB = withArchetypeHandicaps(otherDeck, nuGundamDeck, sharedOptions);
+  assert.equal(asB.engineA, 'mcts');
+  assert.equal(asB.engineB, 'lookahead');
+
+  // A match between two non-archetype decks is untouched.
+  const neither = withArchetypeHandicaps(otherDeck, otherDeck, sharedOptions);
+  assert.equal(neither.engineA, 'mcts');
+  assert.equal(neither.engineB, 'mcts');
+});
+
+test('withArchetypeHandicaps leaves everything at full strength when options.bypassHandicaps is set ("Newtype Awakening")', () => {
+  const nuGundamDeck = {
+    main: [
+      { number: 'GD05-017' }, { number: 'GD05-017' }, { number: 'GD05-017' }, { number: 'GD05-017' },
+      { number: 'GD05-020' }, { number: 'GD05-020' }, { number: 'GD05-020' }
+    ]
+  };
+  const otherDeck = { main: [{ number: 'ST01-010' }] };
+  const sharedOptions = { engineA: 'mcts', engineB: 'mcts', mctsConfigA: { playoutBudget: 25 }, mctsConfigB: { playoutBudget: 25 }, bypassHandicaps: true };
+
+  const result = withArchetypeHandicaps(nuGundamDeck, otherDeck, sharedOptions);
+  assert.equal(result, sharedOptions, 'bypassHandicaps returns options unchanged, not even a copy');
+  assert.equal(result.engineA, 'mcts');
 });
 
 test('runTournament crowns a champion and never leaks deck objects into the bracket output', () => {

@@ -120,13 +120,13 @@
     "level": 2, "cost": 1, "ap": 2, "hp": 2, "traits": ["Zeon"]
   },
   {
-    "number": "ST06-011", "name": "Ruthless Tactics", "type": "command", "color": "red",
+    "number": "ST06-011", "actionTiming": "both", "name": "Ruthless Tactics", "type": "command", "color": "red",
     "level": 3, "cost": 1,
     "pilotMode": { "name": "Gaia (GQ)", "apBonus": 1, "hpBonus": 0 },
     "effectRefs": { "command": "ruthlessTacticsCommand" }
   },
   {
-    "number": "ST06-013", "name": "Fierce Unity", "type": "command", "color": "green",
+    "number": "ST06-013", "actionTiming": "action", "name": "Fierce Unity", "type": "command", "color": "green",
     "level": 3, "cost": 1,
     "pilotMode": { "name": "Ortega (GQ)", "apBonus": 1, "hpBonus": 0 },
     "effectRefs": { "command": "fierceUnityCommand" }

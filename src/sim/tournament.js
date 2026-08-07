@@ -1,4 +1,5 @@
 const { playGame } = require('./singleGame');
+const { applyArchetypeHandicap } = require('../ai/archetypeHandicaps');
 
 /** Randomly seeds entrants ({id, name, deck}) into a single-elimination bracket, padding to the next
  * power of 2 with byes (null slots) when the count isn't one already. */
@@ -12,24 +13,54 @@ function buildBracket(entrants, rng = Math.random) {
   return [...shuffled, ...Array(size - shuffled.length).fill(null)];
 }
 
+/** Per-entrant (not per-tournament) archetype handicap: `options.engineA/B` etc. are the tournament's
+ * one shared skill choice, but a known AI-advantaged archetype (src/ai/archetypeHandicaps.js) needs
+ * to be downgraded specifically whenever IT is playing, regardless of which bracket slot/opponent it's
+ * facing -- so this is resolved fresh per match from each side's actual deck, not once for the whole
+ * tournament like `options` itself is. `options.bypassHandicaps` (the "Newtype Awakening" opt-out,
+ * electron/renderer's Simulate/Tournament screens) skips this entirely -- an explicit user choice to
+ * see full-strength AI even for a known-lopsided archetype. */
+function withArchetypeHandicaps(deckA, deckB, options) {
+  if (options.bypassHandicaps) return options;
+  const a = applyArchetypeHandicap(deckA, { engine: options.engineA, mctsConfig: options.mctsConfigA, valueModel: options.valueModelA });
+  const b = applyArchetypeHandicap(deckB, { engine: options.engineB, mctsConfig: options.mctsConfigB, valueModel: options.valueModelB });
+  return { ...options, engineA: a.engine, mctsConfigA: a.mctsConfig, valueModelA: a.valueModel, engineB: b.engine, mctsConfigB: b.mctsConfig, valueModelB: b.valueModel };
+}
+
 /** Plays a best-of-N match, stopping as soon as one side clinches a majority. Draws/timeouts don't
  * score either side but still get replayed (capped at bestOf*4 attempts, against a pathological
  * always-draws matchup) -- ties that hit the cap are broken by a coin flip so the bracket can advance. */
 function playMatch(deckA, deckB, bestOf, options = {}) {
   const winsNeeded = Math.ceil(bestOf / 2);
   const maxAttempts = bestOf * 4;
+  const matchOptions = withArchetypeHandicaps(deckA, deckB, options);
   const games = [];
   let scoreA = 0;
   let scoreB = 0;
   while (scoreA < winsNeeded && scoreB < winsNeeded && games.length < maxAttempts) {
     const seed = Math.floor(Math.random() * 0x100000000);
-    const result = playGame(deckA, deckB, { ...options, seed });
+    const result = playGame(deckA, deckB, { ...matchOptions, seed });
     games.push(result);
     if (result.winner === 0) scoreA++;
     else if (result.winner === 1) scoreB++;
   }
   const winnerIdx = scoreA === scoreB ? (Math.random() < 0.5 ? 0 : 1) : scoreA > scoreB ? 0 : 1;
-  return { winnerIdx, scoreA, scoreB, games };
+  // Carries the actually-resolved (post-handicap) per-side engine/config forward onto the match result,
+  // not just the tournament-wide nominal preset -- so a saved tournament's replay can reproduce a
+  // handicapped match under the engine it was REALLY played with, not the un-adjusted one. See
+  // withArchetypeHandicaps above; electron/renderer/index.html's buildMatchGameRows is the consumer.
+  return {
+    winnerIdx,
+    scoreA,
+    scoreB,
+    games,
+    engineA: matchOptions.engineA,
+    engineB: matchOptions.engineB,
+    mctsConfigA: matchOptions.mctsConfigA,
+    mctsConfigB: matchOptions.mctsConfigB,
+    valueModelA: matchOptions.valueModelA,
+    valueModelB: matchOptions.valueModelB
+  };
 }
 
 function publicRef(entrant) {
@@ -303,4 +334,4 @@ function deckStats(entrantId, rounds) {
   };
 }
 
-module.exports = { buildBracket, playMatch, runTournament, runDoubleElimTournament, deckStats };
+module.exports = { buildBracket, playMatch, runTournament, runDoubleElimTournament, deckStats, withArchetypeHandicaps };

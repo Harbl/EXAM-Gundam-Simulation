@@ -39,4 +39,4 @@ function deleteTournament(dir, name) {
   if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
 }
 
-module.exports = { listTournaments, saveTournament, deleteTournament };
+module.exports = { listTournaments, saveTournament, deleteTournament, filePathFor };
