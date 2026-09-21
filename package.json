@@ -6,10 +6,13 @@
   "main": "electron/main.js",
   "scripts": {
     "start": "electron .",
+    "playtest": "electron playtest/main.js",
     "test": "node --test",
     "sim": "node bin/simulate.js",
     "images": "node bin/download-images.js",
-    "dist": "electron-builder --win --publish never"
+    "dist": "electron-builder --win --publish never",
+    "dist:playtest": "electron-builder --win --publish never --config electron-builder.playtest.json",
+    "dist:playtest:publish": "electron-builder --win --publish always --config electron-builder.playtest.json"
   },
   "devDependencies": {
     "electron": "^32.0.0",
@@ -42,6 +45,7 @@
   },
   "dependencies": {
     "adm-zip": "^0.6.0",
-    "electron-updater": "^6.8.9"
+    "electron-updater": "^6.8.9",
+    "pixi.js": "^8.19.0"
   }
 }

@@ -53,9 +53,14 @@ function dealShields(player) {
 
 /**
  * `deckA`/`deckB` are {main: CardDef[], resource: CardDef[]} with duplicates already expanded
- * (deck-list parsing/validation happens in src/deck, upstream of this).
+ * (deck-list parsing/validation happens in src/deck, upstream of this). Split into beginSetup (shuffle
+ * + starting hands + turn order, before either player's real mulligan decision is knowable) and
+ * finishSetup (mulligan through kickoff) so a caller that needs to pause for a real, awaited human
+ * mulligan choice -- the playtest app's turn driver, see playtest/engine/turnDriver.js -- can show the
+ * actual dealt hand before deciding, instead of initializeGame's single synchronous decideMulligan(hand)
+ * callback. initializeGame itself is unchanged behaviorally, just these two pieces run back to back.
  */
-function initializeGame(deckA, deckB, options = {}) {
+function beginSetup(deckA, deckB, options = {}) {
   // Seeded via options.rng (see src/rules/rng.js's mulberry32) for exact game reproducibility --
   // the replay viewer feature re-runs a past game from just its seed. Defaults to Math.random, the
   // only two call sites of which (both shuffles, plus this file's own coin flip below) this rng
@@ -71,9 +76,13 @@ function initializeGame(deckA, deckB, options = {}) {
   const firstIdx = options.decideFirstPlayerIdx ? options.decideFirstPlayerIdx() : rng() < 0.5 ? 0 : 1;
   const secondIdx = 1 - firstIdx;
 
-  // 6-2-1-6/7: Player One decides on their mulligan before Player Two does.
-  mulligan(players[firstIdx], options.decideMulligan, rng);
-  mulligan(players[secondIdx], options.decideMulligan, rng);
+  return { players, firstIdx, secondIdx, rng };
+}
+
+/** `decideMulligan`, if given, is called exactly twice, in 6-2-1-6/7 order (Player One then Player Two). */
+function finishSetup({ players, firstIdx, secondIdx, rng }, decideMulligan) {
+  mulligan(players[firstIdx], decideMulligan, rng);
+  mulligan(players[secondIdx], decideMulligan, rng);
 
   dealShields(players[firstIdx]);
   dealShields(players[secondIdx]);
@@ -84,10 +93,14 @@ function initializeGame(deckA, deckB, options = {}) {
   // 6-2-4: only Player Two starts with an EX Resource.
   players[secondIdx].resourceArea.push(createInstance(EX_RESOURCE_DEF, players[secondIdx].id));
 
-  const state = createGame(playerA, playerB);
+  const state = createGame(players[0], players[1]);
   state.activePlayerIdx = firstIdx;
   state.phase = 'start';
   return state;
 }
 
-module.exports = { initializeGame, draw, mulligan, dealShields, EX_BASE_DEF, EX_RESOURCE_DEF };
+function initializeGame(deckA, deckB, options = {}) {
+  return finishSetup(beginSetup(deckA, deckB, options), options.decideMulligan);
+}
+
+module.exports = { initializeGame, beginSetup, finishSetup, draw, mulligan, dealShields, EX_BASE_DEF, EX_RESOURCE_DEF };

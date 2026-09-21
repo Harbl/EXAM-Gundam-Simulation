@@ -1,0 +1,34 @@
+{
+  "appId": "com.jake.exam.playtest",
+  "productName": "EXAM Playtest",
+  "icon": "build/icon.png",
+  "win": {
+    "target": "nsis"
+  },
+  "nsis": {
+    "oneClick": false,
+    "allowToChangeInstallationDirectory": true,
+    "perMachine": false
+  },
+  "files": [
+    "playtest/**/*",
+    "src/**/*",
+    "data/**/*",
+    "package.json",
+    "!electron/**/*",
+    "!bin/**/*"
+  ],
+  "extraMetadata": {
+    "name": "exam-playtest",
+    "main": "playtest/main.js"
+  },
+  "directories": {
+    "output": "dist-playtest"
+  },
+  "publish": {
+    "provider": "github",
+    "owner": "Harbl",
+    "repo": "EXAM-Playtest",
+    "releaseType": "release"
+  }
+}

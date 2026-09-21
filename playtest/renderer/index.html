@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>EXAM Playtest</title>
+<style>
+  :root { color-scheme: dark; }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: 'Segoe UI', system-ui, sans-serif;
+    background: #0b0d12;
+    color: #e8e8ef;
+    height: 100vh;
+    overflow: hidden;
+  }
+  .hidden { display: none !important; }
+
+  /* --- Setup screen --- */
+  #setup-screen {
+    max-width: 640px;
+    margin: 40px auto;
+    padding: 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+  #setup-screen h1 { margin: 0 0 4px; font-size: 22px; }
+  #setup-screen textarea {
+    width: 100%;
+    height: 220px;
+    background: #14161d;
+    color: #e8e8ef;
+    border: 1px solid #333846;
+    border-radius: 6px;
+    padding: 10px;
+    font-family: Consolas, monospace;
+    font-size: 13px;
+    resize: vertical;
+  }
+  #setup-screen select, #setup-screen button {
+    background: #1c2029;
+    color: #e8e8ef;
+    border: 1px solid #333846;
+    border-radius: 6px;
+    padding: 10px 14px;
+    font-size: 14px;
+    cursor: pointer;
+  }
+  #setup-screen button:disabled { opacity: 0.4; cursor: not-allowed; }
+  #setup-screen button.primary { background: #2c5cc4; border-color: #2c5cc4; font-weight: 600; }
+  #validation-msg { min-height: 20px; font-size: 13px; }
+  #validation-msg.ok { color: #6fd67f; }
+  #validation-msg.error { color: #e8756f; }
+  .row { display: flex; gap: 10px; align-items: center; }
+
+  #update-banner {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 100;
+    background: #2c5cc4;
+    color: #fff;
+    border: none;
+    font-size: 13px;
+    font-weight: 600;
+    padding: 6px 12px;
+    cursor: pointer;
+  }
+  #update-banner:hover { filter: brightness(1.1); }
+  #update-banner:disabled { cursor: default; filter: brightness(0.85); }
+
+  /* --- Game screen --- */
+  #game-screen { display: flex; height: 100vh; }
+  #board-wrap { flex: 1; display: flex; align-items: center; justify-content: center; overflow: auto; }
+  #prompt-panel {
+    width: 320px;
+    flex-shrink: 0;
+    background: #12141b;
+    border-left: 1px solid #262a36;
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    overflow-y: auto;
+  }
+  #prompt-title { font-size: 15px; font-weight: 600; }
+  #prompt-body { font-size: 13px; color: #b7bbc9; line-height: 1.5; }
+  .action-btn {
+    display: block;
+    width: 100%;
+    text-align: left;
+    background: #1c2029;
+    color: #e8e8ef;
+    border: 1px solid #333846;
+    border-radius: 6px;
+    padding: 9px 12px;
+    margin-top: 6px;
+    font-size: 13px;
+    cursor: pointer;
+  }
+  .action-btn:hover { background: #262c3a; }
+  .action-btn.pass { color: #9aa0b0; }
+  .action-btn.confirm { background: #2c5cc4; border-color: #2c5cc4; font-weight: 600; }
+  .action-btn:disabled { opacity: 0.35; cursor: not-allowed; }
+  #game-over-banner {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.75);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    gap: 16px;
+    z-index: 50;
+  }
+  #game-over-banner h2 { font-size: 28px; }
+</style>
+</head>
+<body>
+
+<button id="update-banner"></button>
+
+<div id="setup-screen">
+  <h1>EXAM Playtest</h1>
+  <div id="validation-msg"></div>
+  <label>Paste your decklist:</label>
+  <textarea id="decklist-input" placeholder="4 GM ST01-005&#10;4 Guntank GD01-008&#10;..."></textarea>
+  <label class="row"><input type="checkbox" id="ai-deck-toggle" /> Give the AI a different deck (defaults to mirroring yours)</label>
+  <div id="ai-deck-wrap" class="hidden">
+    <label>AI opponent's decklist:</label>
+    <textarea id="ai-decklist-input" placeholder="4 GM ST01-005&#10;4 Guntank GD01-008&#10;..."></textarea>
+  </div>
+  <div class="row">
+    <button id="validate-btn">Validate</button>
+    <select id="skill-select"></select>
+    <button id="start-btn" class="primary" disabled>Start Game</button>
+  </div>
+</div>
+
+<div id="game-screen" class="hidden">
+  <div id="board-wrap"></div>
+  <div id="prompt-panel">
+    <div id="prompt-title">Waiting...</div>
+    <div id="prompt-body"></div>
+    <div id="prompt-actions"></div>
+  </div>
+</div>
+
+<div id="game-over-banner" class="hidden">
+  <h2 id="game-over-text"></h2>
+  <button id="play-again-btn" class="action-btn confirm" style="width:auto;">Back to Setup</button>
+</div>
+
+<script src="../../node_modules/pixi.js/dist/pixi.min.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

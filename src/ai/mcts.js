@@ -432,6 +432,7 @@ module.exports = {
   getLegalActions,
   applyAction,
   runSearch,
+  bestAction,
   uct,
   selectChild,
   clampedScore,
