@@ -1,5 +1,15 @@
 [
   {
+    "version": "0.3.0",
+    "date": "2026-09-20",
+    "notes": [
+      "Added the four newest starter decks -- ST11 \"Aquatic Assault,\" ST12 \"Raging Onslaught,\" ST13 \"Silent Barrage,\" and ST14 \"Heavy Dominion\" -- 64 cards, fully wired with real effects and AI support, not just data entries.",
+      "The-O can lock down the lowest-Lv. rested Units on your opponent's side so they stay rested through their own start phase.",
+      "Full Armor Unicorn Gundam (Destroy Mode) shrugs off one battle hit per turn from a lower-AP attacker while paired.",
+      "Several new [Activate*Main]/[Activate*Action] abilities are wired into AI decision-making, not just playable by hand."
+    ]
+  },
+  {
     "version": "0.2.0",
     "date": "2026-08-07",
     "notes": [

@@ -447,10 +447,20 @@ function getForcedAttackTargets(defendingPlayer, attacker = null) {
   );
 }
 
-function chooseAttackTarget(opponent, attacker, unitOnly = false, player = null) {
+/**
+ * Every target `attacker` may legally declare against `opponent` (8-2's real target-eligibility rule),
+ * as a flat list of `{type:'unit', instance}` / `{type:'player'}` options -- not just the one
+ * chooseAttackTarget's own profitability heuristic would pick. Extracted so a real human controller
+ * (playtest/engine/turnDriver.js) can offer the player a genuine choice among all legal targets instead
+ * of only ever getting the AI's best-trade pick; chooseAttackTarget below is rewritten to build its
+ * pick from this same list, so the two can never drift apart.
+ */
+function getEligibleAttackTargets(opponent, attacker, unitOnly = false, player = null) {
   const forcedTargets = getForcedAttackTargets(opponent, attacker);
   if (forcedTargets.length > 0) {
-    return { type: 'unit', instance: forcedTargets.sort((a, b) => getAP(b) - getAP(a))[0] };
+    // 8-2-1: a forced target compels the attacker to choose one of these Units -- any of them, not
+    // just the AI's highest-AP pick (that ranking is chooseAttackTarget's own heuristic preference).
+    return forcedTargets.map((u) => ({ type: 'unit', instance: u }));
   }
   const attackerAP = getAP(attacker);
   // Wing Gundam ST02-001 (static) / Athrun Zala ST04-011 (When Linked buff): "may choose an active
@@ -488,17 +498,46 @@ function chooseAttackTarget(opponent, attacker, unitOnly = false, player = null)
     (attacker.pilot.def.traits || []).includes(keywordCond.trait) &&
     player &&
     player.trash.length >= keywordCond.trashCount;
+  // Char's Z'Gok ST11-001: "While 2 or more other friendly (Marine) Units are in play, enemy Units
+  // can't choose this Unit as their attack target" -- a narrowing exclusion, unlike every widening
+  // condition above. The Orca of Red Sea ST11-014 grants the same exclusion as a this-turn buff
+  // instead of a static card-data condition, so both the def field and a buff are checked.
+  const isExcludedFromTargeting = (u) => {
+    if (u.buffs.some((b) => b.cannotBeAttackTarget)) return true;
+    const cond = u.def.cannotBeAttackTargetIfFriendlyTraitCountAtLeast;
+    if (!cond) return false;
+    const count = opponent.battleArea.filter((o) => o !== u && (o.def.traits || []).includes(cond.trait)).length;
+    return count >= cond.count;
+  };
   const isEligibleTarget = (u) =>
-    u.rested ||
+    !isExcludedFromTargeting(u) &&
+    (u.rested ||
     (activeCap !== undefined && (u.def.level || 0) <= activeCap) ||
     (activeAPCap && getAP(u) <= attackerAP) ||
     (apThresholdBuff && getAP(u) <= apThresholdBuff.activeTargetAPThreshold) ||
     (noPilotBuff && !u.pilot) ||
     (damagedBuff && u.damage > 0) ||
     (keywordBuff && getKeywords(u)[keywordBuff.activeTargetIfKeyword]) ||
-    (keywordTargetActive && Object.values(getKeywords(u)).some(Boolean));
-  const goodTrades = opponent.battleArea
-    .filter((u) => isEligibleTarget(u) && attackerAP >= getRemainingHP(u) && getAP(u) < getRemainingHP(attacker))
+    (keywordTargetActive && Object.values(getKeywords(u)).some(Boolean)));
+  const eligibleUnits = opponent.battleArea.filter(isEligibleTarget);
+  const targets = eligibleUnits.map((u) => ({ type: 'unit', instance: u }));
+  if (!unitOnly) {
+    const cannotAttackPlayer = attacker.def.cannotAttackPlayer || attacker.buffs.some((b) => b.cannotAttackPlayer);
+    if (!cannotAttackPlayer) targets.push({ type: 'player' });
+  }
+  return targets;
+}
+
+function chooseAttackTarget(opponent, attacker, unitOnly = false, player = null) {
+  const options = getEligibleAttackTargets(opponent, attacker, unitOnly, player);
+  const forcedTargets = getForcedAttackTargets(opponent, attacker);
+  if (forcedTargets.length > 0) {
+    return { type: 'unit', instance: forcedTargets.sort((a, b) => getAP(b) - getAP(a))[0] };
+  }
+  const attackerAP = getAP(attacker);
+  const eligibleUnits = options.filter((o) => o.type === 'unit').map((o) => o.instance);
+  const goodTrades = eligibleUnits
+    .filter((u) => attackerAP >= getRemainingHP(u) && getAP(u) < getRemainingHP(attacker))
     .sort((a, b) => getAP(b) - getAP(a));
   // "When this Unit deals battle damage to an enemy Unit [conditions], destroy that enemy Unit" --
   // a real kill condition independent of raw AP-vs-HP math, so the generic goodTrades filter above
@@ -521,18 +560,15 @@ function chooseAttackTarget(opponent, attacker, unitOnly = false, player = null)
     (!destroyRule.requireControllerPilotTrait ||
       (player && player.battleArea.some((u) => u.pilot && (u.pilot.def.traits || []).includes(destroyRule.requireControllerPilotTrait))));
   const executionTargets = destroyRuleActive
-    ? opponent.battleArea.filter(
+    ? eligibleUnits.filter(
         (u) =>
-          isEligibleTarget(u) &&
           (!destroyRule.requireNoPilot || !u.pilot) &&
           (destroyRule.levelCap === undefined || (u.def.level || 0) <= destroyRule.levelCap)
       )
     : [];
   const bestTarget = [...goodTrades, ...executionTargets].sort((a, b) => getAP(b) - getAP(a))[0];
   if (bestTarget) return { type: 'unit', instance: bestTarget };
-  if (unitOnly) return null;
-  const cannotAttackPlayer = attacker.def.cannotAttackPlayer || attacker.buffs.some((b) => b.cannotAttackPlayer);
-  return cannotAttackPlayer ? null : { type: 'player' };
+  return options.find((o) => o.type === 'player') || null;
 }
 
 /** Every Unit currently eligible to attack this turn, in the order they should be resolved in. */
@@ -540,7 +576,10 @@ function collectAttackCandidates(state, playerIdx) {
   const player = state.players[playerIdx];
   return player.battleArea
     .filter(
-      (u) => u.def.type === 'unit' && !u.rested && !u.buffs.some((b) => b.cannotAttack)
+      // Bit/Funnel Unit tokens (Qubeley ST13-001, Elmeth ST13-002, etc.): "This Unit can't be paired
+      // with a Pilot or attack" -- a permanent per-def restriction, unlike the temporary cannotAttack
+      // buff below.
+      (u) => u.def.type === 'unit' && !u.rested && !u.def.cannotAttack && !u.buffs.some((b) => b.cannotAttack)
         && (u.isLinkUnit || u.turnDeployed !== state.turnNumber || u.def.attackOnDeployRestedOnly
             || u.buffs.some((b) => b.canAttackOnDeployTurn))
         // AEU Enact Demonstration Color GD03-081: "This Unit can only attack during a turn when one
@@ -662,7 +701,14 @@ function collectBlockCandidates(defendingPlayer, attacker, target, attackingPlay
         // chooseBlocker now takes attackingPlayer as an optional 4th param (every existing 3-arg
         // caller/test still works; this is the first consumer of the new arg).
         (u.def.blockerWhileEnemyUnitCountAtLeast !== undefined && attackingPlayer &&
-          attackingPlayer.battleArea.length >= u.def.blockerWhileEnemyUnitCountAtLeast)) &&
+          attackingPlayer.battleArea.length >= u.def.blockerWhileEnemyUnitCountAtLeast) ||
+        // Zock ST11-003: "While another friendly (Marine) Unit is in play, this Unit gains
+        // [Blocker]" -- same shape as Gustav Karl Type-00 above, just counting the DEFENDING side's
+        // own field (by trait) instead of the attacker's Unit count.
+        (u.def.blockerWhileFriendlyUnitTraitCountAtLeast !== undefined &&
+          defendingPlayer.battleArea.filter(
+            (o) => o !== u && (o.def.traits || []).includes(u.def.blockerWhileFriendlyUnitTraitCountAtLeast.trait)
+          ).length >= u.def.blockerWhileFriendlyUnitTraitCountAtLeast.count)) &&
       !(target.type === 'unit' && target.instance === u) &&
       // Girty Lue GD05-127: "choose 1 enemy Unit. It can't activate [Blocker] during this turn."
       !u.buffs.some((b) => b.cannotBlock)
@@ -936,8 +982,11 @@ module.exports = {
   collectCommandCandidates,
   canDeployBase,
   chooseAttackTarget,
+  getEligibleAttackTargets,
+  collectBlockCandidates,
   chooseBlocker,
   chooseBlockerLookahead,
+  chooseBurst,
   actionStep,
   getForcedAttackTargets,
   chooseDiscards,

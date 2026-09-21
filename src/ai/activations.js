@@ -330,6 +330,33 @@ const RESOLVERS = {
   SUPPORT: (state, player, opponent, source) => {
     const target = player.battleArea.filter((u) => u !== source).sort((a, b) => getAP(b) - getAP(a))[0];
     return target ? { target } : null;
+  },
+  // Unicorn Gundam 02 Banshee (Destroy Mode) ST12-006: [During Pair] gate (see registry.js's own
+  // comment on why both its abilities are read as During-Pair-gated), needs 4+ trash cards to exile.
+  'ST12-006': (state, player, opponent, source) => (source.pilot && player.trash.length >= 4 ? {} : null),
+  // Libra ST12-016: guards via source.rested (already covered by the activator filter) -- needs
+  // player.pairedUnitDestroyedEnemyThisTurn (combat.js's fireDestroysEnemy) and a Lv.4-or-lower enemy
+  // Unit to target.
+  'ST12-016': (state, player, opponent) => {
+    if (!player.pairedUnitDestroyedEnemyThisTurn) return null;
+    return opponent.battleArea.some((u) => (u.def.level || 0) <= 4) ? {} : null;
+  },
+  // Qubeley ST13-001: "(1): Choose 1 of your Unit tokens and 1 enemy Unit. Begin a battle between
+  // them and only perform the damage step." Once per Turn (source.activationsUsed.tokenBattle).
+  'ST13-001': (state, player, opponent, source) => {
+    if (source.activationsUsed.tokenBattle) return null;
+    if (!player.resourceArea.some((r) => !r.rested)) return null;
+    const tokenUnit = player.battleArea.find((u) => u.def.number === 'TOKEN-BIT-FUNNEL');
+    if (!tokenUnit) return null;
+    const target = opponent.battleArea.sort((a, b) => getAP(b) - getAP(a))[0];
+    return target ? { tokenUnit, target } : null;
+  },
+  // Red Gundam (0079) ST13-010: "Destroy 1 friendly Unit token: This Unit gains [Breach 3] during
+  // this turn." Once per Turn.
+  'ST13-010': (state, player, opponent, source) => {
+    if (source.activationsUsed.breachFromToken) return null;
+    const token = player.battleArea.find((u) => u !== source && u.def.isToken);
+    return token ? { token } : null;
   }
 };
 
@@ -492,6 +519,25 @@ const ACTION_RESOLVERS = {
     if (player.trash.filter((c) => c.def.type === 'command').length < 2) return null;
     if (target.type !== 'unit' || target.instance !== source) return null;
     return {};
+  },
+  // Milliardo Peacecraft ST12-011 (Pilot, gained by its paired Unit): "Choose 1 damaged enemy Unit
+  // battling this Unit. Deal 2 damage to it" -- the defending-side half (source is the Unit actually
+  // under attack); the attacking-side half is the mirrored entry in ATTACKER_ACTION_RESOLVERS below,
+  // sharing the same activationsUsed flag and handler (registry.js's milliardoST12011Action).
+  'ST12-011': (state, player, opponent, source, { attacker, target }) => {
+    if (source.activationsUsed.dealDamageAction) return null;
+    if (!source.pilot || target.type !== 'unit' || target.instance !== source) return null;
+    return attacker.damage > 0 ? { target: attacker } : null;
+  },
+  // Gundam Aerial ST13-006: "Rest 1 friendly Unit: choose 1 enemy Unit that is Lv.4 or lower. Deal 1
+  // damage to it." No "while attacking" qualifier printed, so wired into both action-resolver tables
+  // like Milliardo above -- this is the defending-side half.
+  'ST13-006': (state, player, opponent, source) => {
+    if (source.activationsUsed.restForDamage) return null;
+    const restUnit = player.battleArea.filter((u) => !u.rested).sort((a, b) => getAP(a) - getAP(b))[0];
+    if (!restUnit) return null;
+    const target = opponent.battleArea.filter((u) => (u.def.level || 0) <= 4).sort((a, b) => getRemainingHP(a) - getRemainingHP(b))[0];
+    return target ? { restUnit, target } : null;
   }
 };
 
@@ -518,10 +564,28 @@ const ATTACKER_ACTION_RESOLVERS = {
     const candidates = player.battleArea.filter((u) => (u.def.traits || []).includes('ZAFT') && getAP(u) >= 5);
     return candidates.length > 0 ? {} : null;
   },
+  // Unicorn Gundam 02 Banshee (Destroy Mode) ST12-006: "[During Pair] ... gains [Suppression] during
+  // this battle" -- only registered here (attacking side), since Suppression's shield-splitting effect
+  // only ever matters while this Unit is the one attacking.
+  'ST12-006': (state, player, opponent, source) => (source.pilot && player.trash.length >= 4 ? {} : null),
   // Moebius (Peacemaker Team) GD02-011: only legal while actually attacking the enemy player directly
   // (its own handler's guard is `context.target.type !== 'player'`) -- passes the raw {type, instance?}
   // descriptor through unwrapped, matching what the handler expects.
-  'GD02-011': (state, player, opponent, source, { target }) => (target.type === 'player' ? { target } : null)
+  'GD02-011': (state, player, opponent, source, { target }) => (target.type === 'player' ? { target } : null),
+  // Milliardo Peacecraft ST12-011: the attacking-side half -- see the ACTION_RESOLVERS entry above.
+  'ST12-011': (state, player, opponent, source, { attacker, target }) => {
+    if (source.activationsUsed.dealDamageAction) return null;
+    if (!source.pilot || attacker !== source || target.type !== 'unit') return null;
+    return target.instance.damage > 0 ? { target: target.instance } : null;
+  },
+  // Gundam Aerial ST13-006: the attacking-side half -- see the ACTION_RESOLVERS entry above.
+  'ST13-006': (state, player, opponent, source) => {
+    if (source.activationsUsed.restForDamage) return null;
+    const restUnit = player.battleArea.filter((u) => !u.rested).sort((a, b) => getAP(a) - getAP(b))[0];
+    if (!restUnit) return null;
+    const target = opponent.battleArea.filter((u) => (u.def.level || 0) <= 4).sort((a, b) => getRemainingHP(a) - getRemainingHP(b))[0];
+    return target ? { restUnit, target } : null;
+  }
 };
 
 /**

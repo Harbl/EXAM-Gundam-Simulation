@@ -1,0 +1,88 @@
+[
+  {
+    "number": "ST13-001", "name": "Qubeley", "type": "unit", "color": "green",
+    "level": 7, "cost": 5, "ap": 5, "hp": 5, "traits": ["Neo Zeon"],
+    "linkCondition": "Haman Karn",
+    "effectRefs": { "allyPaired": "qubeleyST13001AllyPaired", "activateMain": "qubeleyST13001ActivateMain" }
+  },
+  {
+    "number": "ST13-002", "name": "Elmeth", "type": "unit", "color": "green",
+    "level": 4, "cost": 3, "ap": 3, "hp": 3, "traits": ["Zeon"],
+    "linkCondition": "Lalah Sune",
+    "effectRefs": { "deploy": "elmethST13002Deploy" }
+  },
+  {
+    "number": "ST13-003", "name": "Bertigo", "type": "unit", "color": "green",
+    "level": 4, "cost": 2, "ap": 3, "hp": 4, "traits": ["SRA"],
+    "linkCondition": "Carris Nautilus"
+  },
+  {
+    "number": "ST13-004", "name": "GX-Bit", "type": "unit", "color": "green",
+    "level": 2, "cost": 2, "ap": 3, "hp": 1, "traits": ["Old UNE", "Vulture", "Long-Range Weapon"],
+    "effectRefs": { "deploy": "gxBitST13004Deploy" }
+  },
+  {
+    "number": "ST13-005", "name": "GFreD", "type": "unit", "color": "green",
+    "level": 3, "cost": 2, "ap": 3, "hp": 2, "traits": ["Zeon"],
+    "effectRefs": { "deploy": "gFreDST13005Deploy" }
+  },
+  {
+    "number": "ST13-006", "name": "Gundam Aerial", "type": "unit", "color": "red",
+    "level": 6, "cost": 5, "ap": 5, "hp": 4, "traits": ["Academy"],
+    "linkCondition": "Suletta Mercury",
+    "effectRefs": { "attack": "gundamAerialST13006Attack", "activateAction": "gundamAerialST13006Action" }
+  },
+  {
+    "number": "ST13-007", "name": "Gyunei's Jagd Doga", "type": "unit", "color": "red",
+    "level": 4, "cost": 3, "ap": 3, "hp": 4, "traits": ["Neo Zeon"],
+    "linkCondition": "Neo Zeon",
+    "keywords": { "support": 1 }
+  },
+  {
+    "number": "ST13-008", "name": "Gundam Throne Zwei", "type": "unit", "color": "red",
+    "level": 3, "cost": 2, "ap": 4, "hp": 3, "traits": ["CB", "Trinity"]
+  },
+  {
+    "number": "ST13-009", "name": "Gundam Pharact", "type": "unit", "color": "red",
+    "level": 3, "cost": 2, "ap": 3, "hp": 3, "traits": ["Academy"],
+    "linkCondition": "Academy",
+    "effectRefs": { "attack": "gundamPharactST13009Attack" }
+  },
+  {
+    "number": "ST13-010", "name": "Red Gundam (0079)", "type": "unit", "color": "red",
+    "level": 5, "cost": 4, "ap": 4, "hp": 4, "traits": ["Zeon"],
+    "linkCondition": "Newtype",
+    "effectRefs": { "activateMain": "redGundam0079ST13010ActivateMain" }
+  },
+  {
+    "number": "ST13-011", "name": "Haman Karn", "type": "pilot", "color": "green",
+    "level": 6, "cost": 1, "apBonus": 2, "hpBonus": 2, "traits": ["Neo Zeon", "Newtype"],
+    "effectRefs": { "burst": "addSelfToHandBurst", "whenPaired": "hamanKarnST13011WhenPaired" }
+  },
+  {
+    "number": "ST13-012", "name": "Suletta Mercury", "type": "pilot", "color": "red",
+    "level": 4, "cost": 1, "apBonus": 2, "hpBonus": 1, "traits": ["Academy"],
+    "effectRefs": { "burst": "addSelfToHandBurst", "destroysEnemy": "sulettaMercuryST13012DestroysEnemy" }
+  },
+  {
+    "number": "ST13-013", "name": "I'm a Newtype", "type": "command", "color": "green",
+    "level": 4, "cost": 1,
+    "pilotMode": { "name": "Carris Nautilus", "apBonus": 1, "hpBonus": 1 },
+    "effectRefs": { "command": "imANewtypeST13013Command" }
+  },
+  {
+    "number": "ST13-014", "name": "Final Duty", "type": "command", "color": "red",
+    "level": 6, "cost": 2,
+    "effectRefs": { "command": "finalDutyST13014Command" }
+  },
+  {
+    "number": "ST13-015", "actionTiming": "both", "name": "Operation to Intercept Solomon", "type": "command", "color": "red",
+    "level": 4, "cost": 2,
+    "effectRefs": { "burst": "operationToInterceptSolomonST13015Burst", "command": "operationToInterceptSolomonST13015Command" }
+  },
+  {
+    "number": "ST13-016", "name": "Sodon", "type": "base", "color": "green",
+    "level": 2, "cost": 1, "ap": 0, "hp": 5, "traits": ["Zeon", "Warship"],
+    "effectRefs": { "burst": "simpleBurstBase", "deploy": "sodonST13016Deploy" }
+  }
+]

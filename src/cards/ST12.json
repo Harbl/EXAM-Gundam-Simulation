@@ -1,0 +1,92 @@
+[
+  {
+    "number": "ST12-001", "name": "Gundam Epyon", "type": "unit", "color": "red",
+    "level": 7, "cost": 6, "ap": 5, "hp": 5, "traits": ["White Fang"],
+    "linkCondition": "Zechs Merquise",
+    "effectRefs": { "destroysEnemy": "gundamEpyonST12001DestroysEnemy", "deploy": "gundamEpyonST12001Deploy" }
+  },
+  {
+    "number": "ST12-002", "name": "Shining Gundam", "type": "unit", "color": "red",
+    "level": 5, "cost": 4, "ap": 5, "hp": 4, "traits": ["MF", "Shuffle Alliance"],
+    "linkCondition": "Domon Kasshu",
+    "effectRefs": { "deploy": "shiningGundamST12002Deploy" }
+  },
+  {
+    "number": "ST12-003", "name": "Tallgeese III", "type": "unit", "color": "red",
+    "level": 5, "cost": 4, "ap": 4, "hp": 4, "traits": ["Preventer"],
+    "linkCondition": "Zechs Merquise",
+    "effectRefs": { "destroysEnemy": "tallgeeseIIIST12003DestroysEnemy" }
+  },
+  {
+    "number": "ST12-004", "name": "Gundam Exia", "type": "unit", "color": "red",
+    "level": 4, "cost": 3, "ap": 3, "hp": 4, "traits": ["CB", "GN Drive"],
+    "linkCondition": "Setsuna F. Seiei",
+    "keywords": { "breach": 3 }
+  },
+  {
+    "number": "ST12-005", "name": "GQuuuuuuX (Omega Psycommu)", "type": "unit", "color": "red",
+    "level": 3, "cost": 2, "ap": 3, "hp": 2, "traits": ["Clan"],
+    "linkCondition": "Amate Yuzuriha (Machu)/Nyaan",
+    "effectRefs": { "attack": "gQuuuuuuXST12005Attack" }
+  },
+  {
+    "number": "ST12-006", "name": "Unicorn Gundam 02 Banshee (Destroy Mode)", "type": "unit", "color": "purple",
+    "level": 6, "cost": 5, "ap": 5, "hp": 4, "traits": ["Earth Federation"],
+    "linkCondition": "Marida Cruz",
+    "effectRefs": { "activateMain": "unicornBansheeDestroyModeST12006ActivateMain", "activateAction": "unicornBansheeDestroyModeST12006ActivateAction" }
+  },
+  {
+    "number": "ST12-007", "name": "Gyan", "type": "unit", "color": "purple",
+    "level": 2, "cost": 2, "ap": 3, "hp": 1, "traits": ["Zeon"],
+    "linkCondition": "M'Quve",
+    "effectRefs": { "whenLinked": "gyanST12007WhenLinked" }
+  },
+  {
+    "number": "ST12-008", "name": "Efreet Schneid", "type": "unit", "color": "purple",
+    "level": 4, "cost": 2, "ap": 4, "hp": 3, "traits": ["Zeon"],
+    "linkCondition": "Zeon"
+  },
+  {
+    "number": "ST12-009", "name": "Unicorn Gundam 02 Banshee (Unicorn Mode)", "type": "unit", "color": "purple",
+    "level": 4, "cost": 3, "ap": 3, "hp": 4, "traits": ["Earth Federation"],
+    "linkCondition": "Marida Cruz",
+    "effectRefs": { "destroyed": "unicornBansheeUnicornModeST12009Destroyed" }
+  },
+  {
+    "number": "ST12-010", "name": "Slash Zaku Phantom", "type": "unit", "color": "purple",
+    "level": 2, "cost": 1, "ap": 2, "hp": 2, "traits": ["ZAFT"]
+  },
+  {
+    "number": "ST12-011", "name": "Milliardo Peacecraft", "type": "pilot", "color": "red",
+    "level": 5, "cost": 1, "apBonus": 3, "hpBonus": 1, "traits": ["White Fang"],
+    "nameAlias": "Zechs Merquise",
+    "effectRefs": { "burst": "addSelfToHandBurst", "activateAction": "milliardoST12011Action" }
+  },
+  {
+    "number": "ST12-012", "name": "Ple-Twelve", "type": "pilot", "color": "purple",
+    "level": 4, "cost": 1, "apBonus": 1, "hpBonus": 2, "traits": ["Earth Federation", "Cyber-Newtype"],
+    "nameAlias": "Marida Cruz",
+    "effectRefs": { "burst": "addSelfToHandBurst", "whenLinked": "pleTwelveST12012WhenLinked" }
+  },
+  {
+    "number": "ST12-013", "name": "The Final Victor", "type": "command", "color": "red",
+    "level": 6, "cost": 2,
+    "effectRefs": { "burst": "theFinalVictorST12013Burst", "command": "theFinalVictorST12013Command" }
+  },
+  {
+    "number": "ST12-014", "actionTiming": "action", "name": "Wise Leader's Pride", "type": "command", "color": "purple",
+    "level": 3, "cost": 1,
+    "pilotMode": { "name": "M'Quve", "apBonus": 1, "hpBonus": 0 },
+    "effectRefs": { "command": "wiseLeadersPrideST12014Command" }
+  },
+  {
+    "number": "ST12-015", "actionTiming": "action", "name": "Two Unicorns", "type": "command", "color": "purple",
+    "level": 4, "cost": 1,
+    "effectRefs": { "command": "twoUnicornsST12015Command" }
+  },
+  {
+    "number": "ST12-016", "name": "Libra", "type": "base", "color": "red",
+    "level": 3, "cost": 1, "ap": 0, "hp": 5, "traits": ["White Fang", "Warship"],
+    "effectRefs": { "burst": "simpleBurstBase", "deploy": "libraST12016Deploy", "activateMain": "libraST12016ActivateMain" }
+  }
+]

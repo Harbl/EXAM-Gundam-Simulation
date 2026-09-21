@@ -21,13 +21,15 @@ const { drawCard } = require('./phases');
  * place for a redirect-style reactive Command to retarget this battle -- chooseBurst(shieldInstance,
  * state) => boolean.
  */
-function resolveAttack(state, attackerPlayerIdx, attacker, declaredTarget, hooks = {}) {
-  const attackingPlayer = state.players[attackerPlayerIdx];
-  const defendingPlayer = state.players[1 - attackerPlayerIdx];
-
-  // --- Attack step (8-2) ---
+/**
+ * The attack step (8-2) alone: rests the attacker and fires the 'attack'/'allyAttack' triggers.
+ * Split out from resolveAttack so a caller that needs to run its own block/action-step negotiation
+ * before handing off to resolveFromBlockDecision (e.g. an interactive turn driver awaiting a real
+ * player's blocker choice) can still fire these triggers exactly once, via the same code path
+ * resolveAttack itself uses -- not a reimplementation.
+ */
+function fireAttackTriggers(state, attackingPlayer, attacker, target) {
   attacker.rested = true;
-  let target = declaredTarget;
   fireCardEffect(state, attackingPlayer, attacker, 'attack', { target });
   // The-O (LR+) GD03-002: "[During Pair] When one of your other Units with <Repair> attacks..." --
   // the only card so far reacting to an ally's attack rather than its own, so broadcast a new
@@ -36,6 +38,15 @@ function resolveAttack(state, attackerPlayerIdx, attacker, declaredTarget, hooks
     if (ally === attacker) continue;
     fireCardEffect(state, attackingPlayer, ally, 'allyAttack', { attacker, target });
   }
+}
+
+function resolveAttack(state, attackerPlayerIdx, attacker, declaredTarget, hooks = {}) {
+  const attackingPlayer = state.players[attackerPlayerIdx];
+  const defendingPlayer = state.players[1 - attackerPlayerIdx];
+
+  // --- Attack step (8-2) ---
+  let target = declaredTarget;
+  fireAttackTriggers(state, attackingPlayer, attacker, target);
 
   const attackerStillIn = () => attackingPlayer.battleArea.includes(attacker);
   const targetStillIn = () =>
@@ -60,6 +71,25 @@ function resolveAttack(state, attackerPlayerIdx, attacker, declaredTarget, hooks
  * on a clone would double-fire 'attack'/'allyAttack' triggers, which is a real correctness bug for
  * any card that reacts to its own attack (e.g. "[Attack] deal 1 damage" would deal 2 in the trial).
  */
+/**
+ * Applies an already-decided block (13-1-4/8-3-3): rests the blocker, redirects `declaredTarget` to
+ * it, and flags the attacker as blocked-this-battle. Split out of resolveFromBlockDecision so a caller
+ * that needs to know the real post-block target *before* running its own action-step negotiation (the
+ * interactive turn driver -- action step 8-4 happens after block step 8-3, so Command/ability context
+ * like "the Unit under attack" must already reflect the block) can apply it once, directly, then hand
+ * the resulting target to resolveFromBlockDecision as `declaredTarget` with `chosenBlocker: null` so it
+ * isn't reapplied.
+ */
+function applyBlockDecision(attacker, declaredTarget, chosenBlocker) {
+  if (chosenBlocker.rested) throw new Error('Blocker must be active (13-1-4)');
+  if (declaredTarget.type === 'unit' && declaredTarget.instance === chosenBlocker) {
+    throw new Error("The original attack target can't activate its own Blocker (8-3-3)");
+  }
+  chosenBlocker.rested = true;
+  attacker.buffs.push({ wasBlockedThisBattle: true, scope: 'battle' });
+  return { type: 'unit', instance: chosenBlocker };
+}
+
 function resolveFromBlockDecision(state, attackerPlayerIdx, attacker, declaredTarget, chosenBlocker, hooks = {}) {
   const attackingPlayer = state.players[attackerPlayerIdx];
   const defendingPlayer = state.players[1 - attackerPlayerIdx];
@@ -70,13 +100,7 @@ function resolveFromBlockDecision(state, attackerPlayerIdx, attacker, declaredTa
     target.type === 'player' || defendingPlayer.battleArea.includes(target.instance);
 
   if (attackerStillIn() && targetStillIn() && chosenBlocker) {
-    if (chosenBlocker.rested) throw new Error('Blocker must be active (13-1-4)');
-    if (target.type === 'unit' && target.instance === chosenBlocker) {
-      throw new Error("The original attack target can't activate its own Blocker (8-3-3)");
-    }
-    chosenBlocker.rested = true;
-    target = { type: 'unit', instance: chosenBlocker };
-    attacker.buffs.push({ wasBlockedThisBattle: true, scope: 'battle' });
+    target = applyBlockDecision(attacker, target, chosenBlocker);
   }
 
   // --- Action step (8-4) ---
@@ -168,6 +192,30 @@ function fireDestroysShield(state, attackingPlayer, attacker) {
     const handler = c.def.effects && c.def.effects.friendlyUnitDestroysShield;
     if (handler) handler(state, attackingPlayer, c, { attacker });
   }
+}
+
+/**
+ * Predicts which Shield(s), if any, an attack on the player would hit right now -- without mutating
+ * state -- by mirroring resolveDamageStep's own player-target branch below exactly (Base-first, then
+ * the same three immunity checks, then <Suppression>'s hit count). Lets a caller (the interactive turn
+ * driver) ask a real chooseBurst question *before* resolveFromBlockDecision actually destroys the
+ * Shield(s) a moment later, since resolveBurst's hook is called synchronously deep inside that call and
+ * can't itself be awaited without threading async through the whole combat module. Safe as long as
+ * nothing mutates the Base/battleArea/shields between this call and the resolveFromBlockDecision call
+ * that follows it -- true for the turn driver, which calls this only after block + the action step are
+ * already finished.
+ */
+function predictShieldHits(defendingPlayer, attacker) {
+  if (defendingPlayer.base) return [];
+  if (
+    defendingPlayer.shieldDamageImmuneLevelCap !== undefined &&
+    (attacker.def.level || 0) <= defendingPlayer.shieldDamageImmuneLevelCap
+  ) {
+    return [];
+  }
+  if (defendingPlayer.battleArea.some((u) => u.rested && u.def.shieldDamageImmuneWhileRested)) return [];
+  const hitCount = getKeywords(attacker).suppression ? Math.min(2, defendingPlayer.shields.length) : Math.min(1, defendingPlayer.shields.length);
+  return defendingPlayer.shields.slice(0, hitCount);
 }
 
 function resolveDamageStep(state, attackingPlayer, defendingPlayer, attacker, target, hooks) {
@@ -325,6 +373,22 @@ function isImmuneToLowAPEnemyDamage(instance, enemyAP) {
 }
 
 /**
+ * Full Armor Unicorn Gundam (Destroy Mode) ST14-006: "[During Pair][Once per Turn] When this Unit
+ * would receive battle damage from an enemy Unit with AP equal to or less than it, it doesn't
+ * receive that damage." Unlike the buff-based cap above, the cap here is this Unit's own current AP
+ * (live-computed, not fixed), and it's stateful -- consumes a once-per-turn flag on success -- so it's
+ * checked and consumed together rather than as a pure predicate. Checked at the same 4 call sites as
+ * isImmuneToLowAPEnemyDamage above, since the source text doesn't restrict which role applies either.
+ */
+function isImmuneToLowAPEnemyDamageOncePerTurnWhilePaired(instance, enemyAP) {
+  if (!instance.def.lowAPEnemyDamageImmuneOncePerTurnWhilePaired) return false;
+  if (!instance.pilot || instance.activationsUsed.lowAPDamageImmune) return false;
+  if (enemyAP > getAP(instance)) return false;
+  instance.activationsUsed.lowAPDamageImmune = true;
+  return true;
+}
+
+/**
  * Modification EB01-079: "Choose 1 friendly (G Generation) Unit. It can't receive battle damage
  * from enemy Units that are Lv.3 or lower during this turn" -- a turn-scoped buff, same
  * lowAPEnemyDamageImmuneCap shape as above but keyed on the enemy's level and checked on both sides
@@ -371,6 +435,7 @@ function resolveUnitBattleDamage(state, attackingPlayer, defendingPlayer, attack
     if (
       !isImmuneToLowHPEnemyDamage(defender, getHP(attacker)) &&
       !isImmuneToLowAPEnemyDamage(defender, attackerAP) &&
+      !isImmuneToLowAPEnemyDamageOncePerTurnWhilePaired(defender, attackerAP) &&
       !isImmuneToLowLevelEnemyDamage(defender, attacker.def.level || 0) &&
       !isImmuneViaNamedToken(defendingPlayer, defender) &&
       !isImmuneToLowLevelEnemyDamageWhilePaired(defender, defendingPlayer, attackingPlayer, attacker.def.level || 0)
@@ -390,6 +455,7 @@ function resolveUnitBattleDamage(state, attackingPlayer, defendingPlayer, attack
       !isImmuneToLowLevelReturnDamage(attacker, defender.def.level || 0) &&
       !isImmuneToLowHPEnemyDamage(attacker, getHP(defender)) &&
       !isImmuneToLowAPEnemyDamage(attacker, defenderAP) &&
+      !isImmuneToLowAPEnemyDamageOncePerTurnWhilePaired(attacker, defenderAP) &&
       !isImmuneToLowLevelEnemyDamage(attacker, defender.def.level || 0) &&
       !isImmuneViaNamedToken(attackingPlayer, attacker) &&
       !isImmuneWhileBattlingBlocker(attacker)
@@ -404,6 +470,7 @@ function resolveUnitBattleDamage(state, attackingPlayer, defendingPlayer, attack
   if (
     !isImmuneToLowHPEnemyDamage(defender, getHP(attacker)) &&
     !isImmuneToLowAPEnemyDamage(defender, attackerAP) &&
+    !isImmuneToLowAPEnemyDamageOncePerTurnWhilePaired(defender, attackerAP) &&
     !isImmuneToLowLevelEnemyDamage(defender, attacker.def.level || 0) &&
     !isImmuneViaNamedToken(defendingPlayer, defender) &&
     !isImmuneToLowLevelEnemyDamageWhilePaired(defender, defendingPlayer, attackingPlayer, attacker.def.level || 0)
@@ -417,6 +484,7 @@ function resolveUnitBattleDamage(state, attackingPlayer, defendingPlayer, attack
     !isImmuneToLowLevelReturnDamage(attacker, defender.def.level || 0) &&
     !isImmuneToLowHPEnemyDamage(attacker, getHP(defender)) &&
     !isImmuneToLowAPEnemyDamage(attacker, defenderAP) &&
+    !isImmuneToLowAPEnemyDamageOncePerTurnWhilePaired(attacker, defenderAP) &&
     !isImmuneToLowLevelEnemyDamage(attacker, defender.def.level || 0) &&
     !isImmuneViaNamedToken(attackingPlayer, attacker) &&
     !isImmuneWhileBattlingBlocker(attacker)
@@ -537,6 +605,21 @@ function fireDestroysEnemy(state, attackingPlayer, attacker, defender, defenderP
     const handler = c.def.effects && c.def.effects.friendlyUnitDestroysEnemy;
     if (handler) handler(state, attackingPlayer, c, { attacker });
   }
+  // Wise Leader's Pride ST12-014: "It gains the following effect during this battle: When this Unit
+  // destroys an enemy Unit with battle damage, choose 1 enemy Unit with 2 or less AP. Destroy it" --
+  // a this-battle-scoped onKill grant, same buff-sourced shape as the onKillDraw family above.
+  const onKillDestroyCap = attacker.buffs.find((b) => b.onKillDestroyIfAPAtMost !== undefined);
+  if (onKillDestroyCap) {
+    const opp = state.players.find((p) => p !== attackingPlayer);
+    const dTarget = opp.battleArea
+      .filter((u) => getAP(u) <= onKillDestroyCap.onKillDestroyIfAPAtMost)
+      .sort((a, b) => getAP(b) - getAP(a))[0];
+    if (dTarget) destroyOutrightAndFireEffect(state, opp, dTarget);
+  }
+  // Libra ST12-016: "[ActivateMain] ... If a friendly Unit paired with a Pilot has destroyed an enemy
+  // Unit with battle damage this turn, ..." -- a simple per-turn tracking flag, cleared by
+  // clearTurnBuffs (src/rules/effects.js) the same way the other player-level "this turn" flags are.
+  if (attacker.pilot) attackingPlayer.pairedUnitDestroyedEnemyThisTurn = true;
 }
 
 /**
@@ -549,6 +632,21 @@ function applyBreach(state, defendingPlayer, amount, hooks, attacker) {
     dealDamage(defendingPlayer.base, amount, { isBattleDamage: true });
     destroyAndFireEffect(state, defendingPlayer, defendingPlayer.base, { viaBattleDamage: true });
   } else if (defendingPlayer.shields.length > 0) {
+    // Shamblo ST11-006: "If another friendly (Marine) Unit is in play at the start of your
+    // opponent's turn, during this turn, when a friendly shield area card receives enemy effect
+    // damage, reduce it by 5" -- Shields are always destroyed outright by any positive damage
+    // (11-3-1-1, no partial-HP tracking), so a reduction bringing this hit to 0 or less is a real
+    // prevention, not a partial no-op. Applied to any Breach-shaped shield hit through this shared
+    // entry point (this engine doesn't separately tag "real battle Breach" vs. "an effect emulating
+    // Breach," e.g. Master Gundam GD05-033's Attack, at this specific call site). Self-expiring via
+    // a turnNumber comparison (set by shambloST11006StartOfTurn, registry.js) rather than a
+    // clearTurnBuffs hook, since the flag lives on the defender while the *opponent's* turn is
+    // active -- clearTurnBuffs only ever clears the turn-ending player's own state.
+    const reduction =
+      defendingPlayer.shieldEffectDamageReductionUntilTurn === state.turnNumber
+        ? defendingPlayer.shieldEffectDamageReductionAmount || 0
+        : 0;
+    if (reduction > 0 && amount - reduction <= 0) return;
     const shield = destroyTopShield(defendingPlayer);
     resolveBurst(state, defendingPlayer, shield, hooks);
     if (attacker) {
@@ -572,4 +670,4 @@ function resolveBurst(state, defendingPlayer, shieldInstance, hooks) {
   }
 }
 
-module.exports = { resolveAttack, resolveFromBlockDecision, resolveUnitBattleDamage, applyBreach, destroyAndFireEffect, destroyOutrightAndFireEffect, fireDestroysShield, resolveBurst };
+module.exports = { resolveAttack, resolveFromBlockDecision, fireAttackTriggers, applyBlockDecision, resolveUnitBattleDamage, applyBreach, destroyAndFireEffect, destroyOutrightAndFireEffect, fireDestroysShield, resolveBurst, predictShieldHits };

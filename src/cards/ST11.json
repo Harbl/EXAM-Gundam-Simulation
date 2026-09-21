@@ -1,0 +1,88 @@
+[
+  {
+    "number": "ST11-001", "name": "Char's Z'Gok", "type": "unit", "color": "blue",
+    "level": 4, "cost": 3, "ap": 3, "hp": 3, "traits": ["Zeon", "Marine"],
+    "linkCondition": "Char Aznable",
+    "cannotBeAttackTargetIfFriendlyTraitCountAtLeast": { "trait": "Marine", "count": 2 },
+    "effectRefs": { "deploy": "charsZGokST11001Deploy" }
+  },
+  {
+    "number": "ST11-002", "name": "Acguy", "type": "unit", "color": "blue",
+    "level": 3, "cost": 2, "ap": 3, "hp": 1, "traits": ["Zeon", "Marine"],
+    "linkCondition": "Zeon",
+    "marineEffectDamageImmuneWhileRestedOpponentTurnHpAtMost": 2
+  },
+  {
+    "number": "ST11-003", "name": "Zock", "type": "unit", "color": "blue",
+    "level": 3, "cost": 2, "ap": 3, "hp": 3, "traits": ["Zeon", "Marine"],
+    "blockerWhileFriendlyUnitTraitCountAtLeast": { "trait": "Marine", "count": 1 }
+  },
+  {
+    "number": "ST11-004", "name": "ZnO", "type": "unit", "color": "blue",
+    "level": 3, "cost": 3, "ap": 3, "hp": 2, "traits": ["ZAFT", "Marine"],
+    "linkCondition": "Marco Morassim",
+    "effectRefs": { "deploy": "znoST11004Deploy" }
+  },
+  {
+    "number": "ST11-005", "name": "Ash", "type": "unit", "color": "blue",
+    "level": 5, "cost": 4, "ap": 4, "hp": 4, "traits": ["ZAFT", "Marine"],
+    "linkCondition": "ZAFT",
+    "keywords": { "repair": 2 }
+  },
+  {
+    "number": "ST11-006", "name": "Shamblo", "type": "unit", "color": "purple",
+    "level": 6, "cost": 5, "ap": 4, "hp": 5, "traits": ["Zeon", "Marine"],
+    "linkCondition": "Loni Garvey",
+    "effectRefs": { "startOfTurn": "shambloST11006StartOfTurn", "deploy": "shambloST11006Deploy" }
+  },
+  {
+    "number": "ST11-007", "name": "Gundam Leopard", "type": "unit", "color": "purple",
+    "level": 3, "cost": 2, "ap": 4, "hp": 3, "traits": ["Vulture", "Marine"]
+  },
+  {
+    "number": "ST11-008", "name": "Daughseat", "type": "unit", "color": "purple",
+    "level": 2, "cost": 1, "ap": 2, "hp": 2, "traits": ["Vulture", "Marine"]
+  },
+  {
+    "number": "ST11-009", "name": "Kapool", "type": "unit", "color": "purple",
+    "level": 1, "cost": 1, "ap": 1, "hp": 1, "traits": ["Militia", "Marine"],
+    "effectRefs": { "destroyed": "kapoolST11009Destroyed" }
+  },
+  {
+    "number": "ST11-010", "name": "Abyss Gundam", "type": "unit", "color": "purple",
+    "level": 4, "cost": 3, "ap": 4, "hp": 3, "traits": ["Earth Alliance", "Phantom Pain", "Marine"],
+    "linkCondition": "Auel Neider",
+    "keywords": { "blocker": true }
+  },
+  {
+    "number": "ST11-011", "name": "Char Aznable", "type": "pilot", "color": "blue",
+    "level": 4, "cost": 1, "apBonus": 2, "hpBonus": 1, "traits": ["Zeon", "Newtype"],
+    "effectRefs": { "burst": "addSelfToHandBurst", "whenPaired": "charAznableST11011WhenPaired" }
+  },
+  {
+    "number": "ST11-012", "name": "Loni Garvey", "type": "pilot", "color": "purple",
+    "level": 4, "cost": 1, "apBonus": 2, "hpBonus": 1, "traits": ["Zeon", "Newtype"],
+    "effectRefs": { "burst": "addSelfToHandBurst", "whenPaired": "loniGarveyST11012WhenPaired" }
+  },
+  {
+    "number": "ST11-013", "actionTiming": "both", "name": "Poorly Planned Offensive", "type": "command", "color": "blue",
+    "level": 4, "cost": 2,
+    "effectRefs": { "burst": "poorlyPlannedOffensiveST11013Burst", "command": "poorlyPlannedOffensiveST11013Command" }
+  },
+  {
+    "number": "ST11-014", "actionTiming": "action", "name": "The Orca of Red Sea", "type": "command", "color": "blue",
+    "level": 3, "cost": 1,
+    "pilotMode": { "name": "Marco Morassim", "apBonus": 1, "hpBonus": 1 },
+    "effectRefs": { "command": "theOrcaOfRedSeaST11014Command" }
+  },
+  {
+    "number": "ST11-015", "name": "A Twinkle from the Abyss", "type": "command", "color": "purple",
+    "level": 5, "cost": 2,
+    "effectRefs": { "command": "aTwinkleFromTheAbyssST11015Command" }
+  },
+  {
+    "number": "ST11-016", "name": "Mad Angler", "type": "base", "color": "blue",
+    "level": 3, "cost": 1, "ap": 0, "hp": 5, "traits": ["Zeon", "Warship", "Marine"],
+    "effectRefs": { "burst": "simpleBurstBase", "deploy": "madAnglerST11016Deploy" }
+  }
+]

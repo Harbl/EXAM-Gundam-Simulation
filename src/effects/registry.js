@@ -9286,6 +9286,646 @@ function lunaManaCarryBaseDeploy(state, player) {
   for (const u of player.battleArea.filter((u) => (u.def.traits || []).includes('G Generation'))) recoverHP(u, 1);
 }
 
+// --- ST11 "Aquatic Assault" (Marine starter deck) -------------------------------------------------
+
+// --- Char's Z'Gok ST11-001 ---
+// <cannotBeAttackTargetIfFriendlyTraitCountAtLeast> (data, see heuristic.js's getEligibleAttackTargets).
+// [Deploy] If another friendly (Marine) Unit is in play, choose 1 enemy Unit that is Lv.2 or lower.
+// Return it to the bottom of its owner's deck.
+function charsZGokST11001Deploy(state, player, instance) {
+  const hasAnotherMarine = player.battleArea.some((u) => u !== instance && (u.def.traits || []).includes('Marine'));
+  if (!hasAnotherMarine) return;
+  const opponent = opponentOf(state, player);
+  const candidates = opponent.battleArea.filter((u) => (u.def.level || 0) <= 2);
+  if (candidates.length === 0) return;
+  const target = candidates.sort((a, b) => getAP(b) - getAP(a))[0];
+  returnUnitToDeck(opponent, target);
+}
+
+// --- ZnO ST11-004 ---
+// [Deploy] Deploy 1 rested [GOOhN] ((ZAFT)(Marine) AP1/HP1) Unit token.
+const GOOHN_TOKEN = Object.freeze({
+  number: 'TOKEN-GOOHN', name: 'GOOhN', type: 'unit', color: 'blue',
+  traits: ['ZAFT', 'Marine'], ap: 1, hp: 1, isToken: true, keywords: {}
+});
+function znoST11004Deploy(state, player) {
+  const token = deployUnit(state, player, GOOHN_TOKEN);
+  token.rested = true;
+}
+
+// --- Shamblo ST11-006 ---
+// [StartOfTurn] If another friendly (Marine) Unit is in play at the start of your opponent's turn,
+// during this turn, when a friendly shield area card receives enemy effect damage, reduce it by 5
+// (see combat.js's applyBreach). Self-expiring via a turnNumber stamp instead of a clearTurnBuffs
+// hook, since the flag has to survive across to the *opponent's* end phase, not this player's own.
+// [Deploy] Choose 1 (Marine) Unit card from your trash. Add it to your hand.
+function shambloST11006StartOfTurn(state, player, instance) {
+  if (state.players[state.activePlayerIdx] === player) return;
+  const hasAnotherMarine = player.battleArea.some((u) => u !== instance && (u.def.traits || []).includes('Marine'));
+  if (!hasAnotherMarine) return;
+  player.shieldEffectDamageReductionUntilTurn = state.turnNumber;
+  player.shieldEffectDamageReductionAmount = 5;
+}
+function shambloST11006Deploy(state, player) {
+  const candidates = player.trash.filter((c) => c.def.type === 'unit' && (c.def.traits || []).includes('Marine'));
+  if (candidates.length === 0) return;
+  const target = candidates.sort((a, b) => (b.def.cost || 0) - (a.def.cost || 0))[0];
+  recurFromTrash(player, target);
+}
+
+// --- Kapool ST11-009 ---
+// [Destroyed] If it is your opponent's turn and a friendly (Marine) Unit is in play, draw 1.
+function kapoolST11009Destroyed(state, player) {
+  if (state.players[state.activePlayerIdx] === player) return;
+  if (!player.battleArea.some((u) => (u.def.traits || []).includes('Marine'))) return;
+  drawCard(state, player);
+}
+
+// --- Char Aznable ST11-011 (Pilot) ---
+// [Burst] Add this card to your hand (shared addSelfToHandBurst).
+// [When Paired] All friendly (Marine) Units get AP+1 during this turn.
+function charAznableST11011WhenPaired(state, player) {
+  for (const u of player.battleArea) {
+    if ((u.def.traits || []).includes('Marine')) u.buffs.push({ ap: 1, scope: 'turn' });
+  }
+}
+
+// --- Loni Garvey ST11-012 (Pilot) ---
+// [Burst] Add this card to your hand (shared addSelfToHandBurst).
+// [When Paired] Choose 1 friendly (Marine) Unit. During this turn, when it receives battle damage
+// from an enemy Unit, reduce it by 2. (Heuristic default: the highest-AP Marine Unit in play.)
+function loniGarveyST11012WhenPaired(state, player) {
+  const candidates = player.battleArea.filter((u) => (u.def.traits || []).includes('Marine'));
+  const target = candidates.sort((a, b) => getAP(b) - getAP(a))[0];
+  if (target) target.buffs.push({ damageReduction: 2, scope: 'turn' });
+}
+
+// --- Poorly Planned Offensive ST11-013 (Command) ---
+// [Burst] Choose 1 rested enemy Unit with 3 or less HP. Return it to its owner's hand.
+// [Main]/[Action] Choose 1 rested enemy Unit with 3 or less HP. Return it to its owner's hand. If you
+// do, draw 1. (Heuristic default: the highest-AP eligible target, same "biggest threat" convention as
+// every other "choose 1 enemy Unit" effect in this file.)
+function poorlyPlannedOffensiveST11013Burst(state, player) {
+  const opponent = opponentOf(state, player);
+  const candidates = opponent.battleArea.filter((u) => u.rested && getRemainingHP(u) <= 3);
+  const target = candidates.sort((a, b) => getAP(b) - getAP(a))[0];
+  if (target) returnUnitToHand(opponent, target);
+}
+function poorlyPlannedOffensiveST11013Command(state, player) {
+  const opponent = opponentOf(state, player);
+  const candidates = opponent.battleArea.filter((u) => u.rested && getRemainingHP(u) <= 3);
+  const target = candidates.sort((a, b) => getAP(b) - getAP(a))[0];
+  if (!target) return;
+  returnUnitToHand(opponent, target);
+  drawCard(state, player);
+}
+
+// --- The Orca of Red Sea ST11-014 (Command; pairable as Pilot [Marco Morassim]) ---
+// [Action] Choose 1 friendly (Marine) Unit. Enemy Units can't choose it as their attack target this
+// turn (a this-turn buff, checked by heuristic.js's getEligibleAttackTargets alongside Char's Z'Gok's
+// static card-data version of the same exclusion).
+function theOrcaOfRedSeaST11014Command(state, player) {
+  const candidates = player.battleArea.filter((u) => (u.def.traits || []).includes('Marine'));
+  const target = candidates.sort((a, b) => getAP(b) - getAP(a))[0];
+  if (target) target.buffs.push({ cannotBeAttackTarget: true, scope: 'turn' });
+}
+
+// --- A Twinkle from the Abyss ST11-015 (Command) ---
+// [Main] Choose 1 (Marine) Unit card that is Lv.4 or lower from your trash. Deploy it rested.
+function aTwinkleFromTheAbyssST11015Command(state, player) {
+  const candidates = player.trash.filter(
+    (c) => c.def.type === 'unit' && (c.def.traits || []).includes('Marine') && (c.def.level || 0) <= 4
+  );
+  const target = candidates.sort((a, b) => (b.def.cost || 0) - (a.def.cost || 0))[0];
+  if (!target) return;
+  removeFromTrash(player, target);
+  const deployed = deployUnit(state, player, target.def, undefined, { fromTrash: true });
+  deployed.rested = true;
+}
+
+// --- Mad Angler ST11-016 (Base) ---
+// [Burst] Deploy this card (shared simpleBurstBase).
+// [Deploy] Add 1 of your Shields to your hand. Then, if 4 or more enemy Units are in play, choose 1
+// rested enemy Unit. Deal 2 damage to it.
+function madAnglerST11016Deploy(state, player) {
+  if (player.shields.length > 0) shieldToHand(player);
+  const opponent = opponentOf(state, player);
+  if (opponent.battleArea.length < 4) return;
+  const candidates = opponent.battleArea.filter((u) => u.rested);
+  const target = candidates.sort((a, b) => getRemainingHP(a) - getRemainingHP(b))[0];
+  if (!target) return;
+  dealEffectDamage(state, player, opponent, target, 2);
+  destroyAndFireEffect(state, opponent, target);
+}
+
+// --- ST12 "Raging Onslaught" (Red/Purple crossover starter deck) ----------------------------------
+
+// --- Gundam Epyon ST12-001 ---
+// [During Pair·Lv.5 or Higher Pilot] During your turn, when this Unit destroys an enemy Unit with
+// damage, deal 2 damage to all enemy Units with 5 or less AP.
+// [Deploy] Choose 1 enemy Base. Deal 5 damage to it.
+function gundamEpyonST12001DestroysEnemy(state, player, instance) {
+  if (!instance.pilot || (instance.pilot.def.level || 0) < 5) return;
+  const opponent = opponentOf(state, player);
+  for (const u of opponent.battleArea.filter((u) => getAP(u) <= 5)) {
+    dealEffectDamage(state, player, opponent, u, 2);
+    destroyAndFireEffect(state, opponent, u);
+  }
+}
+function gundamEpyonST12001Deploy(state, player) {
+  const opponent = opponentOf(state, player);
+  if (!opponent.base) return;
+  dealEffectDamage(state, player, opponent, opponent.base, 5);
+  destroyAndFireEffect(state, opponent, opponent.base);
+}
+
+// --- Shining Gundam ST12-002 ---
+// [Deploy] Choose 1 friendly Unit with 5 or more AP. It gains [Breach 3] during this turn.
+function shiningGundamST12002Deploy(state, player) {
+  const target = player.battleArea.filter((u) => getAP(u) >= 5).sort((a, b) => getAP(b) - getAP(a))[0];
+  if (target) target.buffs.push({ breach: 3, scope: 'turn' });
+}
+
+// --- Tallgeese III ST12-003 ---
+// [Once per Turn] During your turn, when this Unit destroys an enemy Unit with damage, deal 1 damage
+// to all enemy Units with 3 or less AP.
+function tallgeeseIIIST12003DestroysEnemy(state, player, instance) {
+  if (instance.activationsUsed.dealDamageOnKill) return;
+  instance.activationsUsed.dealDamageOnKill = true;
+  const opponent = opponentOf(state, player);
+  for (const u of opponent.battleArea.filter((u) => getAP(u) <= 3)) {
+    dealEffectDamage(state, player, opponent, u, 1);
+    destroyAndFireEffect(state, opponent, u);
+  }
+}
+
+// --- GQuuuuuuX (Omega Psycommu) ST12-005 ---
+// [Attack] You may discard 1. If you do, draw 1. (Heuristic default: always take the trade, same
+// convention as every other "you may discard, then draw" effect in this file.)
+function gQuuuuuuXST12005Attack(state, player) {
+  if (player.hand.length === 0) return;
+  const toDiscard = [...player.hand].sort((a, b) => (b.def.cost || 0) - (a.def.cost || 0))[0];
+  discardFromHand(player, toDiscard);
+  drawCard(state, player);
+}
+
+// --- Unicorn Gundam 02 Banshee (Destroy Mode) ST12-006 ---
+// [During Pair] gates both abilities below (the printed tag only appears once, ahead of both -- read
+// as applying to the whole block rather than just the first line).
+// [ActivateMain] Exile 4 cards in your trash from the game: This Unit gains [First Strike] during
+// this turn.
+// [ActivateAction] Exile 4 cards in your trash from the game: This Unit gains [Suppression] during
+// this battle. Registered only in ATTACKER_ACTION_RESOLVERS (src/ai/activations.js) since Suppression
+// only ever matters while this Unit is the one attacking.
+function unicornBansheeDestroyModeST12006ActivateMain(state, player, source) {
+  for (const c of player.trash.slice(0, 4)) player.removal.push(removeFromTrash(player, c));
+  source.buffs.push({ keyword: 'firstStrike', scope: 'turn' });
+  return true;
+}
+function unicornBansheeDestroyModeST12006ActivateAction(state, player, source) {
+  for (const c of player.trash.slice(0, 4)) player.removal.push(removeFromTrash(player, c));
+  source.buffs.push({ keyword: 'suppression', scope: 'battle' });
+  return true;
+}
+
+// --- Gyan ST12-007 ---
+// [When Linked] This Unit gains [First Strike] during this turn.
+function gyanST12007WhenLinked(state, player, instance) {
+  instance.buffs.push({ keyword: 'firstStrike', scope: 'turn' });
+}
+
+// --- Unicorn Gundam 02 Banshee (Unicorn Mode) ST12-009 ---
+// [Destroyed] If there is a player with 3 or less Shields, choose 1 Unit card that is Lv.6 or higher
+// from your trash. Add it to your hand. If you do, discard 1.
+function unicornBansheeUnicornModeST12009Destroyed(state, player) {
+  if (!state.players.some((p) => p.shields.length <= 3)) return;
+  const target = player.trash
+    .filter((c) => c.def.type === 'unit' && (c.def.level || 0) >= 6)
+    .sort((a, b) => (b.def.cost || 0) - (a.def.cost || 0))[0];
+  if (!target) return;
+  recurFromTrash(player, target);
+  const toDiscard = [...player.hand].filter((c) => c !== target).sort((a, b) => (b.def.cost || 0) - (a.def.cost || 0))[0];
+  if (toDiscard) discardFromHand(player, toDiscard);
+}
+
+// --- Milliardo Peacecraft ST12-011 (Pilot; also treated as [Zechs Merquise]) ---
+// [Burst] Add this card to your hand (shared addSelfToHandBurst).
+// [ActivateAction][Once per Turn] Choose 1 damaged enemy Unit battling this Unit. Deal 2 damage to
+// it. Usable whether the paired Unit is attacking or defending, so wired into both action-resolver
+// tables in src/ai/activations.js.
+function milliardoST12011Action(state, player, source, args) {
+  source.activationsUsed.dealDamageAction = true;
+  const opponent = opponentOf(state, player);
+  dealEffectDamage(state, player, opponent, args.target, 2);
+  destroyAndFireEffect(state, opponent, args.target);
+  return true;
+}
+
+// --- Ple-Twelve ST12-012 (Pilot; also treated as [Marida Cruz]) ---
+// [Burst] Add this card to your hand (shared addSelfToHandBurst).
+// [When Linked] Look at the top 2 cards of your deck and return 1 to the top. Place the remaining
+// card into your trash. If there is a player with 3 or less Shields, add the card to your hand
+// instead of returning it to your deck. (Heuristic default: keep the higher-cost card on top.)
+function pleTwelveST12012WhenLinked(state, player) {
+  const dug = player.deck.splice(0, 2);
+  if (dug.length === 0) return;
+  dug.sort((a, b) => (b.def.cost || 0) - (a.def.cost || 0));
+  player.deck.unshift(dug[0]);
+  const other = dug[1];
+  if (!other) return;
+  if (state.players.some((p) => p.shields.length <= 3)) player.hand.push(other);
+  else player.trash.push(other);
+}
+
+// --- The Final Victor ST12-013 (Command) ---
+// [Burst] Choose 1 enemy Unit. Deal 1 damage to it.
+// [Main] Choose 1 enemy player. You and that player each choose 1 of your own Units. Begin a battle
+// between them and only perform the damage step. (Heuristic default: each side's own highest-AP
+// Unit, same "biggest threat"/"best asset" convention used throughout this file.)
+function theFinalVictorST12013Burst(state, player) {
+  const opponent = opponentOf(state, player);
+  const target = opponent.battleArea.sort((a, b) => getAP(b) - getAP(a))[0];
+  if (!target) return;
+  dealEffectDamage(state, player, opponent, target, 1);
+  destroyAndFireEffect(state, opponent, target);
+}
+function theFinalVictorST12013Command(state, player, instance, context) {
+  const opponent = opponentOf(state, player);
+  const myUnit = player.battleArea.sort((a, b) => getAP(b) - getAP(a))[0];
+  const theirUnit = opponent.battleArea.sort((a, b) => getAP(b) - getAP(a))[0];
+  if (!myUnit || !theirUnit) return;
+  resolveUnitBattleDamage(state, player, opponent, myUnit, theirUnit, (context && context.hooks) || {});
+}
+
+// --- Wise Leader's Pride ST12-014 (Command; pairable as Pilot [M'Quve]) ---
+// [Action] Choose 1 friendly Unit. It gains the following effect during this battle: When this Unit
+// destroys an enemy Unit with battle damage, choose 1 enemy Unit with 2 or less AP. Destroy it (see
+// combat.js's fireDestroysEnemy for the onKillDestroyIfAPAtMost grant this pushes).
+function wiseLeadersPrideST12014Command(state, player) {
+  const target = player.battleArea.sort((a, b) => getAP(b) - getAP(a))[0];
+  if (target) target.buffs.push({ onKillDestroyIfAPAtMost: 2, scope: 'battle' });
+}
+
+// --- Two Unicorns ST12-015 (Command) ---
+// [Action] When playing this card, choose 1 of the following effects and activate it:
+// - Choose 1 enemy Unit that is Lv.2 or lower. Destroy it.
+// - Choose 1 friendly Unit and 1 enemy Unit that is Lv.5 or higher. Deal 2 damage to them.
+// (Heuristic default: prefer the outright kill when a Lv.2-or-lower enemy exists, else the trade.)
+function twoUnicornsST12015Command(state, player) {
+  const opponent = opponentOf(state, player);
+  const lowLevelTarget = opponent.battleArea.filter((u) => (u.def.level || 0) <= 2).sort((a, b) => getAP(b) - getAP(a))[0];
+  if (lowLevelTarget) {
+    destroyOutrightAndFireEffect(state, opponent, lowLevelTarget);
+    return;
+  }
+  const enemyTarget = opponent.battleArea.filter((u) => (u.def.level || 0) >= 5).sort((a, b) => getAP(b) - getAP(a))[0];
+  const myTarget = player.battleArea.sort((a, b) => getAP(b) - getAP(a))[0];
+  if (!enemyTarget || !myTarget) return;
+  dealEffectDamage(state, player, opponent, enemyTarget, 2);
+  destroyAndFireEffect(state, opponent, enemyTarget);
+  dealEffectDamage(state, opponent, player, myTarget, 2);
+  destroyAndFireEffect(state, player, myTarget);
+}
+
+// --- Libra ST12-016 (Base) ---
+// [Burst] Deploy this card (shared simpleBurstBase).
+// [Deploy] Add 1 of your Shields to your hand (shared simpleBaseDeployAddShield).
+// [ActivateMain] Rest this Base: If a friendly Unit paired with a Pilot has destroyed an enemy Unit
+// with battle damage this turn, choose 1 enemy Unit that is Lv.4 or lower. Deal 1 damage to it.
+function libraST12016Deploy(state, player) {
+  simpleBaseDeployAddShield(state, player);
+}
+function libraST12016ActivateMain(state, player, source) {
+  source.rested = true;
+  const opponent = opponentOf(state, player);
+  const target = opponent.battleArea
+    .filter((u) => (u.def.level || 0) <= 4)
+    .sort((a, b) => getRemainingHP(a) - getRemainingHP(b))[0];
+  if (target) {
+    dealEffectDamage(state, player, opponent, target, 1);
+    destroyAndFireEffect(state, opponent, target);
+  }
+  return true;
+}
+
+// --- ST13 "Silent Barrage" (Green/Red Bit/Funnel + Academy crossover starter deck) ----------------
+
+// Shared by Qubeley/Elmeth/I'm a Newtype/Sodon (all print the identical token text).
+const BIT_FUNNEL_TOKEN = Object.freeze({
+  number: 'TOKEN-BIT-FUNNEL', name: 'Bit/Funnel', type: 'unit', color: 'green',
+  traits: ['Long-Range Weapon'], ap: 2, hp: 2, isToken: true, keywords: {},
+  cannotBePaired: true, cannotAttack: true
+});
+
+// --- Qubeley ST13-001 ---
+// [Once per Turn] During your turn, when you pair a Pilot with one of your Units, deploy 1 to 2
+// [Bit/Funnel] Unit tokens. (Heuristic default: always deploy the max of 2, same "take the biggest
+// legal choice" convention as every other 1-to-N effect in this file.)
+// [ActivateMain][Once per Turn] (1): Choose 1 of your Unit tokens and 1 enemy Unit. Begin a battle
+// between them and only perform the damage step.
+function qubeleyST13001AllyPaired(state, player, instance) {
+  if (state.players[state.activePlayerIdx] !== player) return;
+  if (instance.activationsUsed.deployToken) return;
+  instance.activationsUsed.deployToken = true;
+  deployUnit(state, player, BIT_FUNNEL_TOKEN);
+  deployUnit(state, player, BIT_FUNNEL_TOKEN);
+}
+function qubeleyST13001ActivateMain(state, player, source, args) {
+  source.activationsUsed.tokenBattle = true;
+  const activeResources = player.resourceArea.filter((r) => !r.rested);
+  activeResources[0].rested = true;
+  payAbilityCost(state, player, source, 1);
+  resolveUnitBattleDamage(state, player, opponentOf(state, player), args.tokenUnit, args.target, {});
+  return true;
+}
+
+// --- Elmeth ST13-002 ---
+// [Deploy] Deploy 1 [Bit/Funnel] Unit token.
+function elmethST13002Deploy(state, player) {
+  deployUnit(state, player, BIT_FUNNEL_TOKEN);
+}
+
+// --- GX-Bit ST13-004 ---
+// [Deploy] Look at the top card of your deck. Return it to the top or bottom of your deck (a pure
+// scry -- same "keep Unit/Base on top, bury anything else" heuristic used elsewhere in this file for
+// the identical no-other-criterion shape).
+function gxBitST13004Deploy(state, player) {
+  if (player.deck.length === 0) return;
+  const top = player.deck[0];
+  if (top.def.type !== 'unit' && top.def.type !== 'base') {
+    player.deck.shift();
+    player.deck.push(top);
+  }
+}
+
+// --- GFreD ST13-005 ---
+// [Deploy] If 4 or more enemy Units are in play, look at the top 5 cards of your deck. You may
+// reveal 1 Pilot card among them and add it to your hand. Return the remaining cards randomly to the
+// bottom of your deck.
+function gFreDST13005Deploy(state, player) {
+  const opponent = opponentOf(state, player);
+  if (opponent.battleArea.length < 4) return;
+  const dug = player.deck.splice(0, 5);
+  const pilotIdx = dug.findIndex((c) => c.def.type === 'pilot');
+  if (pilotIdx !== -1) player.hand.push(dug.splice(pilotIdx, 1)[0]);
+  shuffle(dug);
+  player.deck.push(...dug);
+}
+
+// --- Gundam Aerial ST13-006 ---
+// [During Pair][Attack] If you are attacking the enemy player, choose 1 enemy Unit. Deal 2 damage to it.
+// [ActivateAction][Once per Turn] Rest 1 friendly Unit: choose 1 enemy Unit that is Lv.4 or lower.
+// Deal 1 damage to it. No explicit "while attacking" restriction in the text, so wired into both
+// action-resolver tables in src/ai/activations.js, same shape as Milliardo Peacecraft ST12-011.
+function gundamAerialST13006Attack(state, player, instance, context) {
+  if (!instance.pilot || !context.target || context.target.type !== 'player') return;
+  const opponent = opponentOf(state, player);
+  const target = opponent.battleArea.sort((a, b) => getAP(b) - getAP(a))[0];
+  if (!target) return;
+  dealEffectDamage(state, player, opponent, target, 2);
+  destroyAndFireEffect(state, opponent, target);
+}
+function gundamAerialST13006Action(state, player, source, args) {
+  source.activationsUsed.restForDamage = true;
+  args.restUnit.rested = true;
+  const opponent = opponentOf(state, player);
+  dealEffectDamage(state, player, opponent, args.target, 1);
+  destroyAndFireEffect(state, opponent, args.target);
+  return true;
+}
+
+// --- Gundam Pharact ST13-009 ---
+// [Attack] Choose 1 enemy player. That player chooses 2 Unit cards from their trash. Exile them from
+// the game. (Only one enemy player exists in a 1v1 game; heuristic default for the victim's own
+// choice: protect their 2 highest-cost trashed Units by exiling the cheapest 2 instead.)
+function gundamPharactST13009Attack(state, player) {
+  const opponent = opponentOf(state, player);
+  const toExile = opponent.trash
+    .filter((c) => c.def.type === 'unit')
+    .sort((a, b) => (a.def.cost || 0) - (b.def.cost || 0))
+    .slice(0, 2);
+  for (const c of toExile) opponent.removal.push(removeFromTrash(opponent, c));
+}
+
+// --- Red Gundam (0079) ST13-010 ---
+// [ActivateMain][Once per Turn] Destroy 1 friendly Unit token: This Unit gains [Breach 3] during
+// this turn.
+function redGundam0079ST13010ActivateMain(state, player, source, args) {
+  source.activationsUsed.breachFromToken = true;
+  destroyFriendlyByEffect(state, player, source, args.token);
+  source.buffs.push({ breach: 3, scope: 'turn' });
+  return true;
+}
+
+// --- Haman Karn ST13-011 (Pilot) ---
+// [Burst] Add this card to your hand (shared addSelfToHandBurst).
+// [When Paired] Look at the top 5 cards of your deck. You may reveal 1 Pilot card whose Lv. is equal
+// to or lower than this Unit among them and add it to your hand. Return the remaining cards randomly
+// to the bottom of your deck.
+function hamanKarnST13011WhenPaired(state, player, instance) {
+  const dug = player.deck.splice(0, 5);
+  const pilotIdx = dug.findIndex((c) => c.def.type === 'pilot' && (c.def.level || 0) <= (instance.def.level || 0));
+  if (pilotIdx !== -1) player.hand.push(dug.splice(pilotIdx, 1)[0]);
+  shuffle(dug);
+  player.deck.push(...dug);
+}
+
+// --- Suletta Mercury ST13-012 (Pilot) ---
+// [Burst] Add this card to your hand (shared addSelfToHandBurst).
+// [Once per Turn] When an enemy Unit is destroyed with effect damage while this Unit is attacking,
+// draw 1. Simplified to fire on any battle-damage kill by the paired Unit (the existing
+// 'destroysEnemy' broadcast) instead of tracking "effect damage specifically during this Unit's own
+// attack" -- the engine has no existing hook for that narrower case, and building one for this single
+// narrow interaction risked a bigger, riskier change than this common-rarity Pilot's value justified.
+// A real, deliberate simplification, not silently glossed over.
+function sulettaMercuryST13012DestroysEnemy(state, player, instance) {
+  if (instance.activationsUsed.drawOnKill) return;
+  instance.activationsUsed.drawOnKill = true;
+  drawCard(state, player);
+}
+
+// --- I'm a Newtype ST13-013 (Command; pairable as Pilot [Carris Nautilus]) ---
+// [Main] Deploy 1 to 2 [Bit/Funnel] Unit tokens.
+function imANewtypeST13013Command(state, player) {
+  deployUnit(state, player, BIT_FUNNEL_TOKEN);
+  deployUnit(state, player, BIT_FUNNEL_TOKEN);
+}
+
+// --- Final Duty ST13-014 (Command) ---
+// [Main] Choose 1 of your Units. Destroy it. If you do, look at the top 4 cards of your deck. You may
+// deploy 1 Unit card that is Lv.4 or lower among them. Return the remaining cards randomly to the
+// bottom of your deck. (Heuristic default: sacrifice the lowest-AP friendly Unit.)
+function finalDutyST13014Command(state, player) {
+  const target = player.battleArea.sort((a, b) => getAP(a) - getAP(b))[0];
+  if (!target) return;
+  destroyOutrightAndFireEffect(state, player, target);
+  const dug = player.deck.splice(0, 4);
+  const idx = dug.findIndex((c) => c.def.type === 'unit' && (c.def.level || 0) <= 4);
+  if (idx !== -1) deployUnit(state, player, dug.splice(idx, 1)[0].def);
+  shuffle(dug);
+  player.deck.push(...dug);
+}
+
+// --- Operation to Intercept Solomon ST13-015 (Command) ---
+// [Burst] Add this card to your hand.
+// [Main]/[Action] Choose 3 Unit cards from your trash. Exile them from the game. If you do, choose 1
+// enemy Unit. Deal 3 damage to it. (Heuristic default for the 3 trashed cards: the 3 highest-cost.)
+function operationToInterceptSolomonST13015Burst(state, player, instance) {
+  player.hand.push(instance);
+}
+function operationToInterceptSolomonST13015Command(state, player) {
+  const toExile = player.trash
+    .filter((c) => c.def.type === 'unit')
+    .sort((a, b) => (b.def.cost || 0) - (a.def.cost || 0))
+    .slice(0, 3);
+  if (toExile.length < 3) return;
+  for (const c of toExile) player.removal.push(removeFromTrash(player, c));
+  const opponent = opponentOf(state, player);
+  const target = opponent.battleArea.sort((a, b) => getAP(b) - getAP(a))[0];
+  if (target) {
+    dealEffectDamage(state, player, opponent, target, 3);
+    destroyAndFireEffect(state, opponent, target);
+  }
+}
+
+// --- Sodon ST13-016 (Base) ---
+// [Burst] Deploy this card (shared simpleBurstBase).
+// [Deploy] Add 1 of your Shields to your hand. Then, deploy 1 [Bit/Funnel] Unit token.
+function sodonST13016Deploy(state, player) {
+  simpleBaseDeployAddShield(state, player);
+  deployUnit(state, player, BIT_FUNNEL_TOKEN);
+}
+
+// --- ST14 "Heavy Dominion" (White/Green Titans/Jupitris + Civilian/Unicorn starter deck) ----------
+// Note: The-O ST14-001's "each enemy player's rested Units with the lowest Lv. won't be set as
+// active" (lowestRestedLevelWontUntapEnemies, data) is implemented in src/rules/phases.js's
+// runStartPhase; Full Armor Unicorn Gundam (Destroy Mode) ST14-006's "doesn't receive battle damage
+// from an enemy Unit with AP <= its own" (lowAPEnemyDamageImmuneOncePerTurnWhilePaired, data) is
+// implemented in src/rules/combat.js's isImmuneToLowAPEnemyDamageOncePerTurnWhilePaired. Neither
+// needs a registry.js function -- both are pure card-data fields read by those engine hooks.
+
+// --- G-Falcon DX ST14-005 ---
+// [Deploy] Choose 1 enemy Unit that is Lv.6 or lower. Rest it. Then, if there are 7 or more cards in
+// your trash, it gets AP-2 during this turn.
+function gFalconDXST14005Deploy(state, player) {
+  const opponent = opponentOf(state, player);
+  const target = opponent.battleArea.filter((u) => (u.def.level || 0) <= 6).sort((a, b) => getAP(b) - getAP(a))[0];
+  if (!target) return;
+  restEnemyByEffect(state, player, opponent, target);
+  if (player.trash.length >= 7) reduceEnemyAP(state, player, opponent, target, 2, 'turn');
+}
+
+// --- Full Armor Unicorn Gundam (Destroy Mode) ST14-006 ---
+// [Deploy] Look at the top 3 cards of your deck. You may reveal a number of cards equal to the
+// number of enemy players among them (1 in a 1v1 game) and add them to your hand. Return the
+// remaining cards randomly to the bottom of your deck. (Heuristic default: reveal the highest-cost card.)
+function fullArmorUnicornDestroyModeST14006Deploy(state, player) {
+  const dug = player.deck.splice(0, 3);
+  dug.sort((a, b) => (b.def.cost || 0) - (a.def.cost || 0));
+  const revealed = dug.shift();
+  if (revealed) player.hand.push(revealed);
+  shuffle(dug);
+  player.deck.push(...dug);
+}
+
+// --- Duel Gundam (Assault Shroud) ST14-009 ---
+// [Destroyed] Place 1 EX Resource.
+function duelGundamAssaultShroudST14009Destroyed(state, player) {
+  placeExResource(state, player);
+}
+
+// --- Paptimus Scirocco ST14-011 (Pilot) ---
+// [Burst] Add this card to your hand (shared addSelfToHandBurst).
+// [Attack] Choose 1 enemy Unit. Reduce its AP during this battle by an amount equal to the number of
+// rested enemy Units.
+function paptimusSciroccoST14011Attack(state, player, instance, context) {
+  if (!context.target || context.target.type !== 'unit') return;
+  const opponent = opponentOf(state, player);
+  const restedCount = opponent.battleArea.filter((u) => u.rested).length;
+  if (restedCount === 0) return;
+  reduceEnemyAP(state, player, opponent, context.target.instance, restedCount, 'battle');
+}
+
+// --- Banagher Links ST14-012 (Pilot) ---
+// [Burst] Add this card to your hand (shared addSelfToHandBurst).
+// [When Paired] Choose 1 friendly Unit that is Lv.5 or higher. During this turn, it may choose an
+// active enemy Unit with 5 or less AP as its attack target.
+function banagherLinksST14012WhenPaired(state, player) {
+  const target = player.battleArea.filter((u) => (u.def.level || 0) >= 5).sort((a, b) => getAP(b) - getAP(a))[0];
+  if (target) target.buffs.push({ activeTargetAPThreshold: 5, scope: 'turn' });
+}
+
+// --- Natural Talent ST14-013 (Command) ---
+// [Burst] Choose 1 enemy Unit. It gets AP-3 during this turn.
+// [Main]/[Action] Choose 1 of the following effects and activate it:
+// - Choose 1 to 2 enemy Units with 3 or less HP. Rest them.
+// - Choose 1 enemy Unit. It gets AP-3 during this turn.
+// (Heuristic default: prefer resting up to 2 active low-HP threats when any exist, else the debuff.)
+function naturalTalentST14013Burst(state, player) {
+  const opponent = opponentOf(state, player);
+  const target = opponent.battleArea.sort((a, b) => getAP(b) - getAP(a))[0];
+  if (target) target.buffs.push({ ap: -3, scope: 'turn' });
+}
+function naturalTalentST14013Command(state, player) {
+  const opponent = opponentOf(state, player);
+  const restCandidates = opponent.battleArea
+    .filter((u) => !u.rested && getRemainingHP(u) <= 3)
+    .sort((a, b) => getAP(b) - getAP(a))
+    .slice(0, 2);
+  if (restCandidates.length > 0) {
+    for (const u of restCandidates) restEnemyByEffect(state, player, opponent, u);
+    return;
+  }
+  const target = opponent.battleArea.sort((a, b) => getAP(b) - getAP(a))[0];
+  if (target) target.buffs.push({ ap: -3, scope: 'turn' });
+}
+
+// --- Blazing Mobile Suit Rider ST14-014 (Command; pairable as Pilot [Garrod Ran & Tiffa Adill]) ---
+// [Main]/[Action] Choose 1 enemy Unit that is Lv.5 or lower. It gets AP-3 during this turn. If there
+// are 4 or more Command cards in your trash, choose 1 enemy Unit instead (any level).
+function blazingMobileSuitRiderST14014Command(state, player) {
+  const opponent = opponentOf(state, player);
+  const noLevelCap = player.trash.filter((c) => c.def.type === 'command').length >= 4;
+  const candidates = noLevelCap ? opponent.battleArea : opponent.battleArea.filter((u) => (u.def.level || 0) <= 5);
+  const target = candidates.sort((a, b) => getAP(b) - getAP(a))[0];
+  if (target) target.buffs.push({ ap: -3, scope: 'turn' });
+}
+
+// --- Battlefield Emotions ST14-015 (Command) ---
+// [Burst] Place 1 EX Resource.
+// [Main] Place 1 rested Resource. Then, if you have not set one of your Resources as active with an
+// effect this turn, choose a number of your Resources equal to the number of enemy players (1 in a
+// 1v1 game). Set them as active. (player.resourceSetActiveByEffectThisTurn is reset each start phase
+// in src/rules/phases.js's runStartPhase.)
+function battlefieldEmotionsST14015Burst(state, player) {
+  placeExResource(state, player);
+}
+function battlefieldEmotionsST14015Command(state, player) {
+  placeRestedResource(player);
+  if (player.resourceSetActiveByEffectThisTurn) return;
+  const toActivate = player.resourceArea.filter((r) => r.rested).slice(0, 1);
+  if (toActivate.length === 0) return;
+  toActivate[0].rested = false;
+  player.resourceSetActiveByEffectThisTurn = true;
+}
+
+// --- Gryphios 2 ST14-016 (Base) ---
+// [Burst] Deploy this card (shared simpleBurstBase).
+// [Deploy] Add 1 of your Shields to your hand (shared libraST12016Deploy -- identical text).
+// [Once per Turn] During your turn, when a friendly Unit links, choose 1 enemy Unit that is Lv.5 or
+// lower. It gets AP-1 during this turn. Reuses the existing allyPaired broadcast (fired for every
+// pairing, not just links) and filters for context.pairedUnit.isLinkUnit itself, rather than adding a
+// separate "ally links" broadcast for this one card.
+function gryphios2ST14016AllyLinked(state, player, instance, context) {
+  if (instance.activationsUsed.apDebuffOnLink) return;
+  if (!context.pairedUnit.isLinkUnit) return;
+  if (state.players[state.activePlayerIdx] !== player) return;
+  instance.activationsUsed.apDebuffOnLink = true;
+  const opponent = opponentOf(state, player);
+  const target = opponent.battleArea.filter((u) => (u.def.level || 0) <= 5).sort((a, b) => getAP(b) - getAP(a))[0];
+  if (target) target.buffs.push({ ap: -1, scope: 'turn' });
+}
+
 module.exports = {
   addSelfToHandBurst,
   noinsTaurusDestroyed,
@@ -10102,5 +10742,61 @@ module.exports = {
   tacticalTrainingCommand,
   unlockingTheDevelopmentDiagramCommand,
   diffuseBeamCannonCommand,
-  lunaManaCarryBaseDeploy
+  lunaManaCarryBaseDeploy,
+  charsZGokST11001Deploy,
+  znoST11004Deploy,
+  shambloST11006StartOfTurn,
+  shambloST11006Deploy,
+  kapoolST11009Destroyed,
+  charAznableST11011WhenPaired,
+  loniGarveyST11012WhenPaired,
+  poorlyPlannedOffensiveST11013Burst,
+  poorlyPlannedOffensiveST11013Command,
+  theOrcaOfRedSeaST11014Command,
+  aTwinkleFromTheAbyssST11015Command,
+  madAnglerST11016Deploy,
+  gundamEpyonST12001DestroysEnemy,
+  gundamEpyonST12001Deploy,
+  shiningGundamST12002Deploy,
+  tallgeeseIIIST12003DestroysEnemy,
+  gQuuuuuuXST12005Attack,
+  unicornBansheeDestroyModeST12006ActivateMain,
+  unicornBansheeDestroyModeST12006ActivateAction,
+  gyanST12007WhenLinked,
+  unicornBansheeUnicornModeST12009Destroyed,
+  milliardoST12011Action,
+  pleTwelveST12012WhenLinked,
+  theFinalVictorST12013Burst,
+  theFinalVictorST12013Command,
+  wiseLeadersPrideST12014Command,
+  twoUnicornsST12015Command,
+  libraST12016Deploy,
+  libraST12016ActivateMain,
+  qubeleyST13001AllyPaired,
+  qubeleyST13001ActivateMain,
+  elmethST13002Deploy,
+  gxBitST13004Deploy,
+  gFreDST13005Deploy,
+  gundamAerialST13006Attack,
+  gundamAerialST13006Action,
+  gundamPharactST13009Attack,
+  redGundam0079ST13010ActivateMain,
+  hamanKarnST13011WhenPaired,
+  sulettaMercuryST13012DestroysEnemy,
+  imANewtypeST13013Command,
+  finalDutyST13014Command,
+  operationToInterceptSolomonST13015Burst,
+  operationToInterceptSolomonST13015Command,
+  sodonST13016Deploy,
+  gFalconDXST14005Deploy,
+  fullArmorUnicornDestroyModeST14006Deploy,
+  duelGundamAssaultShroudST14009Destroyed,
+  paptimusSciroccoST14011Attack,
+  banagherLinksST14012WhenPaired,
+  naturalTalentST14013Burst,
+  naturalTalentST14013Command,
+  blazingMobileSuitRiderST14014Command,
+  battlefieldEmotionsST14015Burst,
+  battlefieldEmotionsST14015Command,
+  gryphios2ST14016AllyLinked
 };

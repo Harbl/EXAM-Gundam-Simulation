@@ -4,6 +4,16 @@ const { enforceHandLimit } = require('./management');
 
 function runStartPhase(state) {
   const player = activePlayer(state);
+  // The-O ST14-001: "Each enemy player's rested Units with the lowest Lv. won't be set as active
+  // during the start phase of their turn" -- computed fresh each start phase (the lowest Lv. among
+  // currently-rested Units can differ turn to turn) from the OPPONENT's own board, before this
+  // player's own untap loop below runs.
+  let lowestRestedLevelLock = null;
+  const theOOwner = state.players && state.players.find((p) => p !== player);
+  if (theOOwner && theOOwner.battleArea.some((u) => u.def.lowestRestedLevelWontUntapEnemies)) {
+    const restedLevels = player.battleArea.filter((u) => u.rested).map((u) => u.def.level || 0);
+    if (restedLevels.length > 0) lowestRestedLevelLock = Math.min(...restedLevels);
+  }
   for (const instance of player.battleArea) {
     // Byarlant GD02-004: "It won't be set as active during the start phase of your opponent's next
     // turn" -- a one-shot skip flag rather than an untap-immune duration, so it only blocks the
@@ -13,6 +23,8 @@ function runStartPhase(state) {
       // stays rested forever
     } else if (instance.skipNextUntap) {
       instance.skipNextUntap = false;
+    } else if (instance.rested && lowestRestedLevelLock !== null && (instance.def.level || 0) === lowestRestedLevelLock) {
+      // The-O's lock, computed above -- stays rested for this start phase only, not a persistent flag.
     } else {
       instance.rested = false;
     }
@@ -26,6 +38,7 @@ function runStartPhase(state) {
   player.specialMoveActivatedThisTurn = false; // Master Asia GD05-089's "activated a (Special Move) Command this turn" check
   player.neoZeonSelfDestroyThisTurn = false; // Axis GD05-129's "your Unit destroyed by your (Neo Zeon) card's effect this turn" check
   player.abilityCostsPaidThisTurn = []; // Turn A Gundam GD04-069's "paid (1)+ for one of your other Units' effects this turn" check
+  player.resourceSetActiveByEffectThisTurn = false; // Battlefield Emotions ST14-015's own "have not set one of your Resources as active with an effect this turn" check
   triggerEvent(state, 'startOfTurn', {});
 }
 

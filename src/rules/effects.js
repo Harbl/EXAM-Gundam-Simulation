@@ -196,6 +196,21 @@ function dealEffectDamage(state, sourcePlayer, targetOwner, target, amount) {
   ) {
     return;
   }
+  // Acguy ST11-002: "During your opponent's turn, while this Unit is rested, friendly (Marine)
+  // Units with 2 or less HP can't receive enemy effect damage" -- a Unit-granted (not Base-granted
+  // like Archangel above) low-HP immunity, gated on the granter being rested, forward-scoped the
+  // same way.
+  if (
+    sourcePlayer !== targetOwner &&
+    state.players[state.activePlayerIdx] !== targetOwner &&
+    (target.def.traits || []).includes('Marine') &&
+    targetOwner.battleArea.some(
+      (u) => u.rested && u.def.marineEffectDamageImmuneWhileRestedOpponentTurnHpAtMost !== undefined &&
+        getRemainingHP(target) <= u.def.marineEffectDamageImmuneWhileRestedOpponentTurnHpAtMost
+    )
+  ) {
+    return;
+  }
   dealDamage(target, amount, { isEnemyDamage: sourcePlayer !== targetOwner, player: targetOwner });
   // CGS Mobile Worker (Commander Type) GD03-060: "when this Unit receives effect damage" -- unlike
   // the enemy-only trigger below, this reacts regardless of source, so it needs its own broadcast.
@@ -337,6 +352,9 @@ function clearTurnBuffs(player) {
   // Gaia Gundam (LR+)/(MA Mode) GD05-034/041: player-level "during this turn" flag set by
   // forceEnemyDiscard (src/effects/registry.js), cleared the same way.
   player.enemyDiscardedByEffectThisTurn = undefined;
+  // Libra ST12-016: player-level "during this turn" flag set by combat.js's fireDestroysEnemy,
+  // cleared the same way.
+  player.pairedUnitDestroyedEnemyThisTurn = undefined;
 }
 
 function clearBattleBuffs(player) {

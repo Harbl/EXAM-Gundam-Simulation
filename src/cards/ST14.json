@@ -1,0 +1,93 @@
+[
+  {
+    "number": "ST14-001", "name": "The-O", "type": "unit", "color": "white",
+    "level": 9, "cost": 8, "ap": 6, "hp": 7, "traits": ["Titans", "Jupitris"],
+    "linkCondition": "Paptimus Scirocco",
+    "keywords": { "suppression": true },
+    "lowestRestedLevelWontUntapEnemies": true
+  },
+  {
+    "number": "ST14-002", "name": "Gundam NT-1 Full Armor", "type": "unit", "color": "white",
+    "level": 5, "cost": 4, "ap": 4, "hp": 4, "traits": ["Earth Federation"],
+    "linkCondition": "Newtype/Christina Mackenzie",
+    "keywords": { "blocker": true }
+  },
+  {
+    "number": "ST14-003", "name": "Palace Athene", "type": "unit", "color": "white",
+    "level": 4, "cost": 3, "ap": 3, "hp": 4, "traits": ["Titans", "Jupitris"],
+    "linkCondition": "Jupitris",
+    "effectRefs": { "deploy": "gundamPharactST13009Attack" }
+  },
+  {
+    "number": "ST14-004", "name": "Geara Doga (Heavy Armed Type)", "type": "unit", "color": "white",
+    "level": 1, "cost": 1, "ap": 2, "hp": 1, "traits": ["Neo Zeon"],
+    "keywords": { "blocker": true },
+    "cannotAttackPlayer": true
+  },
+  {
+    "number": "ST14-005", "name": "G-Falcon DX", "type": "unit", "color": "white",
+    "level": 7, "cost": 6, "ap": 5, "hp": 5, "traits": ["Vulture"],
+    "linkCondition": "Vulture/Newtype",
+    "effectRefs": { "deploy": "gFalconDXST14005Deploy" }
+  },
+  {
+    "number": "ST14-006", "name": "Full Armor Unicorn Gundam (Destroy Mode)", "type": "unit", "color": "green",
+    "level": 8, "cost": 6, "ap": 3, "hp": 6, "traits": ["Civilian"],
+    "linkCondition": "Banagher Links",
+    "lowAPEnemyDamageImmuneOncePerTurnWhilePaired": true,
+    "effectRefs": { "deploy": "fullArmorUnicornDestroyModeST14006Deploy" }
+  },
+  {
+    "number": "ST14-007", "name": "Full Armor Unicorn Gundam (Unicorn Mode)", "type": "unit", "color": "green",
+    "level": 5, "cost": 3, "ap": 4, "hp": 4, "traits": ["Civilian"],
+    "linkCondition": "Banagher Links",
+    "keywords": { "breach": 3 }
+  },
+  {
+    "number": "ST14-008", "name": "Gundam Heavyarms Custom (EW)", "type": "unit", "color": "green",
+    "level": 6, "cost": 4, "ap": 6, "hp": 4, "traits": ["G Team"],
+    "linkCondition": "G Team/Operation Meteor"
+  },
+  {
+    "number": "ST14-009", "name": "Duel Gundam (Assault Shroud)", "type": "unit", "color": "green",
+    "level": 3, "cost": 3, "ap": 3, "hp": 2, "traits": ["ZAFT"],
+    "linkCondition": "Yzak Jule",
+    "effectRefs": { "destroyed": "duelGundamAssaultShroudST14009Destroyed" }
+  },
+  {
+    "number": "ST14-010", "name": "Perfect Strike Gundam", "type": "unit", "color": "green",
+    "level": 4, "cost": 2, "ap": 4, "hp": 3, "traits": ["Triple Ship Alliance"],
+    "linkCondition": "Mu La Flaga"
+  },
+  {
+    "number": "ST14-011", "name": "Paptimus Scirocco", "type": "pilot", "color": "white",
+    "level": 4, "cost": 1, "apBonus": 2, "hpBonus": 1, "traits": ["Titans", "Jupitris", "Newtype"],
+    "effectRefs": { "burst": "addSelfToHandBurst", "attack": "paptimusSciroccoST14011Attack" }
+  },
+  {
+    "number": "ST14-012", "name": "Banagher Links", "type": "pilot", "color": "green",
+    "level": 4, "cost": 1, "apBonus": 2, "hpBonus": 1, "traits": ["Civilian", "Newtype"],
+    "effectRefs": { "burst": "addSelfToHandBurst", "whenPaired": "banagherLinksST14012WhenPaired" }
+  },
+  {
+    "number": "ST14-013", "actionTiming": "both", "name": "Natural Talent", "type": "command", "color": "white",
+    "level": 4, "cost": 2,
+    "effectRefs": { "burst": "naturalTalentST14013Burst", "command": "naturalTalentST14013Command" }
+  },
+  {
+    "number": "ST14-014", "actionTiming": "both", "name": "Blazing Mobile Suit Rider", "type": "command", "color": "white",
+    "level": 5, "cost": 1,
+    "pilotMode": { "name": "Garrod Ran & Tiffa Adill", "apBonus": 2, "hpBonus": 1 },
+    "effectRefs": { "command": "blazingMobileSuitRiderST14014Command" }
+  },
+  {
+    "number": "ST14-015", "name": "Battlefield Emotions", "type": "command", "color": "green",
+    "level": 4, "cost": 4,
+    "effectRefs": { "burst": "battlefieldEmotionsST14015Burst", "command": "battlefieldEmotionsST14015Command" }
+  },
+  {
+    "number": "ST14-016", "name": "Gryphios 2", "type": "base", "color": "white",
+    "level": 3, "cost": 1, "ap": 0, "hp": 5, "traits": ["Titans", "Stronghold"],
+    "effectRefs": { "burst": "simpleBurstBase", "deploy": "libraST12016Deploy", "allyPaired": "gryphios2ST14016AllyLinked" }
+  }
+]
