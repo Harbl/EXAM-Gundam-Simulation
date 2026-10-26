@@ -17,7 +17,8 @@ const DELAY_MS = 300;
 // New sets ship over time, so this list will need a number added when Bandai releases one.
 const SET_PREFIXES = [
   'ST01', 'ST02', 'ST03', 'ST04', 'ST05', 'ST06', 'ST07', 'ST08', 'ST09', 'ST10',
-  'GD01', 'GD02', 'GD03', 'GD04', 'GD05',
+  'ST11', 'ST12', 'ST13', 'ST14',
+  'GD01', 'GD02', 'GD03', 'GD04', 'GD05', 'GD06',
   'EB01'
 ];
 const MISS_STREAK_TO_STOP_SET = 6; // consecutive 404s that mean "past the end of this set"

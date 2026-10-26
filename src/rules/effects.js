@@ -27,6 +27,16 @@ function triggerEvent(state, eventName, context) {
       state.resolvingSource = instance;
       try {
         if (handler) handler(state, player, instance, context);
+        // GFreD GD06-051: "This Unit gains the following effect during this turn: at the end of the
+        // turn, ..." -- the same grantedEffect buff shape fireCardEffect already resolves for
+        // self-scoped triggers (At the Risk of One's Life GD05-104), but this is the first card
+        // whose granted ability is a broadcast event (endOfTurn) rather than a self-scoped one, so
+        // it needs resolving here too.
+        for (const buff of instance.buffs) {
+          if (buff.grantedEffect && buff.grantedEffect.eventName === eventName) {
+            buff.grantedEffect.fn(state, player, instance, context);
+          }
+        }
         // Jerid Messa GD02-086 / Challia Bull (GQ) GD02-090: a Pilot's own board-state-conditional
         // stat text needs to re-evaluate at startOfTurn same as a Unit's -- mirrors fireCardEffect's
         // existing pilot-forwarding for self-scoped triggers (13-2-x). No pre-GD02 Pilot has a
@@ -101,6 +111,11 @@ function applyRepairAtEndOfTurn(state, player) {
     if (instance.pilot) {
       const conditional = instance.pilot.def.duringPairRepairIfColor;
       if (conditional && instance.def.color === conditional.color) amount += conditional.amount;
+      // Amate Yuzuriha (Machu) GD06-081: "While this Unit is (Alphacide), it gains <Repair 2>" --
+      // same Pilot-granted-conditioned-on-paired-Unit shape as duringPairRepairIfColor above, just
+      // keyed on a trait instead of a color.
+      const traitConditional = instance.pilot.def.duringPairRepairIfTrait;
+      if (traitConditional && (instance.def.traits || []).includes(traitConditional.trait)) amount += traitConditional.amount;
     }
     // Hyaku-Shiki (R+) GD02-072: "While a friendly white Base is in play, this Unit gains <Repair 1>."
     if (instance.def.repairIfFriendlyBase && player.base) amount += instance.def.repairIfFriendlyBase;
@@ -211,7 +226,19 @@ function dealEffectDamage(state, sourcePlayer, targetOwner, target, amount) {
   ) {
     return;
   }
-  dealDamage(target, amount, { isEnemyDamage: sourcePlayer !== targetOwner, player: targetOwner });
+  // ZZ Gundam GD06-033: "When your (AEUG) cards deal damage to enemy Units, increase the damage
+  // dealt by 1" -- the effect-damage half of the amp (see combat.js's teamDamageAmpAgainstUnits for
+  // the battle-damage half; duplicated here, not imported, since combat.js already requires this
+  // file and a reverse require would be circular). Only amplifies damage to an enemy Unit, and only
+  // when state.resolvingSource (the card whose ability is actually dealing this damage) is known
+  // and carries the aura's trait.
+  let amp = 0;
+  if (sourcePlayer !== targetOwner && target.def.type === 'unit' && state.resolvingSource) {
+    const auraHolder = sourcePlayer.battleArea.find((u) => u.def.teamDamageAmpAgainstUnitsIfTrait);
+    const cfg = auraHolder && auraHolder.def.teamDamageAmpAgainstUnitsIfTrait;
+    if (cfg && (state.resolvingSource.def.traits || []).includes(cfg.trait)) amp = cfg.amount;
+  }
+  dealDamage(target, amount + amp, { isEnemyDamage: sourcePlayer !== targetOwner, player: targetOwner });
   // CGS Mobile Worker (Commander Type) GD03-060: "when this Unit receives effect damage" -- unlike
   // the enemy-only trigger below, this reacts regardless of source, so it needs its own broadcast.
   fireCardEffect(state, targetOwner, target, 'receivesEffectDamage', {});
@@ -270,6 +297,14 @@ function placeExResource(state, player) {
  * matching the card text's "this rested Unit."
  */
 function setActiveByEffect(state, player, instance) {
+  // Reginlaze Julia GD06-037: "[During Pair] Enemy Units can't be set as active by enemy effects"
+  // -- read from `player`'s own opponent's side: denies `player` the ability to set its own Units
+  // active via an effect while the opponent controls a paired Reginlaze Julia. Checked here, the
+  // one chokepoint every "set active by effect" call already goes through.
+  if (Array.isArray(state.players)) {
+    const opponent = state.players.find((p) => p !== player);
+    if (opponent && opponent.battleArea.some((u) => u.pilot && u.def.duringPairBlocksEnemySetActiveByEffect)) return;
+  }
   const wasRested = instance.rested;
   instance.rested = false;
   if (wasRested) fireCardEffect(state, player, instance, 'setActiveByEffect', {});
@@ -365,6 +400,8 @@ function clearBattleBuffs(player) {
   // Units that are Lv.3 or lower" -- a player-level (not Unit-level) battle-scoped condition, so it
   // can't live in a Unit's own buffs array; cleared here alongside every other battle-scope buff.
   player.shieldDamageImmuneLevelCap = undefined;
+  // Presence Detected GD06-106: same player-level battle-scoped shape, keyed on AP instead of Lv.
+  player.shieldDamageImmuneAPCap = undefined;
 }
 
 module.exports = {

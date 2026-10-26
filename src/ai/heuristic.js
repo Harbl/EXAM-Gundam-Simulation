@@ -273,9 +273,14 @@ function runPairings(state, player) {
     // otherwise unaffordable, so the affordability filter needs to know the best-case pair target.
     const pilots = player.hand.filter((c) => {
       if (c.def.type !== 'pilot' && !c.def.pilotMode) return false;
+      // Mashymre Cello GD06-086 / Corin Nander GD06-100: costReductionIfPairUnit needs the same
+      // best-case pair target guess as freeCostIfPairUnitNameIncludes above, via bestLinkMatch
+      // rather than a name match (its own discount condition reads link-matching/level, not name).
       const pairUnit = c.def.freeCostIfPairUnitNameIncludes
         ? targets.find((u) => (u.def.name || '').includes(c.def.freeCostIfPairUnitNameIncludes))
-        : undefined;
+        : c.def.costReductionIfPairUnit
+          ? bestLinkMatch(targets, c)
+          : undefined;
       return canAfford(player, c.def, { pairUnit, state });
     });
     if (pilots.length === 0 || targets.length === 0) return;
@@ -322,7 +327,9 @@ function resolvePairingSubset(state, playerIdx, subsetIds) {
       if (c.def.type !== 'pilot' && !c.def.pilotMode) return false;
       const pairUnit = c.def.freeCostIfPairUnitNameIncludes
         ? targets.find((u) => (u.def.name || '').includes(c.def.freeCostIfPairUnitNameIncludes))
-        : undefined;
+        : c.def.costReductionIfPairUnit
+          ? bestLinkMatch(targets, c)
+          : undefined;
       return canAfford(player, c.def, { pairUnit, state });
     });
     if (pilots.length === 0 || targets.length === 0) return;
@@ -421,6 +428,10 @@ function runActivations(state, playerIdx) {
  */
 function getForcedAttackTargets(defendingPlayer, attacker = null) {
   const tauntTraits = defendingPlayer.battleArea.filter((u) => u.def.tauntTrait).map((u) => u.def.tauntTrait);
+  // Turn X GD06-019: "Enemy Units choose one of your rested Unit tokens as their attack target if
+  // possible when attacking" -- same board-wide-taunt-source shape as tauntTrait above, just keyed
+  // on isToken instead of a trait name.
+  const tauntTokens = defendingPlayer.battleArea.some((u) => u.def.tauntIfToken);
   return defendingPlayer.battleArea.filter(
     (u) =>
       u.rested &&
@@ -430,6 +441,7 @@ function getForcedAttackTargets(defendingPlayer, attacker = null) {
       (u.buffs.some((b) => b.forcedAttackTarget) ||
         (u.def.duringPairTaunt && u.pilot) ||
         tauntTraits.some((t) => (u.def.traits || []).includes(t)) ||
+        (tauntTokens && u.def.isToken) ||
         // Tieren Taozi GD03-074: "[During Pair] While you have another (Superpower Bloc) Unit in
         // play, enemy Units choose this rested Unit as their attack target if possible" -- unlike
         // duringPairTaunt above, this self-taunt is further gated on another matching-trait ally.
@@ -797,10 +809,20 @@ function actionStep(state, { attacker, target, battleTarget }) {
       const usedExResource = payCost(defendingPlayer, choice.def, { state });
       defendingPlayer.hand.splice(defendingPlayer.hand.indexOf(choice), 1);
       const underAttack = target.type === 'unit' ? target.instance : defendingPlayer.base;
-      playCommand(state, defendingPlayer, choice.def, {
+      const trashed = playCommand(state, defendingPlayer, choice.def, {
         usedExResource,
         extraContext: { battleTarget, underAttack, attackingUnit: attacker }
       });
+      // Sturm und Drang GD06-119: "After activating this card's [Action], you may pair this card
+      // from your trash with one of your (MF) Units" -- same pairableFromTrash follow-up as
+      // runCommands/resolveCommandSubset above, just reached from the Action-timing reactive window
+      // instead of a Main-phase play.
+      if (trashed.def.pairableFromTrash) {
+        const pairTarget = defendingPlayer.battleArea.find(
+          (u) => !u.pilot && !u.def.cannotBePaired && (u.def.traits || []).includes(trashed.def.pairableFromTrash)
+        );
+        if (pairTarget) pairPilotFromTrash(state, defendingPlayer, pairTarget, trashed);
+      }
     }
 
     // A reactive Command above (e.g. Wings of Light bouncing the attacker) can already end this battle

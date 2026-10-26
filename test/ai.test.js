@@ -236,6 +236,28 @@ test('actionStep reactively plays Overcoming Hardships to redirect a bad-trade a
   assert.equal(player.hand.some((c) => c.def.number === 'GD05-108'), false, 'Overcoming Hardships was actually played');
 });
 
+test("actionStep reactively plays Sturm und Drang GD06-119, then pairs it from trash with an (MF) ally via its own pairableFromTrash follow-up", () => {
+  const player = createPlayer(0);
+  const opponent = createPlayer(1);
+  const state = createGame(player, opponent);
+  state.activePlayerIdx = 1;
+  for (let i = 0; i < 5; i++) player.resourceArea.push(createInstance({ number: 'R', type: 'resource', color: 'white' }, 0));
+  player.hand.push(createInstance(lookupCard('GD06-119'), 0));
+  const mfAlly = deployUnit(state, player, { number: 'MF1', type: 'unit', ap: 1, hp: 1, traits: ['MF'] });
+
+  const valuableUnit = createInstance({ number: 'V', type: 'unit', level: 1, ap: 1, hp: 1 }, 0);
+  player.battleArea.push(valuableUnit);
+  const attacker = createInstance({ number: 'A', type: 'unit', level: 1, ap: 5, hp: 3 }, 1);
+  opponent.battleArea.push(attacker);
+
+  resolveAttack(state, 1, attacker, { type: 'unit', instance: valuableUnit }, { actionStep });
+
+  assert.equal(player.hand.some((c) => c.def.number === 'GD06-119'), false, 'Sturm und Drang was actually played');
+  assert.equal(attacker.rested, true, "its own [Action] effect (rest a <=3 HP enemy) targeted the 3-HP attacker");
+  assert.equal(mfAlly.pilot && mfAlly.pilot.def.number === 'GD06-119', true, 'paired from trash with the (MF) ally afterward');
+  assert.equal(player.trash.some((c) => c.def.number === 'GD06-119'), false, 'pulled back out of trash once paired, not left sitting there');
+});
+
 test('actionStep reactively plays A Wind Against Fires to debuff the attacking enemy Unit AP-3, once the friendly Unit under attack is confirmed Lv.5+, via the new attackingUnit/underAttack context fields', () => {
   const player = createPlayer(0);
   const opponent = createPlayer(1);

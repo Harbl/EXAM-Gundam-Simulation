@@ -39,6 +39,8 @@ function runStartPhase(state) {
   player.neoZeonSelfDestroyThisTurn = false; // Axis GD05-129's "your Unit destroyed by your (Neo Zeon) card's effect this turn" check
   player.abilityCostsPaidThisTurn = []; // Turn A Gundam GD04-069's "paid (1)+ for one of your other Units' effects this turn" check
   player.resourceSetActiveByEffectThisTurn = false; // Battlefield Emotions ST14-015's own "have not set one of your Resources as active with an effect this turn" check
+  player.drewWithEffectThisTurn = false; // Kou Uraki GD06-080's "have drawn with an effect during this turn" check
+  player.attackedThisTurn = false; // A Miracle GD06-102's "no enemy Units have attacked this turn" check
   triggerEvent(state, 'startOfTurn', {});
 }
 
@@ -56,6 +58,10 @@ function drawCard(state, player, opts = {}) {
   // [High Maneuver] during this turn" -- distinguishes an effect draw from the once-per-turn
   // phase draw via this opts flag, so only the single runDrawPhase call site below opts out.
   if (!opts.isPhaseDraw) {
+    // Kou Uraki GD06-080: "If you have drawn with an effect during this turn" -- a persistent
+    // player-level flag (unlike the immediate drawnByEffect broadcast below), for a reactive check
+    // made later in the turn rather than right at the moment of the draw. Cleared in runStartPhase.
+    player.drewWithEffectThisTurn = true;
     for (const u of player.battleArea) fireCardEffect(state, player, u, 'drawnByEffect', {});
   }
 }

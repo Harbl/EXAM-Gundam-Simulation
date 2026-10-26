@@ -357,7 +357,65 @@ const RESOLVERS = {
     if (source.activationsUsed.breachFromToken) return null;
     const token = player.battleArea.find((u) => u !== source && u.def.isToken);
     return token ? { token } : null;
-  }
+  },
+  // GFreD GD06-051: "(2), rest this Unit: Choose 1 (Alphacide) Unit card Lv.5 or lower from your
+  // trash. Deploy it." Once per Turn. collectActivateCandidates already requires source to be
+  // active before calling this, so no explicit rested-check is needed here.
+  'GD06-051': (state, player, opponent, source) => {
+    if (source.activationsUsed.recurAlphacide) return null;
+    if (player.resourceArea.filter((r) => !r.rested).length < 2) return null;
+    return player.trash.some((c) => c.def.type === 'unit' && (c.def.traits || []).includes('Alphacide') && (c.def.level || 0) <= 5) ? {} : null;
+  },
+  // SUMO Gold Type GD06-065: "(4): Set all your (Dianna Counter)/(Militia) Units with <Blocker> as
+  // active. They can't attack this turn." Once per Turn, needs 4 active Resources and a rested
+  // qualifying Unit.
+  'GD06-065': (state, player, opponent, source) => {
+    if (source.activationsUsed.unrestBlockers) return null;
+    if (player.resourceArea.filter((r) => !r.rested).length < 4) return null;
+    return player.battleArea.some(
+      (u) => u.rested && ((u.def.traits || []).includes('Dianna Counter') || (u.def.traits || []).includes('Militia')) && getKeywords(u).blocker
+    )
+      ? {}
+      : null;
+  },
+  // WaD GD06-078: "(3), rest this Unit: If you have another (Dianna Counter) Unit in play, choose
+  // 1 enemy Unit that is Lv.4 or lower. Rest it." Repeatable, but self-rests as its own cost.
+  'GD06-078': (state, player, opponent, source) => {
+    if (player.resourceArea.filter((r) => !r.rested).length < 3) return null;
+    if (!player.battleArea.some((u) => u !== source && (u.def.traits || []).includes('Dianna Counter'))) return null;
+    return opponent.battleArea.some((u) => (u.def.level || 0) <= 4) ? {} : null;
+  },
+  // Neo Core Fighter GD06-039: "Destroy 2 of your (Gundam Team) Units with unique card names that
+  // are Lv.3 and this Unit: Deploy 1 (Gundam Team) Unit card that is Lv.8 or higher from your
+  // hand." Previously unwired (see the handler's own comment in registry.js) since picking which 2
+  // Lv.3 Units to give up is a real judgement call -- resolved here with a defensible default: give
+  // up the 2 lowest-AP distinct-named qualifying Units (one per name; duplicates of the same name
+  // are interchangeable) and deploy the single highest AP+HP qualifying card in hand. No activationsUsed
+  // flag needed -- the source destroys itself as part of the cost, so it can only ever fire once.
+  'GD06-039': (state, player, opponent, source) => {
+    const byName = new Map();
+    for (const u of player.battleArea) {
+      if (u === source) continue;
+      if (!(u.def.traits || []).includes('Gundam Team') || (u.def.level || 0) !== 3) continue;
+      if (!byName.has(u.def.name)) byName.set(u.def.name, u);
+    }
+    const sacrifices = [...byName.values()].sort((a, b) => getAP(a) - getAP(b)).slice(0, 2);
+    if (sacrifices.length < 2) return null;
+    const card = player.hand
+      .filter((c) => c.def.type === 'unit' && (c.def.traits || []).includes('Gundam Team') && (c.def.level || 0) >= 8)
+      .sort((a, b) => ((b.def.ap || 0) + (b.def.hp || 0)) - ((a.def.ap || 0) + (a.def.hp || 0)))[0];
+    return card ? { sacrifices, card } : null;
+  },
+  // Aspite GD06-124 (Base): "Rest this Base: If you have 3+ (Ghingnham Fleet)/(Long-Range Weapon)
+  // Units in play, all your (Ghingnham Fleet) Units get AP+1 this turn." Resting is the cost, so
+  // only offered when the count condition is actually met (otherwise it's a wasted activation).
+  'GD06-124': (state, player) =>
+    player.battleArea.filter((u) => (u.def.traits || []).includes('Ghingnham Fleet') || (u.def.traits || []).includes('Long-Range Weapon')).length >= 3
+      ? {}
+      : null,
+  // Gwaden GD06-128 (Base): "Rest this Base: Choose 1 friendly (Zeon) Unit. During this turn, when
+  // it receives enemy battle damage, reduce it by 1." Needs a qualifying Unit to target.
+  'GD06-128': (state, player) => (player.battleArea.some((u) => (u.def.traits || []).includes('Zeon')) ? {} : null)
 };
 
 /**
@@ -538,6 +596,37 @@ const ACTION_RESOLVERS = {
     if (!restUnit) return null;
     const target = opponent.battleArea.filter((u) => (u.def.level || 0) <= 4).sort((a, b) => getRemainingHP(a) - getRemainingHP(b))[0];
     return target ? { restUnit, target } : null;
+  },
+  // Elpeo Ple's Qubeley Mk-II GD06-018: "[During Pair] ... Choose 1 of your (Neo Zeon)/(Long-Range
+  // Weapon) Units or 1 of your (Neo Zeon) Base. Battle damage this Unit would receive this battle is
+  // dealt to that Unit/Base instead." No "while attacking" qualifier printed, so wired into both
+  // action-resolver tables like Milliardo/Gundam Aerial above -- this is the defending-side half.
+  // Heuristic default: redirect to whichever qualifying ally/Base currently has the most HP to soak.
+  'GD06-018': (state, player, opponent, source) => {
+    if (!source.pilot || source.activationsUsed.redirectDamage) return null;
+    const candidates = [
+      ...player.battleArea.filter((u) => u !== source && ((u.def.traits || []).includes('Neo Zeon') || (u.def.traits || []).includes('Long-Range Weapon'))),
+      ...(player.base && (player.base.def.traits || []).includes('Neo Zeon') ? [player.base] : [])
+    ];
+    const target = candidates.sort((a, b) => getRemainingHP(b) - getRemainingHP(a))[0];
+    return target ? { target } : null;
+  },
+  // SUMO Silver Type GD06-069: "(1): Choose 1 of your damaged (Dianna Counter) Units. It recovers
+  // 1 HP." No "while attacking" qualifier printed, so wired into both action-resolver tables like
+  // Milliardo/Gundam Aerial above -- this is the defending-side half.
+  'GD06-069': (state, player, opponent, source) => {
+    if (source.activationsUsed.healDiannaCounter) return null;
+    if (!player.resourceArea.some((r) => !r.rested)) return null;
+    const target = player.battleArea.filter((u) => u.damage > 0 && (u.def.traits || []).includes('Dianna Counter')).sort((a, b) => a.damage - b.damage)[0];
+    return target ? { target } : null;
+  },
+  // Kou Uraki GD06-080 (Pilot, gained by its paired Unit): "If you have drawn with an effect during
+  // this turn, choose 1 of your Units. It recovers 2 HP." No "while attacking" qualifier printed,
+  // so wired into both action-resolver tables like SUMO Silver Type above.
+  'GD06-080': (state, player, opponent, source) => {
+    if (!source.pilot || source.activationsUsed.healIfDrewByEffect || !player.drewWithEffectThisTurn) return null;
+    const target = player.battleArea.filter((u) => u.damage > 0).sort((a, b) => b.damage - a.damage)[0];
+    return target ? { target } : null;
   }
 };
 
@@ -585,6 +674,29 @@ const ATTACKER_ACTION_RESOLVERS = {
     if (!restUnit) return null;
     const target = opponent.battleArea.filter((u) => (u.def.level || 0) <= 4).sort((a, b) => getRemainingHP(a) - getRemainingHP(b))[0];
     return target ? { restUnit, target } : null;
+  },
+  // Elpeo Ple's Qubeley Mk-II GD06-018: the attacking-side half -- see the ACTION_RESOLVERS entry above.
+  'GD06-018': (state, player, opponent, source) => {
+    if (!source.pilot || source.activationsUsed.redirectDamage) return null;
+    const candidates = [
+      ...player.battleArea.filter((u) => u !== source && ((u.def.traits || []).includes('Neo Zeon') || (u.def.traits || []).includes('Long-Range Weapon'))),
+      ...(player.base && (player.base.def.traits || []).includes('Neo Zeon') ? [player.base] : [])
+    ];
+    const target = candidates.sort((a, b) => getRemainingHP(b) - getRemainingHP(a))[0];
+    return target ? { target } : null;
+  },
+  // SUMO Silver Type GD06-069: the attacking-side half -- see the ACTION_RESOLVERS entry above.
+  'GD06-069': (state, player, opponent, source) => {
+    if (source.activationsUsed.healDiannaCounter) return null;
+    if (!player.resourceArea.some((r) => !r.rested)) return null;
+    const target = player.battleArea.filter((u) => u.damage > 0 && (u.def.traits || []).includes('Dianna Counter')).sort((a, b) => a.damage - b.damage)[0];
+    return target ? { target } : null;
+  },
+  // Kou Uraki GD06-080: the attacking-side half -- see the ACTION_RESOLVERS entry above.
+  'GD06-080': (state, player, opponent, source) => {
+    if (!source.pilot || source.activationsUsed.healIfDrewByEffect || !player.drewWithEffectThisTurn) return null;
+    const target = player.battleArea.filter((u) => u.damage > 0).sort((a, b) => b.damage - a.damage)[0];
+    return target ? { target } : null;
   }
 };
 

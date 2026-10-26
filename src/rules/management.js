@@ -134,6 +134,13 @@ function getKeywords(instance) {
     // just keyed on a trait instead of a color.
     const traitKeyword = instance.pilot.def.keywordIfUnitTrait;
     if (traitKeyword && (instance.def.traits || []).includes(traitKeyword.trait)) merged[traitKeyword.keyword] = true;
+    // Waldfeld's Gaia Gundam GD06-015: "[During Pair * (Orb) Pilot] This Unit gains <Blocker>" -- the
+    // mirror image of keywordIfUnitTrait above: a Unit-side grant conditioned on its OWN paired
+    // Pilot's trait, rather than a Pilot-side grant conditioned on the Unit's trait.
+    const pilotTraitKeyword = instance.def.duringPairKeywordIfPilotTrait;
+    if (pilotTraitKeyword && (instance.pilot.def.traits || []).includes(pilotTraitKeyword.trait)) {
+      merged[pilotTraitKeyword.keyword] = true;
+    }
   }
   // Asemu Asuno (R+) GD03-088: "[During Link] If this is an (AGE System) Unit, ... it gains
   // <Breach 1>" -- same trait-conditional shape as breachIfUnitTrait above, gated on isLinkUnit.
@@ -141,6 +148,19 @@ function getKeywords(instance) {
     const traitBreach = instance.pilot.def.duringLinkBreachIfTrait;
     if (traitBreach && (instance.def.traits || []).includes(traitBreach.trait)) {
       merged.breach = (merged.breach || 0) + traitBreach.amount;
+    }
+    // Challia Bull (GQ) GD06-083: "[During Link] While this Unit has <Repair>, it gains
+    // <High-Maneuver>" -- checks every Repair source getKeywords itself already has visibility
+    // into (print, During Link grant, turn-scoped buffs, live grantedKeywords); doesn't reach into
+    // applyRepairAtEndOfTurn's broader Base/aura-scoped Repair sources, an accepted narrower
+    // approximation for this one check.
+    if (instance.pilot.def.highManeuverIfHasRepair) {
+      const repairTotal =
+        ((instance.def.keywords && instance.def.keywords.repair) || 0) +
+        (instance.pilot.def.duringLinkRepair || 0) +
+        instance.buffs.reduce((sum, b) => sum + (b.repair || 0), 0) +
+        (instance.grantedKeywords.repair || 0);
+      if (repairTotal > 0) merged.highManeuver = true;
     }
   }
   return merged;

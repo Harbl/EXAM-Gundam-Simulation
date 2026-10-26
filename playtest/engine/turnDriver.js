@@ -113,7 +113,7 @@ async function resolveAttackInteractive(state, attackerPlayerIdx, action, contro
     const keywords = getKeywords(attacker);
     if (!keywords.highManeuver) {
       const chosenBlocker = await controllers[opponentIdx].chooseBlocker(state, opponent, attacker, target, player);
-      if (chosenBlocker) target = applyBlockDecision(attacker, target, chosenBlocker);
+      if (chosenBlocker) target = applyBlockDecision(state, opponent, attacker, target, chosenBlocker);
     }
   }
 

@@ -73,6 +73,28 @@ test('applyAction: pair attaches the pilot to a matching-link Unit already in pl
   assert.equal(player.hand.length, 0);
 });
 
+test('getLegalActions/applyAction: Mashymre Cello GD06-086 is only affordable (and only offered as a pair candidate) against its own link target, via costReductionIfPairUnit', () => {
+  const player = createPlayer(0);
+  const state = createGame(player, createPlayer(1));
+  // 0 active Resources -- cost 1 is unaffordable without the pair discount.
+  for (let i = 0; i < 3; i++) player.resourceArea.push(createInstance({ number: 'R' + i, type: 'resource' }, 0));
+  player.resourceArea.forEach((r) => (r.rested = true));
+  const mashymreCello = createInstance(lookupCard('GD06-086'), 0);
+  player.hand.push(mashymreCello);
+
+  const nonMatchingUnit = deployUnit(state, player, { number: 'N', type: 'unit', ap: 1, hp: 1, linkCondition: 'Someone Else' });
+  assert.deepEqual(getLegalActions(state, 0).map((a) => a.type), ['pass'], 'no matching link target -- unaffordable, not offered');
+
+  const matchingUnit = deployUnit(state, player, { number: 'M', type: 'unit', ap: 1, hp: 1, linkCondition: 'Mashymre Cello' });
+  const actions = getLegalActions(state, 0);
+  assert.ok(actions.some((a) => a.type === 'pair' && a.cardId === mashymreCello.id), 'matching link target -- discounted to 0, now offered');
+
+  applyAction(state, 0, { type: 'pair', cardId: mashymreCello.id });
+  assert.equal(matchingUnit.pilot, mashymreCello, 'pairs with its own link target over the non-matching Unit');
+  assert.equal(nonMatchingUnit.pilot, null);
+  assert.equal(player.resourceArea.filter((r) => r.rested).length, 3, 'discounted to 0 -- no additional Resources rested');
+});
+
 test('applyAction: attack resolves against the opponent face and rests the attacker', () => {
   const player = createPlayer(0);
   const opponent = createPlayer(1);

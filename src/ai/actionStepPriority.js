@@ -1,5 +1,5 @@
 const { canAfford, payCost } = require('../rules/cost');
-const { playCommand } = require('../rules/actions');
+const { playCommand, pairPilotFromTrash } = require('../rules/actions');
 const { collectActivateActionCandidates, ACTION_RESOLVERS, ATTACKER_ACTION_RESOLVERS } = require('./activations');
 
 /**
@@ -52,7 +52,16 @@ function applyActionStepResponse(state, playerIdx, battleCtx, response) {
     if (!canAfford(player, card.def, { state })) return;
     const usedExResource = payCost(player, card.def, { state });
     player.hand.splice(player.hand.indexOf(card), 1);
-    playCommand(state, player, card.def, { usedExResource, extraContext: commandContextFor(state, battleCtx) });
+    const trashed = playCommand(state, player, card.def, { usedExResource, extraContext: commandContextFor(state, battleCtx) });
+    // Sturm und Drang GD06-119: "After activating this card's [Action], you may pair this card from
+    // your trash with one of your (MF) Units" -- same pairableFromTrash follow-up heuristic.js's
+    // runCommands/resolveCommandSubset/actionStep already use for a Main-phase or reactive-window play.
+    if (trashed.def.pairableFromTrash) {
+      const pairTarget = player.battleArea.find(
+        (u) => !u.pilot && !u.def.cannotBePaired && (u.def.traits || []).includes(trashed.def.pairableFromTrash)
+      );
+      if (pairTarget) pairPilotFromTrash(state, player, pairTarget, trashed);
+    }
     return;
   }
 

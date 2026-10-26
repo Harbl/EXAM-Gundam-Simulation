@@ -1,0 +1,2277 @@
+[
+  {
+    "number": "GD06-001",
+    "name": "Gundam GP01Fb",
+    "type": "unit",
+    "color": "blue",
+    "level": 5,
+    "cost": 4,
+    "ap": 3,
+    "hp": 5,
+    "traits": [
+      "Earth Federation",
+      "Albion Squad"
+    ],
+    "linkCondition": "Kou Uraki",
+    "effectRefs": {
+      "attacked": "gundamGP01FbGD06001Attacked"
+    },
+    "duringPairKeywords": {
+      "highManeuver": true
+    }
+  },
+  {
+    "number": "GD06-002",
+    "name": "Infinite Justice Gundam",
+    "type": "unit",
+    "color": "blue",
+    "level": 7,
+    "cost": 6,
+    "ap": 5,
+    "hp": 5,
+    "traits": [
+      "Orb"
+    ],
+    "linkCondition": "Athrun Zala",
+    "effectRefs": {
+      "destroysEnemy": "infiniteJusticeGundamGD06002DestroysEnemy",
+      "deploy": "infiniteJusticeGundamGD06002Deploy"
+    }
+  },
+  {
+    "number": "GD06-003",
+    "name": "GQuuuuuuX (Omega Psycommu Released)",
+    "type": "unit",
+    "color": "blue",
+    "level": 6,
+    "cost": 4,
+    "ap": 2,
+    "hp": 5,
+    "traits": [
+      "Alphacide"
+    ],
+    "linkCondition": "Amate Yuzuriha (Machu)",
+    "effectRefs": {
+      "startOfTurn": "gQuuuuuuXReleasedGD06003StartOfTurn",
+      "attack": "gQuuuuuuXReleasedGD06003Attack"
+    }
+  },
+  {
+    "number": "GD06-004",
+    "name": "Gundam GP01",
+    "type": "unit",
+    "color": "blue",
+    "level": 4,
+    "cost": 2,
+    "ap": 4,
+    "hp": 3,
+    "traits": [
+      "Earth Federation",
+      "Albion Squad"
+    ],
+    "linkCondition": "Kou Uraki",
+    "effectRefs": {
+      "destroyed": "gundamGP01GD06004Destroyed"
+    }
+  },
+  {
+    "number": "GD06-005",
+    "name": "Akatsuki (Shiranui)",
+    "type": "unit",
+    "color": "blue",
+    "level": 6,
+    "cost": 5,
+    "ap": 5,
+    "hp": 4,
+    "traits": [
+      "Orb"
+    ],
+    "linkCondition": "Orb/Mu La Flaga",
+    "effectRefs": {
+      "attack": "akatsukiShiranuiGD06005Attack"
+    }
+  },
+  {
+    "number": "GD06-006",
+    "name": "GQuuuuuuX (Omega Psycommu)",
+    "type": "unit",
+    "color": "blue",
+    "level": 5,
+    "cost": 3,
+    "ap": 4,
+    "hp": 2,
+    "traits": [
+      "Alphacide"
+    ],
+    "linkCondition": "Amate Yuzuriha (Machu)/Nyaan",
+    "effectRefs": {
+      "deploy": "gQuuuuuuXGD06006Deploy"
+    }
+  },
+  {
+    "number": "GD06-007",
+    "name": "Kikeroga (MS Mode) (GQ)",
+    "type": "unit",
+    "color": "blue",
+    "level": 7,
+    "cost": 5,
+    "ap": 4,
+    "hp": 6,
+    "traits": [
+      "Zeon"
+    ],
+    "linkCondition": "Challia Bull",
+    "keywords": {
+      "repair": 2
+    },
+    "effectRefs": {
+      "deploy": "kikerogaMSModeGD06007Deploy"
+    }
+  },
+  {
+    "number": "GD06-008",
+    "name": "Powered GM",
+    "type": "unit",
+    "color": "blue",
+    "level": 3,
+    "cost": 2,
+    "ap": 2,
+    "hp": 4,
+    "traits": [
+      "Earth Federation"
+    ],
+    "effectRefs": {
+      "attack": "poweredGMGD06008Attack"
+    }
+  },
+  {
+    "number": "GD06-009",
+    "name": "GM Custom",
+    "type": "unit",
+    "color": "blue",
+    "level": 3,
+    "cost": 2,
+    "ap": 2,
+    "hp": 4,
+    "traits": [
+      "Earth Federation",
+      "Albion Squad"
+    ],
+    "linkCondition": "Albion Squad",
+    "effectRefs": {
+      "deploy": "gmCustomGD06009Deploy"
+    }
+  },
+  {
+    "number": "GD06-010",
+    "name": "GM Cannon II",
+    "type": "unit",
+    "color": "blue",
+    "level": 3,
+    "cost": 2,
+    "ap": 2,
+    "hp": 3,
+    "traits": [
+      "Earth Federation",
+      "Albion Squad"
+    ],
+    "linkCondition": "Albion Squad",
+    "effectRefs": {
+      "whenLinked": "gmCannonIIGD06010WhenLinked"
+    }
+  },
+  {
+    "number": "GD06-011",
+    "name": "Red Gundam",
+    "type": "unit",
+    "color": "blue",
+    "level": 5,
+    "cost": 4,
+    "ap": 4,
+    "hp": 4,
+    "linkCondition": "Newtype",
+    "effectRefs": {
+      "whenLinked": "redGundamGD06011WhenLinked"
+    }
+  },
+  {
+    "number": "GD06-012",
+    "name": "Z'Gok",
+    "type": "unit",
+    "color": "blue",
+    "level": 4,
+    "cost": 2,
+    "ap": 3,
+    "hp": 4,
+    "traits": [
+      "Zeon",
+      "Marine"
+    ],
+    "linkCondition": "Zeon"
+  },
+  {
+    "number": "GD06-013",
+    "name": "Zaku II F2 (EFSF)",
+    "type": "unit",
+    "color": "blue",
+    "level": 1,
+    "cost": 1,
+    "ap": 1,
+    "hp": 2,
+    "traits": [
+      "Earth Federation"
+    ]
+  },
+  {
+    "number": "GD06-014",
+    "name": "GM Type C",
+    "type": "unit",
+    "color": "blue",
+    "level": 2,
+    "cost": 1,
+    "ap": 2,
+    "hp": 1,
+    "traits": [
+      "Earth Federation"
+    ],
+    "effectRefs": {
+      "startOfTurn": "gmTypeCGD06014StartOfTurn"
+    }
+  },
+  {
+    "number": "GD06-015",
+    "name": "Waldfeld's Gaia Gundam",
+    "type": "unit",
+    "color": "blue",
+    "level": 5,
+    "cost": 3,
+    "ap": 3,
+    "hp": 5,
+    "traits": [
+      "Orb"
+    ],
+    "linkCondition": "Andrew Waldfeld",
+    "duringPairKeywordIfPilotTrait": {
+      "trait": "Orb",
+      "keyword": "blocker"
+    }
+  },
+  {
+    "number": "GD06-016",
+    "name": "Dom Trooper",
+    "type": "unit",
+    "color": "blue",
+    "level": 3,
+    "cost": 2,
+    "ap": 3,
+    "hp": 3,
+    "traits": [
+      "Orb"
+    ],
+    "linkCondition": "Orb"
+  },
+  {
+    "number": "GD06-017",
+    "name": "GQuuuuuuX",
+    "type": "unit",
+    "color": "blue",
+    "level": 3,
+    "cost": 2,
+    "ap": 2,
+    "hp": 4,
+    "traits": [
+      "Alphacide"
+    ],
+    "linkCondition": "Amate Yuzuriha (Machu)",
+    "effectRefs": {
+      "startOfTurn": "gQuuuuuuXGD06017StartOfTurn"
+    }
+  },
+  {
+    "number": "GD06-018",
+    "name": "Elpeo Ple's Qubeley Mk-II (GD06-018)",
+    "type": "unit",
+    "color": "green",
+    "level": 3,
+    "cost": 2,
+    "ap": 3,
+    "hp": 2,
+    "traits": [
+      "Neo Zeon"
+    ],
+    "linkCondition": "Elpeo Ple",
+    "keywords": {
+      "breach": 1
+    },
+    "effectRefs": {
+      "activateAction": "elpeoPlesQubeleyMkII018ActivateAction"
+    }
+  },
+  {
+    "number": "GD06-019",
+    "name": "Turn X",
+    "type": "unit",
+    "color": "green",
+    "level": 8,
+    "cost": 7,
+    "ap": 5,
+    "hp": 6,
+    "traits": [
+      "Ghingnham Fleet"
+    ],
+    "linkCondition": "Gym Ghingnham",
+    "tauntIfToken": true,
+    "effectRefs": {
+      "attack": "turnXGD06019Attack"
+    }
+  },
+  {
+    "number": "GD06-020",
+    "name": "Hamma-Hamma",
+    "type": "unit",
+    "color": "green",
+    "level": 3,
+    "cost": 3,
+    "ap": 3,
+    "hp": 4,
+    "traits": [
+      "Neo Zeon"
+    ],
+    "linkCondition": "Mashymre Cello",
+    "effectRefs": {
+      "friendlyUnitDestroysEnemy": "hammaHammaGD06020FriendlyUnitDestroysEnemy"
+    }
+  },
+  {
+    "number": "GD06-021",
+    "name": "Turn X (Top)",
+    "type": "unit",
+    "color": "green",
+    "level": 4,
+    "cost": 3,
+    "ap": 2,
+    "hp": 2,
+    "traits": [
+      "Ghingnham Fleet"
+    ],
+    "linkCondition": "Gym Ghingnham",
+    "effectRefs": {
+      "deploy": "turnXTopGD06021Deploy"
+    }
+  },
+  {
+    "number": "GD06-022",
+    "name": "Merrybell's Bandit",
+    "type": "unit",
+    "color": "green",
+    "level": 6,
+    "cost": 4,
+    "ap": 4,
+    "hp": 4,
+    "traits": [
+      "Ghingnham Fleet"
+    ],
+    "linkCondition": "Moonrace",
+    "effectRefs": {
+      "whenLinked": "merrybellsBanditGD06022WhenLinked"
+    }
+  },
+  {
+    "number": "GD06-023",
+    "name": "Galluss J",
+    "type": "unit",
+    "color": "green",
+    "level": 1,
+    "cost": 1,
+    "ap": 2,
+    "hp": 1,
+    "traits": [
+      "Neo Zeon"
+    ],
+    "effectRefs": {
+      "deploy": "gallussJGD06023Deploy"
+    }
+  },
+  {
+    "number": "GD06-024",
+    "name": "R-Jarja",
+    "type": "unit",
+    "color": "green",
+    "level": 5,
+    "cost": 4,
+    "ap": 4,
+    "hp": 4,
+    "traits": [
+      "Neo Zeon"
+    ],
+    "linkCondition": "Chara Soon",
+    "effectRefs": {
+      "destroyed": "rJarjaGD06024Destroyed"
+    }
+  },
+  {
+    "number": "GD06-025",
+    "name": "Re-GZ",
+    "type": "unit",
+    "color": "green",
+    "level": 4,
+    "cost": 2,
+    "ap": 3,
+    "hp": 4,
+    "traits": [
+      "Earth Federation",
+      "Londo Bell"
+    ],
+    "linkCondition": "Londo Bell"
+  },
+  {
+    "number": "GD06-026",
+    "name": "Stero's Mahiroo",
+    "type": "unit",
+    "color": "green",
+    "level": 4,
+    "cost": 3,
+    "ap": 3,
+    "hp": 4,
+    "traits": [
+      "Ghingnham Fleet"
+    ],
+    "linkCondition": "Moonrace",
+    "effectRefs": {
+      "attack": "sterosMahirooGD06026Attack"
+    }
+  },
+  {
+    "number": "GD06-027",
+    "name": "Mashymre's Zssa",
+    "type": "unit",
+    "color": "green",
+    "level": 3,
+    "cost": 2,
+    "ap": 3,
+    "hp": 2,
+    "traits": [
+      "Neo Zeon"
+    ],
+    "linkCondition": "Mashymre Cello",
+    "effectRefs": {
+      "deploy": "mashymresZssaGD06027Deploy"
+    }
+  },
+  {
+    "number": "GD06-028",
+    "name": "Gaza D",
+    "type": "unit",
+    "color": "green",
+    "level": 2,
+    "cost": 1,
+    "ap": 2,
+    "hp": 2,
+    "traits": [
+      "Neo Zeon"
+    ]
+  },
+  {
+    "number": "GD06-029",
+    "name": "Elpeo Ple's Qubeley Mk-II (GD06-029)",
+    "type": "unit",
+    "color": "green",
+    "level": 4,
+    "cost": 3,
+    "ap": 4,
+    "hp": 3,
+    "traits": [
+      "Neo Zeon"
+    ],
+    "linkCondition": "Elpeo Ple",
+    "keywords": {
+      "breach": 3
+    }
+  },
+  {
+    "number": "GD06-030",
+    "name": "Mahiroo",
+    "type": "unit",
+    "color": "green",
+    "level": 3,
+    "cost": 2,
+    "ap": 2,
+    "hp": 4,
+    "traits": [
+      "Ghingnham Fleet"
+    ],
+    "effectRefs": {
+      "startOfTurn": "mahirooGD06030StartOfTurn"
+    }
+  },
+  {
+    "number": "GD06-031",
+    "name": "Zssan",
+    "type": "unit",
+    "color": "green",
+    "level": 2,
+    "cost": 2,
+    "ap": 3,
+    "hp": 2,
+    "traits": [
+      "Ghingnham Fleet"
+    ]
+  },
+  {
+    "number": "GD06-032",
+    "name": "Bellona",
+    "type": "unit",
+    "color": "green",
+    "level": 1,
+    "cost": 1,
+    "hp": 1,
+    "traits": [
+      "Ghingnham Fleet"
+    ],
+    "effectRefs": {
+      "destroyed": "bellonaGD06032Destroyed"
+    }
+  },
+  {
+    "number": "GD06-033",
+    "name": "ZZ Gundam",
+    "type": "unit",
+    "color": "red",
+    "level": 9,
+    "cost": 8,
+    "ap": 7,
+    "hp": 7,
+    "traits": [
+      "AEUG",
+      "Gundam Team"
+    ],
+    "linkCondition": "Judau Ashta",
+    "teamDamageAmpAgainstUnitsIfTrait": {
+      "trait": "AEUG",
+      "amount": 1
+    },
+    "effectRefs": {
+      "deploy": "zzGundamGD06033Deploy"
+    }
+  },
+  {
+    "number": "GD06-034",
+    "name": "Gundam Bael",
+    "type": "unit",
+    "color": "red",
+    "level": 7,
+    "cost": 6,
+    "ap": 5,
+    "hp": 5,
+    "traits": [
+      "Gjallarhorn",
+      "Gundam Frame"
+    ],
+    "linkCondition": "McGillis Fareed",
+    "keywords": {
+      "highManeuver": true
+    },
+    "effectRefs": {
+      "deploy": "gundamBaelGD06034Deploy"
+    }
+  },
+  {
+    "number": "GD06-035",
+    "name": "Zeta Gundam",
+    "type": "unit",
+    "color": "red",
+    "level": 5,
+    "cost": 4,
+    "ap": 4,
+    "hp": 4,
+    "traits": [
+      "AEUG",
+      "Gundam Team"
+    ],
+    "linkCondition": "AEUG",
+    "effectRefs": {
+      "destroysEnemy": "zetaGundamGD06035DestroysEnemy"
+    }
+  },
+  {
+    "number": "GD06-036",
+    "name": "Gundam Vidar",
+    "type": "unit",
+    "color": "red",
+    "level": 4,
+    "cost": 2,
+    "ap": 3,
+    "hp": 4,
+    "traits": [
+      "Gjallarhorn",
+      "Gundam Frame"
+    ],
+    "linkCondition": "Gaelio Bauduin",
+    "effectRefs": {
+      "whenLinked": "gundamVidarGD06036WhenLinked"
+    }
+  },
+  {
+    "number": "GD06-037",
+    "name": "Reginlaze Julia",
+    "type": "unit",
+    "color": "red",
+    "level": 6,
+    "cost": 4,
+    "ap": 4,
+    "hp": 4,
+    "traits": [
+      "Gjallarhorn"
+    ],
+    "linkCondition": "Julieta Juris",
+    "firstStrikeIfDefenderDamaged": true,
+    "duringPairBlocksEnemySetActiveByEffect": true
+  },
+  {
+    "number": "GD06-038",
+    "name": "Gundam Kimaris Vidar",
+    "type": "unit",
+    "color": "red",
+    "level": 7,
+    "cost": 6,
+    "ap": 5,
+    "hp": 5,
+    "traits": [
+      "Gjallarhorn",
+      "Gundam Frame"
+    ],
+    "linkCondition": "Gaelio Bauduin",
+    "keywords": {
+      "breach": 3
+    },
+    "effectRefs": {
+      "whenPaired": "gundamKimarisVidarGD06038WhenPaired"
+    }
+  },
+  {
+    "number": "GD06-039",
+    "name": "Neo Core Fighter",
+    "type": "unit",
+    "color": "red",
+    "level": 2,
+    "cost": 2,
+    "ap": 1,
+    "hp": 2,
+    "traits": [
+      "AEUG",
+      "Gundam Team"
+    ],
+    "effectRefs": {
+      "activateMain": "neoCoreFighterGD06039ActivateMain"
+    }
+  },
+  {
+    "number": "GD06-040",
+    "name": "Gundam Mk-II",
+    "type": "unit",
+    "color": "red",
+    "level": 4,
+    "cost": 2,
+    "ap": 3,
+    "hp": 4,
+    "traits": [
+      "AEUG",
+      "Gundam Team"
+    ],
+    "linkCondition": "AEUG"
+  },
+  {
+    "number": "GD06-041",
+    "name": "Neo Lorrnoke's Windam (Jet Striker)",
+    "type": "unit",
+    "color": "red",
+    "level": 4,
+    "cost": 3,
+    "ap": 3,
+    "hp": 4,
+    "traits": [
+      "Earth Alliance",
+      "Phantom Pain"
+    ],
+    "linkCondition": "Neo Lorrnoke",
+    "effectRefs": {
+      "deploy": "neoLorrnokesWindamGD06041Deploy"
+    }
+  },
+  {
+    "number": "GD06-042",
+    "name": "Destroy Gundam (MA Mode)",
+    "type": "unit",
+    "color": "red",
+    "level": 6,
+    "cost": 6,
+    "ap": 4,
+    "hp": 6,
+    "traits": [
+      "Earth Alliance",
+      "Phantom Pain"
+    ],
+    "linkCondition": "Biological CPU",
+    "effectRefs": {
+      "deploy": "destroyGundamMAModeGD06042Deploy"
+    }
+  },
+  {
+    "number": "GD06-043",
+    "name": "Julieta's Reginlaze",
+    "type": "unit",
+    "color": "red",
+    "level": 4,
+    "cost": 3,
+    "ap": 4,
+    "hp": 3,
+    "traits": [
+      "Gjallarhorn"
+    ],
+    "linkCondition": "Gjallarhorn",
+    "effectRefs": {
+      "startOfTurn": "julietasReginlazeGD06043StartOfTurn"
+    }
+  },
+  {
+    "number": "GD06-044",
+    "name": "Core Top",
+    "type": "unit",
+    "color": "red",
+    "level": 3,
+    "cost": 2,
+    "ap": 3,
+    "hp": 3,
+    "traits": [
+      "AEUG",
+      "Gundam Team"
+    ],
+    "linkCondition": "Gundam Team"
+  },
+  {
+    "number": "GD06-045",
+    "name": "Core Base",
+    "type": "unit",
+    "color": "red",
+    "level": 3,
+    "cost": 2,
+    "ap": 3,
+    "hp": 2,
+    "traits": [
+      "AEUG",
+      "Gundam Team"
+    ],
+    "effectRefs": {
+      "destroyed": "coreBaseGD06045Destroyed"
+    }
+  },
+  {
+    "number": "GD06-046",
+    "name": "Hyaku-Shiki",
+    "type": "unit",
+    "color": "red",
+    "level": 4,
+    "cost": 3,
+    "ap": 4,
+    "hp": 3,
+    "traits": [
+      "AEUG",
+      "Gundam Team"
+    ],
+    "linkCondition": "Gundam Team",
+    "effectRefs": {
+      "attack": "hyakuShikiGD06046Attack"
+    }
+  },
+  {
+    "number": "GD06-047",
+    "name": "Windam",
+    "type": "unit",
+    "color": "red",
+    "level": 2,
+    "cost": 1,
+    "ap": 2,
+    "hp": 2,
+    "traits": [
+      "Earth Alliance",
+      "Phantom Pain"
+    ]
+  },
+  {
+    "number": "GD06-048",
+    "name": "Helmwige Reincar",
+    "type": "unit",
+    "color": "red",
+    "level": 3,
+    "cost": 2,
+    "ap": 2,
+    "hp": 3,
+    "traits": [
+      "Gjallarhorn"
+    ],
+    "effectRefs": {
+      "deploy": "helmwigeReincarGD06048Deploy"
+    }
+  },
+  {
+    "number": "GD06-049",
+    "name": "Gundam GP02A (GD06-049)",
+    "type": "unit",
+    "color": "purple",
+    "level": 5,
+    "cost": 4,
+    "ap": 4,
+    "hp": 3,
+    "traits": [
+      "Zeon",
+      "Delaz Fleet"
+    ],
+    "linkCondition": "Anavel Gato",
+    "effectRefs": {
+      "whenPaired": "gundamGP02AGD06049WhenPaired",
+      "destroyed": "gundamGP02AGD06049Destroyed"
+    }
+  },
+  {
+    "number": "GD06-050",
+    "name": "Legend Gundam",
+    "type": "unit",
+    "color": "purple",
+    "level": 6,
+    "cost": 5,
+    "ap": 4,
+    "hp": 5,
+    "traits": [
+      "ZAFT",
+      "Minerva Squad"
+    ],
+    "linkCondition": "Rey Za Burrel",
+    "levelAndCostReductionInTrashIfLinkTrait": {
+      "trait": "ZAFT",
+      "amount": 3
+    },
+    "effectRefs": {
+      "deploy": "legendGundamGD06050Deploy"
+    }
+  },
+  {
+    "number": "GD06-051",
+    "name": "GFreD (GD06-051)",
+    "type": "unit",
+    "color": "purple",
+    "level": 6,
+    "cost": 5,
+    "ap": 5,
+    "hp": 4,
+    "traits": [
+      "Zeon",
+      "Alphacide"
+    ],
+    "linkCondition": "Nyaan",
+    "effectRefs": {
+      "activateMain": "gfredGD06051ActivateMain",
+      "deploy": "gfredGD06051Deploy"
+    }
+  },
+  {
+    "number": "GD06-052",
+    "name": "Val Walo",
+    "type": "unit",
+    "color": "purple",
+    "level": 5,
+    "cost": 4,
+    "ap": 4,
+    "hp": 4,
+    "traits": [
+      "Zeon",
+      "Civilian"
+    ],
+    "linkCondition": "Kelley Layzner",
+    "effectRefs": {
+      "startOfTurn": "valWaloGD06052StartOfTurn",
+      "deploy": "valWaloGD06052Deploy"
+    }
+  },
+  {
+    "number": "GD06-053",
+    "name": "Xavier's Gyan Hakuji-Packs (GQ)",
+    "type": "unit",
+    "color": "purple",
+    "level": 5,
+    "cost": 3,
+    "ap": 4,
+    "hp": 4,
+    "traits": [
+      "Zeon"
+    ],
+    "linkCondition": "Xavier Olivette",
+    "keywords": {
+      "blocker": true
+    },
+    "effectRefs": {
+      "destroyed": "xaviersGyanHakujiPacksGD06053Destroyed"
+    }
+  },
+  {
+    "number": "GD06-054",
+    "name": "GFreD (GD06-054)",
+    "type": "unit",
+    "color": "purple",
+    "level": 7,
+    "cost": 6,
+    "ap": 6,
+    "hp": 5,
+    "traits": [
+      "Zeon",
+      "Alphacide"
+    ],
+    "linkCondition": "Nyaan",
+    "keywords": {
+      "suppression": true
+    },
+    "effectRefs": {
+      "deploy": "gfredGD06054Deploy"
+    }
+  },
+  {
+    "number": "GD06-055",
+    "name": "Gundam GP02A (GD06-055)",
+    "type": "unit",
+    "color": "purple",
+    "level": 4,
+    "cost": 2,
+    "ap": 4,
+    "hp": 3,
+    "traits": [
+      "Zeon",
+      "Delaz Fleet"
+    ],
+    "linkCondition": "Anavel Gato",
+    "effectRefs": {
+      "attack": "gundamGP02A055Attack"
+    }
+  },
+  {
+    "number": "GD06-056",
+    "name": "Xamel",
+    "type": "unit",
+    "color": "purple",
+    "level": 4,
+    "cost": 3,
+    "ap": 3,
+    "hp": 4,
+    "traits": [
+      "Zeon",
+      "Delaz Fleet"
+    ],
+    "effectRefs": {
+      "attack": "xamelGD06056Attack"
+    }
+  },
+  {
+    "number": "GD06-057",
+    "name": "Karius' Rick Dom II",
+    "type": "unit",
+    "color": "purple",
+    "level": 3,
+    "cost": 2,
+    "ap": 3,
+    "hp": 3,
+    "traits": [
+      "Zeon",
+      "Delaz Fleet"
+    ],
+    "linkCondition": "Karius",
+    "effectRefs": {
+      "startOfTurn": "kariusRickDomIIGD06057StartOfTurn"
+    }
+  },
+  {
+    "number": "GD06-058",
+    "name": "Blast Impulse Gundam",
+    "type": "unit",
+    "color": "purple",
+    "level": 4,
+    "cost": 2,
+    "ap": 3,
+    "hp": 2,
+    "traits": [
+      "ZAFT",
+      "Minerva Squad"
+    ],
+    "linkCondition": "Lunamaria Hawke",
+    "attackOnDeployRestedOnly": true
+  },
+  {
+    "number": "GD06-059",
+    "name": "Dom Tropen",
+    "type": "unit",
+    "color": "purple",
+    "level": 3,
+    "cost": 2,
+    "ap": 3,
+    "hp": 3,
+    "traits": [
+      "Zeon",
+      "Delaz Fleet"
+    ],
+    "linkCondition": "Delaz Fleet"
+  },
+  {
+    "number": "GD06-060",
+    "name": "Zaku II F2",
+    "type": "unit",
+    "color": "purple",
+    "level": 2,
+    "cost": 1,
+    "ap": 2,
+    "hp": 1,
+    "traits": [
+      "Zeon",
+      "Delaz Fleet"
+    ],
+    "effectRefs": {
+      "startOfTurn": "zakuIIF2GD06060StartOfTurn"
+    }
+  },
+  {
+    "number": "GD06-061",
+    "name": "Dra-C",
+    "type": "unit",
+    "color": "purple",
+    "level": 1,
+    "cost": 1,
+    "ap": 1,
+    "hp": 1,
+    "traits": [
+      "Zeon",
+      "Delaz Fleet"
+    ],
+    "keywords": {
+      "support": 1
+    }
+  },
+  {
+    "number": "GD06-062",
+    "name": "Gyan Hakuji-Packs (GQ)",
+    "type": "unit",
+    "color": "purple",
+    "level": 3,
+    "cost": 2,
+    "ap": 4,
+    "hp": 3,
+    "traits": [
+      "Zeon"
+    ]
+  },
+  {
+    "number": "GD06-063",
+    "name": "GFreD (GD06-063)",
+    "type": "unit",
+    "color": "purple",
+    "level": 2,
+    "cost": 1,
+    "ap": 2,
+    "hp": 2,
+    "traits": [
+      "Zeon",
+      "Alphacide"
+    ]
+  },
+  {
+    "number": "GD06-064",
+    "name": "Altron Gundam (EW)",
+    "type": "unit",
+    "color": "white",
+    "level": 3,
+    "cost": 3,
+    "ap": 3,
+    "hp": 4,
+    "traits": [
+      "G Team",
+      "Mariemaia Army"
+    ],
+    "linkCondition": "Chang Wufei",
+    "keywords": {
+      "blocker": true
+    },
+    "effectRefs": {
+      "startOfTurn": "altronGundamEWGD06064StartOfTurn"
+    }
+  },
+  {
+    "number": "GD06-065",
+    "name": "SUMO Gold Type",
+    "type": "unit",
+    "color": "white",
+    "level": 6,
+    "cost": 4,
+    "ap": 4,
+    "hp": 5,
+    "traits": [
+      "Dianna Counter"
+    ],
+    "linkCondition": "Harry Ord",
+    "keywords": {
+      "blocker": true
+    },
+    "effectRefs": {
+      "activateMain": "sumoGoldTypeGD06065ActivateMain"
+    }
+  },
+  {
+    "number": "GD06-066",
+    "name": "Shadow Gundam",
+    "type": "unit",
+    "color": "white",
+    "level": 6,
+    "cost": 4,
+    "ap": 5,
+    "hp": 4,
+    "traits": [
+      "MF"
+    ],
+    "linkCondition": "Gundam Fighter",
+    "keywords": {
+      "blocker": true
+    },
+    "effectRefs": {
+      "attack": "shadowGundamGD06066Attack"
+    }
+  },
+  {
+    "number": "GD06-067",
+    "name": "Gundam Sandrock Custom (EW)",
+    "type": "unit",
+    "color": "white",
+    "level": 5,
+    "cost": 4,
+    "ap": 3,
+    "hp": 5,
+    "traits": [
+      "G Team"
+    ],
+    "linkCondition": "Quatre Raberba Winner",
+    "keywords": {
+      "blocker": true
+    },
+    "effectRefs": {
+      "whenPaired": "gundamSandrockCustomEWGD06067WhenPaired"
+    }
+  },
+  {
+    "number": "GD06-068",
+    "name": "Gundam Heavyarms Custom (EW)",
+    "type": "unit",
+    "color": "white",
+    "level": 4,
+    "cost": 3,
+    "ap": 4,
+    "hp": 3,
+    "traits": [
+      "G Team"
+    ],
+    "linkCondition": "Trowa Barton",
+    "effectRefs": {
+      "deploy": "gundamHeavyarmsCustomEWGD06068Deploy"
+    }
+  },
+  {
+    "number": "GD06-069",
+    "name": "SUMO Silver Type",
+    "type": "unit",
+    "color": "white",
+    "level": 4,
+    "cost": 3,
+    "ap": 4,
+    "hp": 3,
+    "traits": [
+      "Dianna Counter"
+    ],
+    "linkCondition": "Moonrace",
+    "keywords": {
+      "blocker": true
+    },
+    "effectRefs": {
+      "activateAction": "sumoSilverTypeGD06069ActivateAction"
+    }
+  },
+  {
+    "number": "GD06-070",
+    "name": "Eagail",
+    "type": "unit",
+    "color": "white",
+    "level": 6,
+    "cost": 5,
+    "ap": 5,
+    "hp": 3,
+    "traits": [
+      "Dianna Counter"
+    ],
+    "linkCondition": "Corin Nander",
+    "effectRefs": {
+      "deploy": "eagailGD06070Deploy",
+      "attack": "eagailGD06070Attack"
+    }
+  },
+  {
+    "number": "GD06-071",
+    "name": "Shining Gundam (Meikyo Shisui)",
+    "type": "unit",
+    "color": "white",
+    "level": 6,
+    "cost": 5,
+    "ap": 4,
+    "hp": 4,
+    "traits": [
+      "MF",
+      "Shuffle Alliance"
+    ],
+    "linkCondition": "Domon Kasshu",
+    "effectRefs": {
+      "friendlyPlaysCommand": "shiningGundamMeikyoShisuiGD06071FriendlyPlaysCommand"
+    }
+  },
+  {
+    "number": "GD06-072",
+    "name": "Gundam Deathscythe Hell (EW)",
+    "type": "unit",
+    "color": "white",
+    "level": 5,
+    "cost": 3,
+    "ap": 5,
+    "hp": 3,
+    "traits": [
+      "G Team"
+    ],
+    "linkCondition": "Duo Maxwell",
+    "effectRefs": {
+      "destroyed": "gundamDeathscytheHellEWGD06072Destroyed"
+    }
+  },
+  {
+    "number": "GD06-073",
+    "name": "Wing Gundam Zero (EW)",
+    "type": "unit",
+    "color": "white",
+    "level": 4,
+    "cost": 2,
+    "ap": 4,
+    "hp": 3,
+    "traits": [
+      "G Team"
+    ],
+    "linkCondition": "Heero Yuy",
+    "effectRefs": {
+      "destroysShield": "wingGundamZeroEWGD06073DestroysShield"
+    }
+  },
+  {
+    "number": "GD06-074",
+    "name": "Flat",
+    "type": "unit",
+    "color": "white",
+    "level": 4,
+    "cost": 2,
+    "ap": 4,
+    "hp": 3,
+    "traits": [
+      "Dianna Counter"
+    ],
+    "linkCondition": "Moonrace"
+  },
+  {
+    "number": "GD06-075",
+    "name": "Serpent",
+    "type": "unit",
+    "color": "white",
+    "level": 3,
+    "cost": 2,
+    "ap": 4,
+    "hp": 3,
+    "traits": [
+      "Mariemaia Army"
+    ]
+  },
+  {
+    "number": "GD06-076",
+    "name": "WaDom",
+    "type": "unit",
+    "color": "white",
+    "level": 5,
+    "cost": 4,
+    "ap": 4,
+    "hp": 4,
+    "traits": [
+      "Dianna Counter"
+    ],
+    "linkCondition": "Moonrace",
+    "effectRefs": {
+      "deploy": "waDomGD06076Deploy"
+    }
+  },
+  {
+    "number": "GD06-077",
+    "name": "Cannon Illfuto",
+    "type": "unit",
+    "color": "white",
+    "level": 3,
+    "cost": 2,
+    "ap": 3,
+    "hp": 3,
+    "traits": [
+      "Dianna Counter"
+    ],
+    "keywords": {
+      "blocker": true
+    }
+  },
+  {
+    "number": "GD06-078",
+    "name": "WaD",
+    "type": "unit",
+    "color": "white",
+    "level": 1,
+    "cost": 1,
+    "ap": 1,
+    "hp": 1,
+    "traits": [
+      "Dianna Counter"
+    ],
+    "effectRefs": {
+      "activateMain": "waDGD06078ActivateMain"
+    }
+  },
+  {
+    "number": "GD06-079",
+    "name": "Muttowooo",
+    "type": "unit",
+    "color": "white",
+    "level": 2,
+    "cost": 2,
+    "ap": 3,
+    "hp": 2,
+    "traits": [
+      "Dianna Counter"
+    ]
+  },
+  {
+    "number": "GD06-080",
+    "name": "Kou Uraki",
+    "type": "pilot",
+    "color": "blue",
+    "level": 4,
+    "cost": 1,
+    "apBonus": 2,
+    "hpBonus": 1,
+    "traits": [
+      "Earth Federation",
+      "Albion Squad"
+    ],
+    "effectRefs": {
+      "burst": "addSelfToHandBurst",
+      "activateAction": "kouUrakiGD06080ActivateAction"
+    }
+  },
+  {
+    "number": "GD06-081",
+    "name": "Amate Yuzuriha (Machu)",
+    "type": "pilot",
+    "color": "blue",
+    "level": 4,
+    "cost": 1,
+    "apBonus": 1,
+    "hpBonus": 2,
+    "traits": [
+      "Alphacide",
+      "Newtype"
+    ],
+    "duringPairRepairIfTrait": {
+      "trait": "Alphacide",
+      "amount": 2
+    },
+    "effectRefs": {
+      "burst": "addSelfToHandBurst"
+    }
+  },
+  {
+    "number": "GD06-082",
+    "name": "Athrun Zala",
+    "type": "pilot",
+    "color": "blue",
+    "level": 5,
+    "cost": 1,
+    "apBonus": 2,
+    "hpBonus": 2,
+    "traits": [
+      "Orb",
+      "Coordinator"
+    ],
+    "effectRefs": {
+      "burst": "addSelfToHandBurst",
+      "whenPaired": "athrunZalaGD06082WhenPaired"
+    }
+  },
+  {
+    "number": "GD06-083",
+    "name": "Challia Bull (GQ)",
+    "type": "pilot",
+    "color": "blue",
+    "level": 5,
+    "cost": 1,
+    "apBonus": 2,
+    "hpBonus": 2,
+    "traits": [
+      "Zeon",
+      "Newtype"
+    ],
+    "highManeuverIfHasRepair": true,
+    "effectRefs": {
+      "burst": "addSelfToHandBurst"
+    }
+  },
+  {
+    "number": "GD06-084",
+    "name": "Elpeo Ple",
+    "type": "pilot",
+    "color": "green",
+    "level": 3,
+    "cost": 1,
+    "apBonus": 2,
+    "hpBonus": 0,
+    "traits": [
+      "Neo Zeon",
+      "Newtype"
+    ],
+    "effectRefs": {
+      "burst": "addSelfToHandBurst",
+      "whenPaired": "elpeoPleGD06084WhenPaired"
+    }
+  },
+  {
+    "number": "GD06-085",
+    "name": "Gym Ghingnham",
+    "type": "pilot",
+    "color": "green",
+    "level": 5,
+    "cost": 1,
+    "apBonus": 2,
+    "hpBonus": 2,
+    "traits": [
+      "Ghingnham Fleet",
+      "Moonrace"
+    ],
+    "effectRefs": {
+      "burst": "addSelfToHandBurst",
+      "startOfTurn": "gymGhingnhamGD06085StartOfTurn"
+    }
+  },
+  {
+    "number": "GD06-086",
+    "name": "Mashymre Cello",
+    "type": "pilot",
+    "color": "green",
+    "level": 3,
+    "cost": 1,
+    "apBonus": 0,
+    "hpBonus": 2,
+    "traits": [
+      "Neo Zeon"
+    ],
+    "costReductionIfPairUnit": {
+      "requireLinksSelf": true,
+      "amount": 1
+    },
+    "effectRefs": {
+      "burst": "addSelfToHandBurst"
+    }
+  },
+  {
+    "number": "GD06-087",
+    "name": "Merrybell Gadget",
+    "type": "pilot",
+    "color": "green",
+    "level": 4,
+    "cost": 1,
+    "apBonus": 2,
+    "hpBonus": 1,
+    "traits": [
+      "Ghingnham Fleet",
+      "Moonrace"
+    ],
+    "effectRefs": {
+      "burst": "addSelfToHandBurst",
+      "attack": "merrybellGadgetGD06087Attack"
+    }
+  },
+  {
+    "number": "GD06-088",
+    "name": "Judau Ashta",
+    "type": "pilot",
+    "color": "red",
+    "level": 5,
+    "cost": 1,
+    "apBonus": 2,
+    "hpBonus": 2,
+    "traits": [
+      "AEUG",
+      "Gundam Team",
+      "Newtype"
+    ],
+    "effectRefs": {
+      "burst": "addSelfToHandBurst",
+      "destroyed": "judauAshtaGD06088Destroyed"
+    }
+  },
+  {
+    "number": "GD06-089",
+    "name": "McGillis Fareed",
+    "type": "pilot",
+    "color": "red",
+    "level": 4,
+    "cost": 1,
+    "apBonus": 1,
+    "hpBonus": 2,
+    "traits": [
+      "Gjallarhorn",
+      "Alaya-Vijnana"
+    ],
+    "effectRefs": {
+      "burst": "addSelfToHandBurst",
+      "destroysShield": "mcgillisFareedGD06089DestroysShield"
+    }
+  },
+  {
+    "number": "GD06-090",
+    "name": "Vidar",
+    "type": "pilot",
+    "color": "red",
+    "level": 4,
+    "cost": 1,
+    "apBonus": 2,
+    "hpBonus": 1,
+    "traits": [
+      "Gjallarhorn",
+      "Alaya-Vijnana"
+    ],
+    "nameAlias": "Gaelio Bauduin",
+    "effectRefs": {
+      "burst": "addSelfToHandBurst",
+      "attack": "vidarGD06090Attack"
+    }
+  },
+  {
+    "number": "GD06-091",
+    "name": "Roux Louka",
+    "type": "pilot",
+    "color": "red",
+    "level": 4,
+    "cost": 1,
+    "apBonus": 2,
+    "hpBonus": 1,
+    "traits": [
+      "AEUG",
+      "Gundam Team",
+      "Newtype"
+    ],
+    "breachIfUnitTrait": {
+      "trait": "AEUG",
+      "amount": 1
+    },
+    "effectRefs": {
+      "burst": "addSelfToHandBurst"
+    }
+  },
+  {
+    "number": "GD06-092",
+    "name": "Neo Lorrnoke",
+    "type": "pilot",
+    "color": "red",
+    "level": 4,
+    "cost": 1,
+    "apBonus": 1,
+    "hpBonus": 2,
+    "traits": [
+      "Earth Alliance",
+      "Phantom Pain",
+      "Orb"
+    ],
+    "nameAlias": "Mu La Flaga",
+    "effectRefs": {
+      "burst": "addSelfToHandBurst",
+      "whenPaired": "neoLorrnokeGD06092WhenPaired"
+    }
+  },
+  {
+    "number": "GD06-093",
+    "name": "Anavel Gato",
+    "type": "pilot",
+    "color": "purple",
+    "level": 4,
+    "cost": 1,
+    "apBonus": 2,
+    "hpBonus": 1,
+    "traits": [
+      "Zeon",
+      "Delaz Fleet"
+    ],
+    "effectRefs": {
+      "burst": "addSelfToHandBurst",
+      "attack": "anavelGatoGD06093Attack"
+    }
+  },
+  {
+    "number": "GD06-094",
+    "name": "Nyaan",
+    "type": "pilot",
+    "color": "purple",
+    "level": 4,
+    "cost": 1,
+    "apBonus": 2,
+    "hpBonus": 1,
+    "traits": [
+      "Zeon",
+      "Alphacide",
+      "Newtype"
+    ],
+    "effectRefs": {
+      "burst": "addSelfToHandBurst",
+      "whenPaired": "nyaanGD06094WhenPaired"
+    }
+  },
+  {
+    "number": "GD06-095",
+    "name": "Kelley Layzner",
+    "type": "pilot",
+    "color": "purple",
+    "level": 3,
+    "cost": 1,
+    "apBonus": 1,
+    "hpBonus": 1,
+    "traits": [
+      "Zeon",
+      "Civilian"
+    ],
+    "effectRefs": {
+      "burst": "addSelfToHandBurst",
+      "attack": "kelleyLayznerGD06095Attack"
+    }
+  },
+  {
+    "number": "GD06-096",
+    "name": "Xavier Olivette",
+    "type": "pilot",
+    "color": "purple",
+    "level": 4,
+    "cost": 1,
+    "apBonus": 2,
+    "hpBonus": 1,
+    "traits": [
+      "Zeon",
+      "Newtype"
+    ],
+    "effectRefs": {
+      "burst": "addSelfToHandBurst",
+      "attack": "xavierOlivetteGD06096Attack"
+    }
+  },
+  {
+    "number": "GD06-097",
+    "name": "Harry Ord",
+    "type": "pilot",
+    "color": "white",
+    "level": 5,
+    "cost": 1,
+    "apBonus": 2,
+    "hpBonus": 2,
+    "traits": [
+      "Dianna Counter",
+      "Moonrace"
+    ],
+    "effectRefs": {
+      "burst": "addSelfToHandBurst",
+      "activatesBlocker": "harryOrdGD06097ActivatesBlocker"
+    }
+  },
+  {
+    "number": "GD06-098",
+    "name": "Duo Maxwell",
+    "type": "pilot",
+    "color": "white",
+    "level": 4,
+    "cost": 1,
+    "apBonus": 1,
+    "hpBonus": 2,
+    "traits": [
+      "G Team",
+      "Operation Meteor"
+    ],
+    "duringLinkBaseDamageImmuneIfRestedSelf": true,
+    "effectRefs": {
+      "burst": "addSelfToHandBurst"
+    }
+  },
+  {
+    "number": "GD06-099",
+    "name": "Chang Wufei",
+    "type": "pilot",
+    "color": "white",
+    "level": 4,
+    "cost": 1,
+    "apBonus": 2,
+    "hpBonus": 1,
+    "traits": [
+      "G Team",
+      "Operation Meteor",
+      "Mariemaia Army"
+    ],
+    "effectRefs": {
+      "burst": "addSelfToHandBurst",
+      "attack": "changWufeiGD06099Attack"
+    }
+  },
+  {
+    "number": "GD06-100",
+    "name": "Corin Nander",
+    "type": "pilot",
+    "color": "white",
+    "level": 4,
+    "cost": 1,
+    "apBonus": 3,
+    "hpBonus": 0,
+    "traits": [
+      "Dianna Counter",
+      "Moonrace"
+    ],
+    "costReductionIfPairUnit": {
+      "requireUnitTrait": "Dianna Counter",
+      "requireUnitLevelAtLeast": 5,
+      "amount": 1
+    },
+    "effectRefs": {
+      "burst": "addSelfToHandBurst"
+    }
+  },
+  {
+    "number": "GD06-101",
+    "name": "The Gundam Says",
+    "type": "command",
+    "color": "blue",
+    "level": 6,
+    "cost": 2,
+    "traits": [
+      "Alphacide"
+    ],
+    "actionTiming": "both",
+    "effectRefs": {
+      "burst": "theGundamSaysGD06101Burst",
+      "command": "theGundamSaysGD06101Command"
+    }
+  },
+  {
+    "number": "GD06-102",
+    "name": "A Miracle",
+    "type": "command",
+    "color": "blue",
+    "level": 3,
+    "cost": 3,
+    "actionTiming": "action",
+    "effectRefs": {
+      "burst": "addSelfToHandBurst",
+      "command": "aMiracleGD06102Command"
+    }
+  },
+  {
+    "number": "GD06-103",
+    "name": "Restore the Front Line",
+    "type": "command",
+    "color": "blue",
+    "level": 3,
+    "cost": 1,
+    "ap": 2,
+    "hp": 0,
+    "traits": [
+      "Earth Federation",
+      "Albion Squad"
+    ],
+    "pilotMode": {
+      "name": "South Burning",
+      "apBonus": 2,
+      "hpBonus": 0
+    },
+    "effectRefs": {
+      "command": "restoreTheFrontLineGD06103Command"
+    }
+  },
+  {
+    "number": "GD06-104",
+    "name": "Steady Support",
+    "type": "command",
+    "color": "blue",
+    "level": 2,
+    "cost": 1,
+    "ap": 1,
+    "hp": 0,
+    "traits": [
+      "Earth Federation",
+      "Albion Squad"
+    ],
+    "actionTiming": "both",
+    "pilotMode": {
+      "name": "Chuck Keith",
+      "apBonus": 1,
+      "hpBonus": 0
+    },
+    "effectRefs": {
+      "command": "steadySupportGD06104Command"
+    }
+  },
+  {
+    "number": "GD06-105",
+    "name": "Grace Under Pressure",
+    "type": "command",
+    "color": "green",
+    "level": 5,
+    "cost": 3,
+    "effectRefs": {
+      "command": "graceUnderPressureGD06105Command"
+    }
+  },
+  {
+    "number": "GD06-106",
+    "name": "Presence Detected",
+    "type": "command",
+    "color": "green",
+    "level": 4,
+    "cost": 1,
+    "actionTiming": "action",
+    "effectRefs": {
+      "command": "presenceDetectedGD06106Command"
+    }
+  },
+  {
+    "number": "GD06-107",
+    "name": "Wheel Spoke Formation",
+    "type": "command",
+    "color": "green",
+    "level": 3,
+    "cost": 1,
+    "ap": 1,
+    "hp": 0,
+    "traits": [
+      "Ghingnham Fleet",
+      "Moonrace"
+    ],
+    "pilotMode": {
+      "name": "Sweatson Stero",
+      "apBonus": 1,
+      "hpBonus": 0
+    },
+    "effectRefs": {
+      "command": "wheelSpokeFormationGD06107Command"
+    }
+  },
+  {
+    "number": "GD06-108",
+    "name": "On Edge",
+    "type": "command",
+    "color": "green",
+    "level": 4,
+    "cost": 1,
+    "ap": 1,
+    "hp": 1,
+    "traits": [
+      "Neo Zeon"
+    ],
+    "pilotMode": {
+      "name": "Chara Soon",
+      "apBonus": 1,
+      "hpBonus": 1
+    },
+    "effectRefs": {
+      "command": "onEdgeGD06108Command"
+    }
+  },
+  {
+    "number": "GD06-109",
+    "name": "God of War Ghingnham",
+    "type": "command",
+    "color": "green",
+    "level": 4,
+    "cost": 1,
+    "traits": [
+      "Ghingnham Fleet"
+    ],
+    "effectRefs": {
+      "command": "godOfWarGhingnhamGD06109Command"
+    }
+  },
+  {
+    "number": "GD06-110",
+    "name": "Familial Love",
+    "type": "command",
+    "color": "red",
+    "level": 2,
+    "cost": 1,
+    "actionTiming": "action",
+    "effectRefs": {
+      "burst": "addSelfToHandBurst",
+      "command": "familialLoveGD06110Command"
+    }
+  },
+  {
+    "number": "GD06-111",
+    "name": "Steely Loyalty",
+    "type": "command",
+    "color": "red",
+    "level": 5,
+    "cost": 1,
+    "ap": 2,
+    "hp": 1,
+    "traits": [
+      "Gjallarhorn"
+    ],
+    "actionTiming": "action",
+    "pilotMode": {
+      "name": "Julieta Juris",
+      "apBonus": 2,
+      "hpBonus": 1
+    },
+    "effectRefs": {
+      "command": "steelyLoyaltyGD06111Command"
+    }
+  },
+  {
+    "number": "GD06-112",
+    "name": "Rivalry with Roux",
+    "type": "command",
+    "color": "red",
+    "level": 3,
+    "cost": 1,
+    "ap": 1,
+    "hp": 1,
+    "traits": [
+      "AEUG",
+      "Gundam Team",
+      "Newtype"
+    ],
+    "actionTiming": "action",
+    "pilotMode": {
+      "name": "Elle Vianno",
+      "apBonus": 1,
+      "hpBonus": 1
+    },
+    "effectRefs": {
+      "command": "rivalryWithRouxGD06112Command"
+    }
+  },
+  {
+    "number": "GD06-113",
+    "name": "Unsanctioned Ordnance",
+    "type": "command",
+    "color": "red",
+    "level": 5,
+    "cost": 4,
+    "actionTiming": "both",
+    "effectRefs": {
+      "burst": "unsanctionedOrdnanceGD06113Burst",
+      "command": "unsanctionedOrdnanceGD06113Command"
+    }
+  },
+  {
+    "number": "GD06-114",
+    "name": "Alphaciders",
+    "type": "command",
+    "color": "purple",
+    "level": 4,
+    "cost": 1,
+    "traits": [
+      "Alphacide"
+    ],
+    "actionTiming": "action",
+    "effectRefs": {
+      "command": "alphacidersGD06114Command"
+    }
+  },
+  {
+    "number": "GD06-115",
+    "name": "Teaching New Techniques",
+    "type": "command",
+    "color": "purple",
+    "level": 4,
+    "cost": 3,
+    "effectRefs": {
+      "command": "teachingNewTechniquesGD06115Command"
+    }
+  },
+  {
+    "number": "GD06-116",
+    "name": "Afterglow of Zeon",
+    "type": "command",
+    "color": "purple",
+    "level": 5,
+    "cost": 5,
+    "traits": [
+      "Zeon",
+      "Delaz Fleet"
+    ],
+    "effectRefs": {
+      "burst": "addSelfToHandBurst",
+      "command": "afterglowOfZeonGD06116Command"
+    }
+  },
+  {
+    "number": "GD06-117",
+    "name": "Veterans Joining Forces",
+    "type": "command",
+    "color": "purple",
+    "level": 3,
+    "cost": 1,
+    "ap": 1,
+    "hp": 1,
+    "traits": [
+      "Zeon",
+      "Delaz Fleet"
+    ],
+    "actionTiming": "action",
+    "pilotMode": {
+      "name": "Karius",
+      "apBonus": 1,
+      "hpBonus": 1
+    },
+    "effectRefs": {
+      "command": "veteransJoiningForcesGD06117Command"
+    }
+  },
+  {
+    "number": "GD06-118",
+    "name": "Infinite Variations",
+    "type": "command",
+    "color": "white",
+    "level": 5,
+    "cost": 2,
+    "actionTiming": "both",
+    "effectRefs": {
+      "command": "infiniteVariationsGD06118Command"
+    }
+  },
+  {
+    "number": "GD06-119",
+    "name": "Sturm und Drang",
+    "type": "command",
+    "color": "white",
+    "level": 5,
+    "cost": 1,
+    "ap": 1,
+    "hp": 2,
+    "traits": [
+      "Gundam Fighter",
+      "Special Move",
+      "DG Cells"
+    ],
+    "actionTiming": "action",
+    "pilotMode": {
+      "name": "Schwarz Bruder",
+      "apBonus": 1,
+      "hpBonus": 2
+    },
+    "pairableFromTrash": "MF",
+    "effectRefs": {
+      "command": "sturmUndDrangGD06119Command"
+    }
+  },
+  {
+    "number": "GD06-120",
+    "name": "Hoping for Peace",
+    "type": "command",
+    "color": "white",
+    "level": 4,
+    "cost": 1,
+    "actionTiming": "both",
+    "effectRefs": {
+      "burst": "hopingForPeaceGD06120Burst",
+      "command": "hopingForPeaceGD06120Command"
+    }
+  },
+  {
+    "number": "GD06-121",
+    "name": "Crybaby Poe",
+    "type": "command",
+    "color": "white",
+    "level": 3,
+    "cost": 1,
+    "ap": 1,
+    "hp": 0,
+    "traits": [
+      "Dianna Counter",
+      "Moonrace"
+    ],
+    "actionTiming": "action",
+    "pilotMode": {
+      "name": "Poe Aijee",
+      "apBonus": 1,
+      "hpBonus": 0
+    },
+    "effectRefs": {
+      "command": "crybabyPoeGD06121Command"
+    }
+  },
+  {
+    "number": "GD06-122",
+    "name": "Albion",
+    "type": "base",
+    "color": "blue",
+    "level": 2,
+    "cost": 1,
+    "hp": 4,
+    "traits": [
+      "Earth Federation",
+      "Albion Squad",
+      "Warship"
+    ],
+    "effectRefs": {
+      "burst": "simpleBurstBase",
+      "deploy": "albionGD06122Deploy"
+    }
+  },
+  {
+    "number": "GD06-123",
+    "name": "Endra",
+    "type": "base",
+    "color": "green",
+    "level": 4,
+    "cost": 2,
+    "hp": 5,
+    "traits": [
+      "Neo Zeon",
+      "Warship"
+    ],
+    "effectRefs": {
+      "burst": "simpleBurstBase",
+      "deploy": "endraGD06123Deploy"
+    }
+  },
+  {
+    "number": "GD06-124",
+    "name": "Aspite",
+    "type": "base",
+    "color": "green",
+    "level": 3,
+    "cost": 1,
+    "hp": 5,
+    "traits": [
+      "Ghingnham Fleet",
+      "Warship"
+    ],
+    "effectRefs": {
+      "burst": "simpleBurstBase",
+      "deploy": "aspiteGD06124Deploy",
+      "activateMain": "aspiteGD06124ActivateMain"
+    }
+  },
+  {
+    "number": "GD06-125",
+    "name": "Argama",
+    "type": "base",
+    "color": "red",
+    "level": 5,
+    "cost": 1,
+    "hp": 6,
+    "traits": [
+      "AEUG",
+      "Warship"
+    ],
+    "effectRefs": {
+      "burst": "simpleBurstBase",
+      "deploy": "argamaGD06125Deploy",
+      "receivesBattleDamageFromEnemy": "argamaGD06125ReceivesBattleDamageFromEnemy"
+    }
+  },
+  {
+    "number": "GD06-126",
+    "name": "Skipjack-class Warship",
+    "type": "base",
+    "color": "red",
+    "level": 3,
+    "cost": 1,
+    "hp": 5,
+    "traits": [
+      "Gjallarhorn",
+      "Warship"
+    ],
+    "effectRefs": {
+      "burst": "simpleBurstBase",
+      "deploy": "skipjackClassWarshipGD06126Deploy"
+    }
+  },
+  {
+    "number": "GD06-127",
+    "name": "Yomagn'tho",
+    "type": "base",
+    "color": "purple",
+    "level": 4,
+    "cost": 2,
+    "hp": 5,
+    "traits": [
+      "Zeon",
+      "Stronghold"
+    ],
+    "effectRefs": {
+      "burst": "simpleBurstBase",
+      "deploy": "yomagnthoGD06127Deploy"
+    }
+  },
+  {
+    "number": "GD06-128",
+    "name": "Gwaden",
+    "type": "base",
+    "color": "purple",
+    "level": 3,
+    "cost": 1,
+    "hp": 5,
+    "traits": [
+      "Zeon",
+      "Delaz Fleet",
+      "Warship"
+    ],
+    "effectRefs": {
+      "burst": "simpleBurstBase",
+      "deploy": "gwadenGD06128Deploy",
+      "activateMain": "gwadenGD06128ActivateMain"
+    }
+  },
+  {
+    "number": "GD06-129",
+    "name": "5th Luna",
+    "type": "base",
+    "color": "purple",
+    "level": 4,
+    "cost": 3,
+    "hp": 2,
+    "traits": [
+      "Stronghold"
+    ],
+    "effectRefs": {
+      "burst": "simpleBurstBase",
+      "deploy": "fifthLunaGD06129Deploy",
+      "destroyed": "fifthLunaGD06129Destroyed"
+    }
+  },
+  {
+    "number": "GD06-130",
+    "name": "Soleil",
+    "type": "base",
+    "color": "white",
+    "level": 5,
+    "cost": 1,
+    "hp": 6,
+    "traits": [
+      "Dianna Counter",
+      "Warship"
+    ],
+    "effectRefs": {
+      "burst": "simpleBurstBase",
+      "deploy": "soleilGD06130Deploy"
+    }
+  }
+]

@@ -74,6 +74,20 @@ function effectiveCost(player, def, opts = {}) {
   if (def.freeCostIfPairUnitNameIncludes && opts.pairUnit && (opts.pairUnit.def.name || '').includes(def.freeCostIfPairUnitNameIncludes)) {
     cost = 0;
   }
+  // Mashymre Cello GD06-086 / Corin Nander GD06-100: "When playing this card from your hand and
+  // pairing it with a Unit with [this Pilot's own link condition], it gets cost -N" -- same
+  // opts.pairUnit-gated shape as Christina Mackenzie above. The link-name check below is a small,
+  // deliberately duplicated subset of actions.js's matchesLinkCondition (name/alias substring only,
+  // no trait branch -- not needed by either real card) rather than an import, since actions.js's
+  // own require chain already runs back through management.js to this file.
+  const pairReduction = def.costReductionIfPairUnit;
+  if (pairReduction && opts.pairUnit) {
+    const meetsLevel = pairReduction.requireUnitLevelAtLeast === undefined || (opts.pairUnit.def.level || 0) >= pairReduction.requireUnitLevelAtLeast;
+    const meetsTrait = !pairReduction.requireUnitTrait || (opts.pairUnit.def.traits || []).includes(pairReduction.requireUnitTrait);
+    const linkCondition = opts.pairUnit.def.linkCondition || '';
+    const meetsLink = !pairReduction.requireLinksSelf || linkCondition.split('/').some((cond) => (def.name || '').includes(cond));
+    if (meetsLevel && meetsTrait && meetsLink) cost = Math.max(0, cost - pairReduction.amount);
+  }
   // Gaia Gundam (MA Mode) (U+) GD05-041: "During a turn where your opponent has discarded due to
   // one of your effects, this card in your hand gets cost -2" -- reads the player-level turn flag
   // forceEnemyDiscard (src/effects/registry.js) sets, cleared each turn by clearTurnBuffs.
@@ -119,6 +133,16 @@ function scalingLevelCostReduction(player, def, opts = {}) {
     }
     const enemy = opts.state.players.find((p) => p !== player);
     return enemy ? enemy.battleArea.length : 0;
+  }
+  // Legend Gundam GD06-050: "While you have a (ZAFT) Link Unit in play, this card in your trash
+  // gets Lv.-3 and cost -3" -- same conditional-aura shape as Destroy Gundam above, but only
+  // relevant once something is paying its cost to deploy it out of the trash zone (e.g. Destiny
+  // Gundam GD04-050's "[During Pair][Attack] choose 1 (Minerva Squad) Unit card from your trash,
+  // pay its cost to deploy it" -- Legend Gundam is itself Minerva Squad), so it's gated on
+  // opts.fromTrash rather than always-on, same reasoning as costReductionInTrash above.
+  const trashCfg = def.levelAndCostReductionInTrashIfLinkTrait;
+  if (trashCfg && opts.fromTrash && player.battleArea.some((u) => u.isLinkUnit && (u.def.traits || []).includes(trashCfg.trait))) {
+    return trashCfg.amount;
   }
   return 0;
 }

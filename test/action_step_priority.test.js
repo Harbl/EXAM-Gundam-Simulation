@@ -69,6 +69,30 @@ test('a real Action-timed Command played by the standby player actually resolves
   assert.equal(player.hand.length, 1, "its draw effect actually fired (drew a real card off the real deck)");
 });
 
+test("Sturm und Drang GD06-119's pairableFromTrash follow-up fires here too: pairs it from trash with an (MF) ally once its [Action] resolves", async () => {
+  const player = createPlayer(0); // standby
+  const opponent = createPlayer(1); // active
+  const state = createGame(player, opponent);
+  for (let i = 0; i < 5; i++) player.resourceArea.push(createInstance({ number: 'R', type: 'resource' }, 0));
+  const sturmUndDrang = createInstance(lookupCard('GD06-119'), 0);
+  player.hand.push(sturmUndDrang);
+  const mfAlly = deployUnit(state, player, { number: 'MF1', type: 'unit', ap: 1, hp: 1, traits: ['MF'] });
+  const weakEnemy = deployUnit(state, opponent, { number: 'E', type: 'unit', ap: 1, hp: 3 });
+
+  let step = 0;
+  const respond = async (s, playerIdx) => {
+    step += 1;
+    if (playerIdx === 0 && step === 1) return { type: 'command', cardId: sturmUndDrang.id };
+    return { type: 'pass' };
+  };
+
+  await runActionStepPriority(state, 0, 1, {}, respond);
+
+  assert.equal(weakEnemy.rested, true, "the card's own [Action] effect (rest a <=3 HP enemy) actually resolved");
+  assert.equal(mfAlly.pilot && mfAlly.pilot.def.number === 'GD06-119', true, 'paired from trash with the (MF) ally afterward');
+  assert.equal(player.trash.some((c) => c.def.number === 'GD06-119'), false, 'pulled back out of trash once paired, not left sitting there');
+});
+
 test('a Command response referencing a card no longer in hand is a harmless no-op, not a crash', async () => {
   const state = createGame(createPlayer(0), createPlayer(1));
   let step = 0;

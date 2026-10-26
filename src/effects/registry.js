@@ -9926,7 +9926,1421 @@ function gryphios2ST14016AllyLinked(state, player, instance, context) {
   if (target) target.buffs.push({ ap: -1, scope: 'turn' });
 }
 
+// --- GD06 "Stardust Trails" (full booster set, released 2026-10-30) -----------------------------
+// Sourced from tcgcsv.com (categoryId 86, groupId 24804) the same way as ST11-14 -- real printed
+// card text, not guessed. Sectioned by in-set color like GD01-05.
+
+// --- Gundam GP01Fb GD06-001 ---
+// [Once per Turn] When this Unit is attacked, draw 1 (new 'attacked' broadcast -- see
+// combat.js's fireAttackTriggers). [During Pair] gains <High-Maneuver> (data only).
+function gundamGP01FbGD06001Attacked(state, player, instance) {
+  if (instance.activationsUsed.drawWhenAttacked) return;
+  instance.activationsUsed.drawWhenAttacked = true;
+  drawCard(state, player);
+}
+
+// --- Infinite Justice Gundam GD06-002 ---
+// [Once per Turn] During your turn, when this Unit destroys an enemy Unit with battle damage,
+// choose 1 of your (Orb) Units. It recovers 3 HP.
+// [Deploy] You may exile 3 Unit cards from your trash (cheapest first, to preserve recursion
+// targets). If you do, choose 1 active enemy Unit. Return it to its owner's hand.
+function infiniteJusticeGundamGD06002DestroysEnemy(state, player, instance) {
+  if (instance.activationsUsed.healOrbOnKill) return;
+  instance.activationsUsed.healOrbOnKill = true;
+  const target = player.battleArea.filter((u) => (u.def.traits || []).includes('Orb')).sort((a, b) => getRemainingHP(a) - getRemainingHP(b))[0];
+  if (target) recoverHP(target, 3);
+}
+function infiniteJusticeGundamGD06002Deploy(state, player) {
+  const trashUnits = player.trash.filter((c) => c.def.type === 'unit').sort((a, b) => (a.def.cost || 0) - (b.def.cost || 0));
+  if (trashUnits.length < 3) return;
+  const opponent = opponentOf(state, player);
+  const activeEnemy = opponent.battleArea.filter((u) => !u.rested).sort((a, b) => getAP(b) - getAP(a))[0];
+  if (!activeEnemy) return;
+  for (const c of trashUnits.slice(0, 3)) removeFromTrash(player, c);
+  returnUnitToHand(opponent, activeEnemy);
+}
+
+// --- GQuuuuuuX (Omega Psycommu Released) GD06-003 ---
+// Increase this Unit's AP by an amount equal to the number of cards in your hand -- live-computed
+// via grantedStatBonus, re-synced each start of turn (same approximation as Michaelis GD01-076 for
+// a stat bonus that depends on state outside the instance itself).
+// [Attack] If another friendly (Alphacide) Unit is in play and you have 5 or less cards in your
+// hand, draw 1.
+function gQuuuuuuXReleasedGD06003StartOfTurn(state, player, instance) {
+  instance.grantedStatBonus = { ap: player.hand.length };
+}
+function gQuuuuuuXReleasedGD06003Attack(state, player, instance) {
+  const hasAlly = player.battleArea.some((u) => u !== instance && (u.def.traits || []).includes('Alphacide'));
+  if (hasAlly && player.hand.length <= 5) drawCard(state, player);
+}
+
+// --- Gundam GP01 GD06-004 ---
+// [During Link][Destroyed] If it is your turn, return this Unit's paired Pilot to its owner's
+// hand. Then, discard 1.
+function gundamGP01GD06004Destroyed(state, player, instance, context) {
+  if (!instance.isLinkUnit || !context.pilot) return;
+  if (state.players[state.activePlayerIdx] !== player) return;
+  recurFromTrash(player, context.pilot);
+  const discard = player.hand.sort((a, b) => (b.def.cost || 0) - (a.def.cost || 0))[0];
+  if (discard) discardFromHand(player, discard);
+}
+
+// --- Akatsuki (Shiranui) GD06-005 ---
+// [Attack] You may choose 1 damaged enemy Unit that is Lv.5 or lower. Return it to its owner's hand.
+function akatsukiShiranuiGD06005Attack(state, player) {
+  const opponent = opponentOf(state, player);
+  const target = opponent.battleArea.filter((u) => u.damage > 0 && (u.def.level || 0) <= 5).sort((a, b) => getAP(b) - getAP(a))[0];
+  if (target) returnUnitToHand(opponent, target);
+}
+
+// --- GQuuuuuuX (Omega Psycommu) GD06-006 ---
+// [Deploy] If another friendly (Alphacide) Unit is in play, you may choose 1 enemy Unit with 3 or
+// less HP. Return it to its owner's hand.
+function gQuuuuuuXGD06006Deploy(state, player, instance) {
+  const hasAlly = player.battleArea.some((u) => u !== instance && (u.def.traits || []).includes('Alphacide'));
+  if (!hasAlly) return;
+  const opponent = opponentOf(state, player);
+  const target = opponent.battleArea.filter((u) => getRemainingHP(u) <= 3).sort((a, b) => getAP(b) - getAP(a))[0];
+  if (target) returnUnitToHand(opponent, target);
+}
+
+// --- Kikeroga (MS Mode) (GQ) GD06-007 ---
+// <Repair 2> (data). [Deploy] Choose 1 rested enemy Unit. Deal 2 damage to it.
+function kikerogaMSModeGD06007Deploy(state, player) {
+  const opponent = opponentOf(state, player);
+  const target = opponent.battleArea.filter((u) => u.rested).sort((a, b) => getRemainingHP(a) - getRemainingHP(b))[0];
+  if (!target) return;
+  dealDamage(target, 2);
+  destroyAndFireEffect(state, opponent, target);
+}
+
+// --- Powered GM GD06-008 ---
+// [Attack] If a friendly (Earth Federation) Base is in play, this Unit gets AP+2 during this turn.
+function poweredGMGD06008Attack(state, player, instance) {
+  if (player.base && (player.base.def.traits || []).includes('Earth Federation')) instance.buffs.push({ ap: 2, scope: 'turn' });
+}
+
+// --- GM Custom GD06-009 ---
+// [Deploy] You may choose 1 enemy Unit with 1 HP (remaining). Return it to its owner's hand.
+function gmCustomGD06009Deploy(state, player) {
+  const opponent = opponentOf(state, player);
+  const target = opponent.battleArea.find((u) => getRemainingHP(u) === 1);
+  if (target) returnUnitToHand(opponent, target);
+}
+
+// --- GM Cannon II GD06-010 ---
+// [When Linked] Draw 1.
+function gmCannonIIGD06010WhenLinked(state, player) {
+  drawCard(state, player);
+}
+
+// --- Red Gundam GD06-011 ---
+// [When Linked] All your Units gain <Repair 1> during this turn.
+function redGundamGD06011WhenLinked(state, player) {
+  for (const u of player.battleArea) u.buffs.push({ repair: 1, scope: 'turn' });
+}
+
+// --- GM Type C GD06-014 ---
+// While 3 or more enemy Units are in play, this Unit gains <Blocker> -- live via grantedKeywords,
+// re-synced each start of turn (same board-state approximation as the AP-from-hand-size card above).
+function gmTypeCGD06014StartOfTurn(state, player, instance) {
+  const opponent = opponentOf(state, player);
+  instance.grantedKeywords = opponent.battleArea.length >= 3 ? { blocker: true } : {};
+}
+
+// --- GQuuuuuuX GD06-017 ---
+// While another friendly (Alphacide) Unit is in play, this Unit gains <Blocker>.
+function gQuuuuuuXGD06017StartOfTurn(state, player, instance) {
+  const hasAlly = player.battleArea.some((u) => u !== instance && (u.def.traits || []).includes('Alphacide'));
+  instance.grantedKeywords = hasAlly ? { blocker: true } : {};
+}
+
+// --- Elpeo Ple's Qubeley Mk-II GD06-018 ---
+// <Breach 1> (data). [During Pair][Activate*Action][Once per Turn] Choose 1 of your (Neo
+// Zeon)/(Long-Range Weapon) Units or 1 of your (Neo Zeon) Bases. During this battle, battle damage
+// this Unit would receive is dealt to that Unit/Base instead (existing redirectDamageTarget buff,
+// combat.js's getBattleDamageRecipient).
+function elpeoPlesQubeleyMkII018ActivateAction(state, player, instance, context) {
+  if (!instance.pilot || instance.activationsUsed.redirectDamage) return false;
+  if (!context.target) return false;
+  instance.activationsUsed.redirectDamage = true;
+  instance.buffs.push({ redirectDamageTarget: context.target, scope: 'battle' });
+  return true;
+}
+
+// --- Turn X GD06-019 ---
+// Enemy Units choose one of your rested Unit tokens as their attack target if possible when
+// attacking (new tauntIfToken static field -- see heuristic.js's getForcedAttackTargets).
+// [Attack] If you have no (Ghingnham Fleet) Unit tokens in play, deploy 1 rested [Turn X (Arms)]
+// Unit token and 1 rested [Turn X (Legs)] Unit token.
+const TURN_X_ARMS_TOKEN = Object.freeze({
+  number: 'TOKEN-TURNX-ARMS', name: 'Turn X (Arms)', type: 'unit', color: 'green',
+  traits: ['Ghingnham Fleet', 'Long-Range Weapon'], ap: 2, hp: 3, isToken: true, keywords: {}
+});
+const TURN_X_LEGS_TOKEN = Object.freeze({
+  number: 'TOKEN-TURNX-LEGS', name: 'Turn X (Legs)', type: 'unit', color: 'green',
+  traits: ['Ghingnham Fleet', 'Long-Range Weapon'], ap: 3, hp: 2, isToken: true, keywords: {}
+});
+function turnXGD06019Attack(state, player) {
+  const hasToken = player.battleArea.some((u) => u.def.isToken && (u.def.traits || []).includes('Ghingnham Fleet'));
+  if (hasToken) return;
+  const arms = deployUnit(state, player, TURN_X_ARMS_TOKEN);
+  arms.rested = true;
+  const legs = deployUnit(state, player, TURN_X_LEGS_TOKEN);
+  legs.rested = true;
+}
+
+// --- Hamma-Hamma GD06-020 ---
+// During your turn, when one of your (Neo Zeon) Units destroys an enemy card with damage, this
+// Unit recovers 1 HP (reuses the existing friendlyUnitDestroysEnemy broadcast, which already only
+// ever fires for the attacking/active player -- "during your turn" is therefore automatic).
+function hammaHammaGD06020FriendlyUnitDestroysEnemy(state, player, instance, context) {
+  if (!(context.attacker.def.traits || []).includes('Neo Zeon')) return;
+  recoverHP(instance, 1);
+}
+
+// --- Turn X (Top) GD06-021 ---
+// [Deploy] Choose 1 of your Unit tokens. Deploy 1 rested Unit token of the same kind.
+function turnXTopGD06021Deploy(state, player) {
+  const tokenUnit = player.battleArea.find((u) => u.def.isToken);
+  if (!tokenUnit) return;
+  const copy = deployUnit(state, player, tokenUnit.def);
+  copy.rested = true;
+}
+
+// --- Merrybell's Bandit GD06-022 ---
+// [When Linked] Choose 1 enemy Unit with 3 or less AP. Begin a battle between this Unit and it and
+// only perform the damage step (reuses resolveUnitBattleDamage directly, same shape as Nu Gundam
+// GD05-017).
+function merrybellsBanditGD06022WhenLinked(state, player, instance, context) {
+  const opponent = opponentOf(state, player);
+  const target = opponent.battleArea.filter((u) => getAP(u) <= 3).sort((a, b) => getRemainingHP(a) - getRemainingHP(b))[0];
+  if (!target) return;
+  resolveUnitBattleDamage(state, player, opponent, instance, target, (context && context.hooks) || {});
+}
+
+// --- Galluss J GD06-023 ---
+// [Deploy] Rest this Unit. Then, choose 1 of your (Neo Zeon) Units that is Lv.3 or higher. It gets
+// AP+1 during this turn. If you increase a Link Unit's AP with this effect, set this Unit as active.
+function gallussJGD06023Deploy(state, player, instance) {
+  instance.rested = true;
+  const target = player.battleArea.filter((u) => (u.def.traits || []).includes('Neo Zeon') && (u.def.level || 0) >= 3).sort((a, b) => getAP(b) - getAP(a))[0];
+  if (!target) return;
+  target.buffs.push({ ap: 1, scope: 'turn' });
+  if (target.isLinkUnit) instance.rested = false;
+}
+
+// --- R-Jarja GD06-024 ---
+// [Destroyed] Choose 1 enemy Unit with <Blocker> and 3 or less AP. Destroy it.
+function rJarjaGD06024Destroyed(state, player) {
+  const opponent = opponentOf(state, player);
+  const target = opponent.battleArea.filter((u) => getKeywords(u).blocker && getAP(u) <= 3).sort((a, b) => getAP(b) - getAP(a))[0];
+  if (target) destroyOutrightAndFireEffect(state, opponent, target);
+}
+
+// --- Stero's Mahiroo GD06-026 ---
+// [Attack] If you have 3+ other (Ghingnham Fleet)/(Long-Range Weapon) Units in play, choose 1 of
+// your Units. It gets AP+1 and <Repair 2> during this turn.
+function sterosMahirooGD06026Attack(state, player, instance) {
+  const count = player.battleArea.filter((u) => u !== instance && ((u.def.traits || []).includes('Ghingnham Fleet') || (u.def.traits || []).includes('Long-Range Weapon'))).length;
+  if (count < 3) return;
+  const target = player.battleArea.sort((a, b) => getAP(b) - getAP(a))[0];
+  if (target) target.buffs.push({ ap: 1, repair: 2, scope: 'turn' });
+}
+
+// --- Mashymre's Zssa GD06-027 ---
+// [Deploy] Choose 1 of your (Neo Zeon) Units. During this turn, it may choose an active enemy Unit
+// with 4 or less AP as its attack target (existing activeTargetAPThreshold buff family).
+function mashymresZssaGD06027Deploy(state, player, instance) {
+  const target = player.battleArea.filter((u) => u !== instance && (u.def.traits || []).includes('Neo Zeon')).sort((a, b) => getAP(b) - getAP(a))[0];
+  if (target) target.buffs.push({ activeTargetAPThreshold: 4, scope: 'turn' });
+}
+
+// --- Mahiroo GD06-030 ---
+// While you have 3+ other (Ghingnham Fleet)/(Long-Range Weapon) Units in play, this Unit gets AP+2.
+function mahirooGD06030StartOfTurn(state, player, instance) {
+  const count = player.battleArea.filter((u) => u !== instance && ((u.def.traits || []).includes('Ghingnham Fleet') || (u.def.traits || []).includes('Long-Range Weapon'))).length;
+  instance.grantedStatBonus = count >= 3 ? { ap: 2 } : {};
+}
+
+// --- Bellona GD06-032 ---
+// [Destroyed] Look at the top 2 cards of your deck. You may reveal 1 (Ghingnham Fleet)/(Dianna
+// Counter) Unit card among them and add it to your hand. Return the remaining cards randomly to
+// the bottom of your deck (same shape as Char's Zaku II ST03-006).
+function bellonaGD06032Destroyed(state, player) {
+  const top2 = player.deck.splice(0, 2);
+  const matchIdx = top2.findIndex((c) => c.def.type === 'unit' && ((c.def.traits || []).includes('Ghingnham Fleet') || (c.def.traits || []).includes('Dianna Counter')));
+  if (matchIdx !== -1) {
+    const [chosen] = top2.splice(matchIdx, 1);
+    addToHand(player, chosen);
+  }
+  player.deck.push(...shuffle(top2));
+}
+
+// --- ZZ Gundam GD06-033 ---
+// Team-wide damage amp (teamDamageAmpAgainstUnitsIfTrait data field -- see combat.js's
+// teamDamageAmpAgainstUnits and effects.js's dealEffectDamage for the two halves).
+// [Deploy] Deal 2 damage to all enemy Units.
+function zzGundamGD06033Deploy(state, player) {
+  const opponent = opponentOf(state, player);
+  const targets = [...opponent.battleArea];
+  for (const u of targets) dealDamage(u, 2);
+  for (const u of targets) destroyAndFireEffect(state, opponent, u);
+}
+
+// --- Gundam Bael GD06-034 ---
+// <High-Maneuver> (data). [Deploy] If there are 4+ (Gjallarhorn) cards in your trash, look at the
+// top 4 cards of your deck. You may deploy 1 (Gjallarhorn)/(Tekkadan) Unit card Lv.6 or lower among
+// them. Return the remaining cards randomly to the bottom of your deck.
+function gundamBaelGD06034Deploy(state, player) {
+  if (player.trash.filter((c) => (c.def.traits || []).includes('Gjallarhorn')).length < 4) return;
+  const top4 = player.deck.splice(0, 4);
+  const matchIdx = top4.findIndex((c) => c.def.type === 'unit' && (c.def.level || 0) <= 6 && ((c.def.traits || []).includes('Gjallarhorn') || (c.def.traits || []).includes('Tekkadan')));
+  if (matchIdx !== -1) {
+    const [chosen] = top4.splice(matchIdx, 1);
+    deployUnit(state, player, chosen.def);
+  }
+  player.deck.push(...shuffle(top4));
+}
+
+// --- Zeta Gundam GD06-035 ---
+// [Once per Turn] During your turn, when this Unit destroys an enemy Unit with battle damage,
+// choose 1 enemy Unit with 3 or less AP. Deal 2 damage to it.
+function zetaGundamGD06035DestroysEnemy(state, player, instance) {
+  if (instance.activationsUsed.pingOnKill) return;
+  instance.activationsUsed.pingOnKill = true;
+  const opponent = opponentOf(state, player);
+  const target = opponent.battleArea.filter((u) => getAP(u) <= 3).sort((a, b) => getRemainingHP(a) - getRemainingHP(b))[0];
+  if (target) {
+    dealDamage(target, 2);
+    destroyAndFireEffect(state, opponent, target);
+  }
+}
+
+// --- Gundam Vidar GD06-036 ---
+// [When Linked] Choose 1 enemy Unit. Deal 1 damage to it.
+function gundamVidarGD06036WhenLinked(state, player) {
+  const opponent = opponentOf(state, player);
+  const target = opponent.battleArea.sort((a, b) => getRemainingHP(a) - getRemainingHP(b))[0];
+  if (target) {
+    dealDamage(target, 1);
+    destroyAndFireEffect(state, opponent, target);
+  }
+}
+
+// --- Reginlaze Julia GD06-037 ---
+// firstStrikeIfDefenderDamaged (data -- see combat.js's new static check in resolveUnitBattleDamage).
+// [During Pair] Enemy Units can't be set as active by enemy effects (duringPairBlocksEnemySetActiveByEffect
+// data -- see effects.js's new guard in setActiveByEffect).
+
+// --- Gundam Kimaris Vidar GD06-038 ---
+// <Breach 3> (data). [When Paired] Choose 1 enemy Unit with the highest Lv. Deal 3 damage to it.
+function gundamKimarisVidarGD06038WhenPaired(state, player) {
+  const opponent = opponentOf(state, player);
+  const target = opponent.battleArea.sort((a, b) => (b.def.level || 0) - (a.def.level || 0))[0];
+  if (target) {
+    dealDamage(target, 3);
+    destroyAndFireEffect(state, opponent, target);
+  }
+}
+
+// --- Neo Core Fighter GD06-039 ---
+// [Activate*Main] Destroy 2 of your (Gundam Team) Units with unique card names that are Lv.3 and
+// this Unit: Deploy 1 (Gundam Team) Unit card that is Lv.8 or higher from your hand. AI-wired via
+// activations.js's RESOLVERS['GD06-039'] (lowest-AP distinct-named sacrifices, highest AP+HP hand
+// target) -- unlike GFreD GD03-035's unwired exile-from-trash cost, this one's cost is fully visible
+// board state with no hidden-value judgement call, so a defensible default heuristic applies.
+function neoCoreFighterGD06039ActivateMain(state, player, instance, context) {
+  const sacrifices = context.sacrifices;
+  const card = context.card;
+  if (!sacrifices || sacrifices.length !== 2 || !card) return false;
+  const names = new Set();
+  for (const u of sacrifices) {
+    if (!player.battleArea.includes(u) || u === instance) return false;
+    if (!(u.def.traits || []).includes('Gundam Team') || (u.def.level || 0) !== 3) return false;
+    if (names.has(u.def.name)) return false;
+    names.add(u.def.name);
+  }
+  if (!player.hand.includes(card) || !(card.def.traits || []).includes('Gundam Team') || (card.def.level || 0) < 8) return false;
+  for (const u of sacrifices) destroyOutrightAndFireEffect(state, player, u);
+  destroyOutrightAndFireEffect(state, player, instance);
+  player.hand.splice(player.hand.indexOf(card), 1);
+  deployUnit(state, player, card.def);
+  return true;
+}
+
+// --- Neo Lorrnoke's Windam (Jet Striker) GD06-041 ---
+// [Deploy] Choose 1 enemy Unit with 5 or less AP. Deal 1 damage to it.
+function neoLorrnokesWindamGD06041Deploy(state, player) {
+  const opponent = opponentOf(state, player);
+  const target = opponent.battleArea.filter((u) => getAP(u) <= 5).sort((a, b) => getRemainingHP(a) - getRemainingHP(b))[0];
+  if (target) {
+    dealDamage(target, 1);
+    destroyAndFireEffect(state, opponent, target);
+  }
+}
+
+// --- Destroy Gundam (MA Mode) GD06-042 ---
+// [Deploy] Look at the top 4 cards of your deck. You may pair 1 (Biological CPU) Pilot card among
+// them with this Unit. Return the remaining cards randomly to the bottom of your deck.
+function destroyGundamMAModeGD06042Deploy(state, player, instance) {
+  const top4 = player.deck.splice(0, 4);
+  const matchIdx = top4.findIndex((c) => c.def.type === 'pilot' && (c.def.traits || []).includes('Biological CPU'));
+  if (matchIdx !== -1) {
+    const [chosen] = top4.splice(matchIdx, 1);
+    pairPilot(state, player, instance, chosen);
+  }
+  player.deck.push(...shuffle(top4));
+}
+
+// --- Julieta's Reginlaze GD06-043 ---
+// [During Link] During your turn, all other (Gjallarhorn) Units get AP+1 (same shape as Gundam
+// ST01-001's duringPair team aura, just During Link and excluding self).
+function julietasReginlazeGD06043StartOfTurn(state, player, instance) {
+  const sourceId = `${instance.id}:julietasReginlaze`;
+  const active = instance.isLinkUnit && state.players[state.activePlayerIdx] === player;
+  for (const u of player.battleArea) {
+    if (u === instance || !(u.def.traits || []).includes('Gjallarhorn')) continue;
+    grantTurnBuff(u, sourceId, active ? { ap: 1 } : null);
+  }
+}
+
+// --- Core Base GD06-045 ---
+// [Destroyed] Choose 1 enemy Unit that is Lv.5 or lower. Deal 1 damage to it.
+function coreBaseGD06045Destroyed(state, player) {
+  const opponent = opponentOf(state, player);
+  const target = opponent.battleArea.filter((u) => (u.def.level || 0) <= 5).sort((a, b) => getRemainingHP(a) - getRemainingHP(b))[0];
+  if (target) {
+    dealDamage(target, 1);
+    destroyAndFireEffect(state, opponent, target);
+  }
+}
+
+// --- Hyaku-Shiki GD06-046 ---
+// [Attack] Choose 1 of your other (Gundam Team) Units. It gets AP+2 during this turn.
+function hyakuShikiGD06046Attack(state, player, instance) {
+  const target = player.battleArea.filter((u) => u !== instance && (u.def.traits || []).includes('Gundam Team')).sort((a, b) => getAP(b) - getAP(a))[0];
+  if (target) target.buffs.push({ ap: 2, scope: 'turn' });
+}
+
+// --- Helmwige Reincar GD06-048 ---
+// [Deploy] Choose 1 enemy Unit that is Lv.2 or lower. Deal 1 damage to it. If there are 4+
+// (Gjallarhorn) cards in your trash, choose 1 enemy Unit instead (any level).
+function helmwigeReincarGD06048Deploy(state, player) {
+  const opponent = opponentOf(state, player);
+  const gjallarhornTrash = player.trash.filter((c) => (c.def.traits || []).includes('Gjallarhorn')).length;
+  const candidates = gjallarhornTrash >= 4 ? opponent.battleArea : opponent.battleArea.filter((u) => (u.def.level || 0) <= 2);
+  const target = candidates.sort((a, b) => getRemainingHP(a) - getRemainingHP(b))[0];
+  if (target) {
+    dealDamage(target, 1);
+    destroyAndFireEffect(state, opponent, target);
+  }
+}
+
+// --- Gundam GP02A GD06-049 ---
+// [When Paired] If there are 10+ (Zeon) Unit cards in your trash, destroy every enemy player's Base.
+// [Destroyed] Look at the top 3 cards of your deck. You may reveal 1 (Delaz Fleet) Unit card among
+// them and add it to your hand. Place the remaining cards into your trash (not the bottom of the
+// deck -- distinct from the "return remaining" family above).
+function gundamGP02AGD06049WhenPaired(state, player) {
+  if (player.trash.filter((c) => c.def.type === 'unit' && (c.def.traits || []).includes('Zeon')).length < 10) return;
+  const opponent = opponentOf(state, player);
+  if (opponent.base) destroyOutrightAndFireEffect(state, opponent, opponent.base);
+}
+function gundamGP02AGD06049Destroyed(state, player) {
+  const top3 = player.deck.splice(0, 3);
+  const matchIdx = top3.findIndex((c) => c.def.type === 'unit' && (c.def.traits || []).includes('Delaz Fleet'));
+  if (matchIdx !== -1) {
+    const [chosen] = top3.splice(matchIdx, 1);
+    addToHand(player, chosen);
+  }
+  player.trash.push(...top3);
+}
+
+// --- Legend Gundam GD06-050 ---
+// [Deploy] Choose 1 enemy Unit that is Lv.3 or lower. Destroy it. If you deploy this Unit from
+// your trash, choose 1-2 instead. Its own "While you have a (ZAFT) Link Unit in play, this card in
+// your trash gets Lv.-3 and cost -3" is data-only (levelAndCostReductionInTrashIfLinkTrait, read by
+// cost.js's scalingLevelCostReduction) -- reachable via Destiny Gundam GD04-050's "[During Pair]
+// [Attack] choose 1 (Minerva Squad) Unit card from your trash, pay its cost to deploy it" (Legend
+// Gundam is itself Minerva Squad), which threads { fromTrash: true } through deployUnit's context,
+// same key this handler checks below.
+function legendGundamGD06050Deploy(state, player, instance, context) {
+  const opponent = opponentOf(state, player);
+  const count = context && context.fromTrash ? 2 : 1;
+  const candidates = opponent.battleArea.filter((u) => (u.def.level || 0) <= 3).sort((a, b) => getAP(b) - getAP(a));
+  for (const u of candidates.slice(0, count)) destroyOutrightAndFireEffect(state, opponent, u);
+}
+
+// --- GFreD GD06-051 ---
+// [Activate*Main][Once per Turn] (2), rest this Unit: Choose 1 (Alphacide) Unit card Lv.5 or lower
+// from your trash. Deploy it.
+// [Deploy] If another friendly (Alphacide) Unit is in play, this Unit gains the following effect
+// during this turn: at the end of the turn, choose 2 of your Resources. Set them as active (new
+// triggerEvent-side grantedEffect resolution -- see effects.js).
+function gfredGD06051ActivateMain(state, player, instance) {
+  if (instance.rested || instance.activationsUsed.recurAlphacide) return false;
+  const activeResources = player.resourceArea.filter((r) => !r.rested);
+  if (activeResources.length < 2) return false;
+  const candidates = player.trash.filter((c) => c.def.type === 'unit' && (c.def.traits || []).includes('Alphacide') && (c.def.level || 0) <= 5);
+  if (candidates.length === 0) return false;
+  const target = candidates.sort((a, b) => (b.def.cost || 0) - (a.def.cost || 0))[0];
+  activeResources[0].rested = true;
+  activeResources[1].rested = true;
+  instance.rested = true;
+  removeFromTrash(player, target);
+  deployUnit(state, player, target.def);
+  instance.activationsUsed.recurAlphacide = true;
+  return true;
+}
+function gfredGD06051Deploy(state, player, instance) {
+  const hasAlly = player.battleArea.some((u) => u !== instance && (u.def.traits || []).includes('Alphacide'));
+  if (!hasAlly) return;
+  instance.buffs.push({
+    scope: 'turn',
+    grantedEffect: {
+      eventName: 'endOfTurn',
+      fn: (s, p) => {
+        for (const r of p.resourceArea.filter((res) => res.rested).slice(0, 2)) r.rested = false;
+      }
+    }
+  });
+}
+
+// --- Val Walo GD06-052 ---
+// While there are 5+ (Zeon) Unit cards in your trash, this Unit gains <High-Maneuver>.
+// [Deploy] Place the top card of your deck into your trash. If you place a (Zeon) card with this
+// effect, choose 1 enemy Unit with 4 or less AP. Rest it.
+function valWaloGD06052StartOfTurn(state, player, instance) {
+  const count = player.trash.filter((c) => c.def.type === 'unit' && (c.def.traits || []).includes('Zeon')).length;
+  instance.grantedKeywords = count >= 5 ? { highManeuver: true } : {};
+}
+function valWaloGD06052Deploy(state, player) {
+  const milled = millToTrash(player, 1);
+  if (!milled[0] || !(milled[0].def.traits || []).includes('Zeon')) return;
+  const opponent = opponentOf(state, player);
+  const target = opponent.battleArea.filter((u) => getAP(u) <= 4).sort((a, b) => getAP(b) - getAP(a))[0];
+  if (target) restEnemyByEffect(state, player, opponent, target);
+}
+
+// --- Xavier's Gyan Hakuji-Packs (GQ) GD06-053 ---
+// <Blocker> (data). [Destroyed] Choose 1 of your Resources. Set it as active.
+function xaviersGyanHakujiPacksGD06053Destroyed(state, player) {
+  const resource = player.resourceArea.find((r) => r.rested);
+  if (resource) setActiveByEffect(state, player, resource);
+}
+
+// --- GFreD GD06-054 ---
+// <Suppression> (data). [Deploy] You may choose 1 of your Units and 1 enemy Unit. Deal 1 damage
+// to them.
+function gfredGD06054Deploy(state, player, instance) {
+  const opponent = opponentOf(state, player);
+  const friendlyTarget = player.battleArea.filter((u) => u !== instance).sort((a, b) => getRemainingHP(b) - getRemainingHP(a))[0];
+  const enemyTarget = opponent.battleArea.sort((a, b) => getRemainingHP(a) - getRemainingHP(b))[0];
+  if (friendlyTarget) {
+    dealDamage(friendlyTarget, 1);
+    destroyAndFireEffect(state, player, friendlyTarget);
+  }
+  if (enemyTarget) {
+    dealDamage(enemyTarget, 1);
+    destroyAndFireEffect(state, opponent, enemyTarget);
+  }
+}
+
+// --- Gundam GP02A GD06-055 ---
+// [During Pair][Attack] You may deal 1 damage to this Unit. If you do, this Unit gains <Breach 2>
+// during this battle.
+function gundamGP02A055Attack(state, player, instance) {
+  if (!instance.pilot) return;
+  dealDamage(instance, 1);
+  instance.buffs.push({ breach: 2, scope: 'battle' });
+}
+
+// --- Xamel GD06-056 ---
+// [Attack] You may pay (2). If you do, choose 1 enemy Unit that is Lv.2 or lower. Destroy it.
+function xamelGD06056Attack(state, player) {
+  const activeResources = player.resourceArea.filter((r) => !r.rested);
+  if (activeResources.length < 2) return;
+  const opponent = opponentOf(state, player);
+  const target = opponent.battleArea.filter((u) => (u.def.level || 0) <= 2).sort((a, b) => getAP(b) - getAP(a))[0];
+  if (!target) return;
+  activeResources[0].rested = true;
+  activeResources[1].rested = true;
+  destroyOutrightAndFireEffect(state, opponent, target);
+}
+
+// --- Karius' Rick Dom II GD06-057 ---
+// While you have another (Delaz Fleet) Unit in play, this Unit gains <Blocker>.
+function kariusRickDomIIGD06057StartOfTurn(state, player, instance) {
+  const hasAlly = player.battleArea.some((u) => u !== instance && (u.def.traits || []).includes('Delaz Fleet'));
+  instance.grantedKeywords = hasAlly ? { blocker: true } : {};
+}
+
+// --- Blast Impulse Gundam GD06-058 ---
+// "On the turn this Unit is deployed, it may choose a rested enemy Unit as its attack target and
+// attack it" -- byte-identical shape to Gundam Deathscythe Hell (EW) GD05-078's existing
+// attackOnDeployRestedOnly data field (heuristic.js's collectAttackCandidates); no new code needed.
+
+// --- Zaku II F2 GD06-060 ---
+// While there are 4+ (Zeon) Unit cards in your trash, this Unit gets AP+1.
+function zakuIIF2GD06060StartOfTurn(state, player, instance) {
+  const count = player.trash.filter((c) => c.def.type === 'unit' && (c.def.traits || []).includes('Zeon')).length;
+  instance.grantedStatBonus = count >= 4 ? { ap: 1 } : {};
+}
+
+// --- Altron Gundam (EW) GD06-064 ---
+// <Blocker> (data). While an enemy Unit that is Lv.5 or higher is in play, this Unit gets AP+3.
+function altronGundamEWGD06064StartOfTurn(state, player, instance) {
+  const opponent = opponentOf(state, player);
+  instance.grantedStatBonus = opponent.battleArea.some((u) => (u.def.level || 0) >= 5) ? { ap: 3 } : {};
+}
+
+// --- SUMO Gold Type GD06-065 ---
+// <Blocker> (data). [Activate*Main][Once per Turn] (4): Set all your (Dianna Counter)/(Militia)
+// Units with <Blocker> as active. They can't attack during this turn.
+function sumoGoldTypeGD06065ActivateMain(state, player, instance) {
+  if (instance.activationsUsed.unrestBlockers) return false;
+  const activeResources = player.resourceArea.filter((r) => !r.rested);
+  if (activeResources.length < 4) return false;
+  for (let i = 0; i < 4; i++) activeResources[i].rested = true;
+  instance.activationsUsed.unrestBlockers = true;
+  for (const u of player.battleArea) {
+    if (((u.def.traits || []).includes('Dianna Counter') || (u.def.traits || []).includes('Militia')) && getKeywords(u).blocker) {
+      setActiveByEffect(state, player, u);
+      u.buffs.push({ cannotAttack: true, scope: 'turn' });
+    }
+  }
+  return true;
+}
+
+// --- Shadow Gundam GD06-066 ---
+// <Blocker> (data). [During Link][Attack] Activate [Action] on the card paired with this Unit.
+// This is a forced, automatic effect (not an optional "you may Activate..." choice), so there's no
+// AI judgement call to wire into a RESOLVERS table -- it just invokes the paired Pilot's own
+// activateAction handler directly, with no battle context, on every attack while Linked. Correct for
+// any Pilot ability that derives its own targets internally. Currently a no-op for both of this
+// Unit's only 2 real Link targets (Domon Kasshu GD05-097, Master Asia GD05-089, matched via the
+// shared (Gundam Fighter) trait -- see matchesLinkCondition) since neither has an activateAction at
+// all; verified correct for a hypothetical linkable Pilot that does, via a literal injected handler.
+function shadowGundamGD06066Attack(state, player, instance) {
+  if (!instance.isLinkUnit || !instance.pilot) return;
+  const handler = instance.pilot.def.effects && instance.pilot.def.effects.activateAction;
+  if (handler) handler(state, player, instance, {});
+}
+
+// --- Gundam Sandrock Custom (EW) GD06-067 ---
+// <Blocker> (data). [When Paired -- Lv.4+ Pilot] Choose 1 rested enemy Unit with 3 or less HP. It
+// won't be set as active during the start phase of your opponent's next turn (existing
+// skipNextUntap flag -- see phases.js's runStartPhase).
+function gundamSandrockCustomEWGD06067WhenPaired(state, player, instance, context) {
+  if ((context.pilot.def.level || 0) < 4) return;
+  const opponent = opponentOf(state, player);
+  const target = opponent.battleArea.filter((u) => u.rested && getRemainingHP(u) <= 3).sort((a, b) => getAP(b) - getAP(a))[0];
+  if (target) target.skipNextUntap = true;
+}
+
+// --- Gundam Heavyarms Custom (EW) GD06-068 ---
+// [Deploy] Choose 1 enemy Unit that is Lv.3 or lower. Rest it. If you have another (G
+// Team)/(Preventer) Unit in play, that enemy Unit gets AP-2 during this turn.
+function gundamHeavyarmsCustomEWGD06068Deploy(state, player, instance) {
+  const opponent = opponentOf(state, player);
+  const target = opponent.battleArea.filter((u) => (u.def.level || 0) <= 3).sort((a, b) => getAP(b) - getAP(a))[0];
+  if (!target) return;
+  restEnemyByEffect(state, player, opponent, target);
+  const hasAlly = player.battleArea.some((u) => u !== instance && ((u.def.traits || []).includes('G Team') || (u.def.traits || []).includes('Preventer')));
+  if (hasAlly) target.buffs.push({ ap: -2, scope: 'turn' });
+}
+
+// --- SUMO Silver Type GD06-069 ---
+// <Blocker> (data). [Activate*Action][Once per Turn] (1): Choose 1 of your damaged (Dianna
+// Counter) Units. It recovers 1 HP.
+function sumoSilverTypeGD06069ActivateAction(state, player, instance, context) {
+  if (instance.activationsUsed.healDiannaCounter) return false;
+  const activeResources = player.resourceArea.filter((r) => !r.rested);
+  if (activeResources.length < 1) return false;
+  const target = context.target;
+  if (!target || target.damage <= 0 || !(target.def.traits || []).includes('Dianna Counter')) return false;
+  activeResources[0].rested = true;
+  recoverHP(target, 1);
+  instance.activationsUsed.healDiannaCounter = true;
+  return true;
+}
+
+// --- Eagail GD06-070 ---
+// [Deploy] Deploy 1 [Gozzo] ((Dianna Counter) AP0*HP3*<Blocker>) Unit token.
+// [Attack] If you have paid a total of (3)+ for your Units' effects this turn, choose 1 enemy
+// Unit. It gets AP-5 during this battle.
+const GOZZO_TOKEN = Object.freeze({
+  number: 'TOKEN-GOZZO', name: 'Gozzo', type: 'unit', color: 'white',
+  traits: ['Dianna Counter'], ap: 0, hp: 3, isToken: true, keywords: { blocker: true }
+});
+function eagailGD06070Deploy(state, player) {
+  deployUnit(state, player, GOZZO_TOKEN);
+}
+function eagailGD06070Attack(state, player) {
+  const paid = (player.abilityCostsPaidThisTurn || []).reduce((sum, p) => sum + p.amount, 0);
+  if (paid < 3) return;
+  const opponent = opponentOf(state, player);
+  const target = opponent.battleArea.sort((a, b) => getAP(b) - getAP(a))[0];
+  if (target) target.buffs.push({ ap: -5, scope: 'battle' });
+}
+
+// --- Shining Gundam (Meikyo Shisui) GD06-071 ---
+// [Once per Turn] During your turn, when you activate a (Special Move) Command's [Main]/[Action],
+// choose 1 enemy Unit. It gets AP-2 during this turn. If you do, this Unit gets AP+2. (Reuses the
+// existing friendlyPlaysCommand broadcast -- every Command's printed effect already resolves the
+// instant it's played in this engine, so "activates a Command" and "plays a Command" coincide.)
+function shiningGundamMeikyoShisuiGD06071FriendlyPlaysCommand(state, player, instance, context) {
+  if (instance.activationsUsed.specialMoveReaction) return;
+  if (!(context.commandInstance.def.traits || []).includes('Special Move')) return;
+  const opponent = opponentOf(state, player);
+  const target = opponent.battleArea.sort((a, b) => getAP(b) - getAP(a))[0];
+  if (!target) return;
+  instance.activationsUsed.specialMoveReaction = true;
+  target.buffs.push({ ap: -2, scope: 'turn' });
+  instance.buffs.push({ ap: 2, scope: 'turn' });
+}
+
+// --- Gundam Deathscythe Hell (EW) GD06-072 ---
+// [During Pair][Destroyed] If you have another (G Team)/(Preventer) Unit in play, you may choose 1
+// Command card that is Lv.5 or lower from your trash. Add it to your hand.
+function gundamDeathscytheHellEWGD06072Destroyed(state, player, instance, context) {
+  if (!context.wasPaired) return;
+  const hasAlly = player.battleArea.some((u) => u !== instance && ((u.def.traits || []).includes('G Team') || (u.def.traits || []).includes('Preventer')));
+  if (!hasAlly) return;
+  const candidates = player.trash.filter((c) => c.def.type === 'command' && (c.def.level || 0) <= 5);
+  if (candidates.length === 0) return;
+  recurFromTrash(player, candidates.sort((a, b) => (b.def.cost || 0) - (a.def.cost || 0))[0]);
+}
+
+// --- Wing Gundam Zero (EW) GD06-073 ---
+// [During Pair][Once per Turn] When this Unit destroys an enemy shield area card with battle
+// damage, choose 1 enemy Unit that is Lv.3 or lower. Rest it (existing destroysShield event).
+function wingGundamZeroEWGD06073DestroysShield(state, player, instance) {
+  if (!instance.pilot || instance.activationsUsed.restOnShieldKill) return;
+  const opponent = opponentOf(state, player);
+  const target = opponent.battleArea.filter((u) => (u.def.level || 0) <= 3).sort((a, b) => getAP(b) - getAP(a))[0];
+  if (!target) return;
+  instance.activationsUsed.restOnShieldKill = true;
+  restEnemyByEffect(state, player, opponent, target);
+}
+
+// --- WaDom GD06-076 ---
+// [Deploy] Choose 1 enemy Unit with 4 or less HP. Rest it.
+function waDomGD06076Deploy(state, player) {
+  const opponent = opponentOf(state, player);
+  const target = opponent.battleArea.filter((u) => getRemainingHP(u) <= 4).sort((a, b) => getAP(b) - getAP(a))[0];
+  if (target) restEnemyByEffect(state, player, opponent, target);
+}
+
+// --- WaD GD06-078 ---
+// [Activate*Main] (3), rest this Unit: If you have another (Dianna Counter) Unit in play, choose 1
+// enemy Unit that is Lv.4 or lower. Rest it.
+function waDGD06078ActivateMain(state, player, instance) {
+  if (instance.rested) return false;
+  const activeResources = player.resourceArea.filter((r) => !r.rested);
+  if (activeResources.length < 3) return false;
+  if (!player.battleArea.some((u) => u !== instance && (u.def.traits || []).includes('Dianna Counter'))) return false;
+  const opponent = opponentOf(state, player);
+  const target = opponent.battleArea.filter((u) => (u.def.level || 0) <= 4).sort((a, b) => getAP(b) - getAP(a))[0];
+  if (!target) return false;
+  for (let i = 0; i < 3; i++) activeResources[i].rested = true;
+  instance.rested = true;
+  restEnemyByEffect(state, player, opponent, target);
+  return true;
+}
+
+// --- Kou Uraki GD06-080 (Pilot) ---
+// [Burst] Add this card to your hand (shared addSelfToHandBurst).
+// [Activate*Action][Once per Turn] If you have drawn with an effect during this turn, choose 1 of
+// your Units. It recovers 2 HP (new player.drewWithEffectThisTurn flag -- see phases.js's drawCard).
+function kouUrakiGD06080ActivateAction(state, player, instance, context) {
+  if (instance.activationsUsed.healIfDrewByEffect || !player.drewWithEffectThisTurn) return false;
+  const target = context.target;
+  if (!target || !player.battleArea.includes(target)) return false;
+  instance.activationsUsed.healIfDrewByEffect = true;
+  recoverHP(target, 2);
+  return true;
+}
+
+// --- Amate Yuzuriha (Machu) GD06-081 (Pilot) ---
+// [Burst] Add this card to your hand. While this Unit is (Alphacide), it gains <Repair 2>
+// (duringPairRepairIfTrait data -- see effects.js's applyRepairAtEndOfTurn).
+
+// --- Athrun Zala GD06-082 (Pilot) ---
+// [Burst] Add this card to your hand. [When Paired] Choose 1 rested enemy Unit. Deal 1 damage to it.
+function athrunZalaGD06082WhenPaired(state, player) {
+  const opponent = opponentOf(state, player);
+  const target = opponent.battleArea.filter((u) => u.rested).sort((a, b) => getAP(b) - getAP(a))[0];
+  if (target) {
+    dealDamage(target, 1);
+    destroyAndFireEffect(state, opponent, target);
+  }
+}
+
+// --- Challia Bull (GQ) GD06-083 (Pilot) ---
+// [Burst] Add this card to your hand. [During Link] While this Unit has <Repair>, it gains
+// <High-Maneuver> (highManeuverIfHasRepair data -- see management.js's getKeywords).
+
+// --- Elpeo Ple GD06-084 (Pilot) ---
+// [Burst] Add this card to your hand. [When Paired] During this turn, this Unit gains the same
+// number of <Breach 1> as the number of (Neo Zeon)/(Long-Range Weapon) Units you have in play.
+function elpeoPleGD06084WhenPaired(state, player, instance) {
+  const count = player.battleArea.filter((u) => (u.def.traits || []).includes('Neo Zeon') || (u.def.traits || []).includes('Long-Range Weapon')).length;
+  if (count > 0) instance.buffs.push({ breach: count, scope: 'turn' });
+}
+
+// --- Gym Ghingnham GD06-085 (Pilot) ---
+// [Burst] Add this card to your hand. [During Link] All your (Ghingnham Fleet) Units get AP+1
+// during your opponent's turn (inverse of Gundam ST01-001's "during your turn" team-aura shape).
+function gymGhingnhamGD06085StartOfTurn(state, player, instance) {
+  const sourceId = `${instance.id}:gymGhingnham`;
+  const active = instance.isLinkUnit && state.players[state.activePlayerIdx] !== player;
+  for (const u of player.battleArea) {
+    if (!(u.def.traits || []).includes('Ghingnham Fleet')) continue;
+    grantTurnBuff(u, sourceId, active ? { ap: 1 } : null);
+  }
+}
+
+// --- Mashymre Cello GD06-086 (Pilot) ---
+// When playing this card from hand and pairing it with a Unit with the [Mashymre Cello] link
+// condition, it gets cost -1 (costReductionIfPairUnit data -- see cost.js's effectiveCost, and
+// heuristic.js's runPairings/resolvePairingSubset for the best-case pairUnit guess).
+// [Burst] Add this card to your hand.
+
+// --- Merrybell Gadget GD06-087 (Pilot) ---
+// [Burst] Add this card to your hand. [Attack] Choose 1 of your (Ghingnham Fleet) Units. During
+// this turn, it may choose an active enemy Unit that is Lv.4 or lower as its attack target.
+function merrybellGadgetGD06087Attack(state, player) {
+  const target = player.battleArea.filter((u) => (u.def.traits || []).includes('Ghingnham Fleet')).sort((a, b) => getAP(b) - getAP(a))[0];
+  if (target) target.buffs.push({ activeTargetLevelCap: 4, scope: 'turn' });
+}
+
+// --- Judau Ashta GD06-088 (Pilot) ---
+// [Burst] Add this card to your hand. [During Link][Destroyed] Choose 1 (Gundam Team) Unit card
+// that is Lv.2 or lower from your trash. Add it to your hand.
+function judauAshtaGD06088Destroyed(state, player, instance) {
+  if (!instance.isLinkUnit) return;
+  const candidates = player.trash.filter((c) => c.def.type === 'unit' && (c.def.traits || []).includes('Gundam Team') && (c.def.level || 0) <= 2);
+  if (candidates.length === 0) return;
+  recurFromTrash(player, candidates.sort((a, b) => (b.def.cost || 0) - (a.def.cost || 0))[0]);
+}
+
+// --- McGillis Fareed GD06-089 (Pilot) ---
+// [Burst] Add this card to your hand. [During Link] When this Unit destroys an enemy shield area
+// card with battle damage, choose 1 of your (Gjallarhorn) Units. During this turn, it may choose
+// an active enemy Unit that is Lv.5 or lower as its attack target.
+function mcgillisFareedGD06089DestroysShield(state, player, instance) {
+  if (!instance.isLinkUnit) return;
+  const target = player.battleArea.filter((u) => (u.def.traits || []).includes('Gjallarhorn')).sort((a, b) => getAP(b) - getAP(a))[0];
+  if (target) target.buffs.push({ activeTargetLevelCap: 5, scope: 'turn' });
+}
+
+// --- Vidar GD06-090 (Pilot) ---
+// This card's name is also treated as [Gaelio Bauduin] (nameAlias data).
+// [Burst] Add this card to your hand. [Attack] If you have 2+ (Gjallarhorn) Units in play, choose
+// 1 enemy Unit with 5 or less AP. Deal 1 damage to it.
+function vidarGD06090Attack(state, player) {
+  if (player.battleArea.filter((u) => (u.def.traits || []).includes('Gjallarhorn')).length < 2) return;
+  const opponent = opponentOf(state, player);
+  const target = opponent.battleArea.filter((u) => getAP(u) <= 5).sort((a, b) => getRemainingHP(a) - getRemainingHP(b))[0];
+  if (target) {
+    dealDamage(target, 1);
+    destroyAndFireEffect(state, opponent, target);
+  }
+}
+
+// --- Roux Louka GD06-091 (Pilot) ---
+// [Burst] Add this card to your hand. While this Unit is (AEUG), it gains <Breach 1>
+// (breachIfUnitTrait data -- already-existing field, see management.js's getKeywords).
+
+// --- Neo Lorrnoke GD06-092 (Pilot) ---
+// This card's name is also treated as [Mu La Flaga] (nameAlias data).
+// [Burst] Add this card to your hand. [When Paired] If this is a (Phantom Pain)/(Orb) Unit, choose
+// 1 enemy Unit whose AP is equal to or less than this Unit. Deal 1 damage to it.
+function neoLorrnokeGD06092WhenPaired(state, player, instance) {
+  if (!(instance.def.traits || []).includes('Phantom Pain') && !(instance.def.traits || []).includes('Orb')) return;
+  const opponent = opponentOf(state, player);
+  const ap = getAP(instance);
+  const target = opponent.battleArea.filter((u) => getAP(u) <= ap).sort((a, b) => getRemainingHP(a) - getRemainingHP(b))[0];
+  if (target) {
+    dealDamage(target, 1);
+    destroyAndFireEffect(state, opponent, target);
+  }
+}
+
+// --- Anavel Gato GD06-093 (Pilot) ---
+// [Burst] Add this card to your hand. [Attack] During this battle, when this Unit receives battle
+// damage from an enemy Unit whose Lv. is equal to or lower than it, reduce it by 2 (the target
+// Unit/Lv. are both already known at Attack-trigger time, so this just pushes the existing
+// battleDamageReduction buff directly instead of needing a new conditional-reduction field).
+function anavelGatoGD06093Attack(state, player, instance, context) {
+  if (!context.target || context.target.type !== 'unit') return;
+  const enemy = context.target.instance;
+  if ((enemy.def.level || 0) <= (instance.def.level || 0)) instance.buffs.push({ battleDamageReduction: 2, scope: 'battle' });
+}
+
+// --- Nyaan GD06-094 (Pilot) ---
+// [Burst] Add this card to your hand. [When Paired] Choose 1 friendly Unit. It gains the
+// following effect during this turn: When this Unit deals battle damage to an enemy Unit that is
+// Lv.4 or lower, destroy that enemy Unit (existing executeEnemyLevelCap buff -- see combat.js's
+// fireDealsBattleDamage, same shape as Backup GD04-115).
+function nyaanGD06094WhenPaired(state, player) {
+  const target = player.battleArea.sort((a, b) => getAP(b) - getAP(a))[0];
+  if (target) target.buffs.push({ executeEnemyLevelCap: 4, scope: 'turn' });
+}
+
+// --- Kelley Layzner GD06-095 (Pilot) ---
+// [Burst] Add this card to your hand. [Attack] You may deal 1 damage to this Unit. If you do,
+// choose 1 of your (Zeon) Units. It gets AP+2 during this turn.
+function kelleyLayznerGD06095Attack(state, player, instance) {
+  const target = player.battleArea.filter((u) => (u.def.traits || []).includes('Zeon')).sort((a, b) => getAP(b) - getAP(a))[0];
+  if (!target) return;
+  dealDamage(instance, 1);
+  target.buffs.push({ ap: 2, scope: 'turn' });
+}
+
+// --- Xavier Olivette GD06-096 (Pilot) ---
+// [Burst] Add this card to your hand. [During Link][Attack] Place the top card of your deck into
+// your trash. If you place a (Zeon)/(Alphacide) card with this effect, all enemy Units get AP-1
+// during this battle.
+function xavierOlivetteGD06096Attack(state, player, instance) {
+  if (!instance.isLinkUnit) return;
+  const milled = millToTrash(player, 1);
+  if (!milled[0] || (!(milled[0].def.traits || []).includes('Zeon') && !(milled[0].def.traits || []).includes('Alphacide'))) return;
+  const opponent = opponentOf(state, player);
+  for (const u of opponent.battleArea) u.buffs.push({ ap: -1, scope: 'battle' });
+}
+
+// --- Harry Ord GD06-097 (Pilot) ---
+// [Burst] Add this card to your hand. [Once per Turn] When this Unit activates <Blocker>, set it
+// as active (new 'activatesBlocker' event -- see combat.js's applyBlockDecision).
+function harryOrdGD06097ActivatesBlocker(state, player, instance) {
+  if (instance.activationsUsed.setActiveOnBlock) return;
+  instance.activationsUsed.setActiveOnBlock = true;
+  setActiveByEffect(state, player, instance);
+}
+
+// --- Duo Maxwell GD06-098 (Pilot) ---
+// [Burst] Add this card to your hand. [During Link] While this Unit is rested, friendly Bases
+// can't receive damage from enemy Units whose Lv. are equal to or lower than this Unit
+// (duringLinkBaseDamageImmuneIfRestedSelf data -- see combat.js's isBaseImmuneToLowLevelDamage).
+
+// --- Chang Wufei GD06-099 (Pilot) ---
+// [Burst] Add this card to your hand. [Attack] Choose 1 enemy Unit that is Lv.5 or higher. It gets
+// AP-3 during this battle.
+function changWufeiGD06099Attack(state, player) {
+  const opponent = opponentOf(state, player);
+  const target = opponent.battleArea.filter((u) => (u.def.level || 0) >= 5).sort((a, b) => getAP(b) - getAP(a))[0];
+  if (target) target.buffs.push({ ap: -3, scope: 'battle' });
+}
+
+// --- Corin Nander GD06-100 (Pilot) ---
+// When playing this card from hand and pairing it with a (Dianna Counter) Unit that is Lv.5 or
+// higher, it gets cost -1 (costReductionIfPairUnit data, same field as Mashymre Cello above).
+// [Burst] Add this card to your hand.
+
+// --- The Gundam Says GD06-101 (Command) ---
+// [Burst] Choose 1 enemy Unit with 5 or less HP. Return it to its owner's hand.
+// [Main]/[Action] Choose 1 enemy Unit with 5 or less HP. Return it to its owner's hand. Then, if a
+// friendly (Alphacide) Link Unit is in play, draw 1.
+function theGundamSaysGD06101Burst(state, player) {
+  const opponent = opponentOf(state, player);
+  const target = opponent.battleArea.filter((u) => getRemainingHP(u) <= 5).sort((a, b) => getAP(b) - getAP(a))[0];
+  if (target) returnUnitToHand(opponent, target);
+}
+function theGundamSaysGD06101Command(state, player) {
+  const opponent = opponentOf(state, player);
+  const target = opponent.battleArea.filter((u) => getRemainingHP(u) <= 5).sort((a, b) => getAP(b) - getAP(a))[0];
+  if (target) returnUnitToHand(opponent, target);
+  if (player.battleArea.some((u) => u.isLinkUnit && (u.def.traits || []).includes('Alphacide'))) drawCard(state, player);
+}
+
+// --- A Miracle GD06-102 (Command) ---
+// [Burst] Add this card to your hand (shared addSelfToHandBurst).
+// [Action] If it is your opponent's turn and no enemy Units have attacked this turn, draw 2 (new
+// player.attackedThisTurn flag -- see combat.js's fireAttackTriggers).
+function aMiracleGD06102Command(state, player) {
+  const opponent = opponentOf(state, player);
+  if (state.players[state.activePlayerIdx] !== opponent || opponent.attackedThisTurn) return;
+  drawCard(state, player);
+  drawCard(state, player);
+}
+
+// --- Restore the Front Line GD06-103 (Command, pilotMode: South Burning) ---
+// [Main] Choose 1 rested enemy Unit. Deal 1 damage to it.
+function restoreTheFrontLineGD06103Command(state, player) {
+  const opponent = opponentOf(state, player);
+  const target = opponent.battleArea.filter((u) => u.rested).sort((a, b) => getRemainingHP(a) - getRemainingHP(b))[0];
+  if (target) {
+    dealDamage(target, 1);
+    destroyAndFireEffect(state, opponent, target);
+  }
+}
+
+// --- Steady Support GD06-104 (Command, pilotMode: Chuck Keith) ---
+// [Main]/[Action] Choose 1 enemy Unit with 3 or less HP. Return it to its owner's hand.
+function steadySupportGD06104Command(state, player) {
+  const opponent = opponentOf(state, player);
+  const target = opponent.battleArea.filter((u) => getRemainingHP(u) <= 3).sort((a, b) => getAP(b) - getAP(a))[0];
+  if (target) returnUnitToHand(opponent, target);
+}
+
+// --- Grace Under Pressure GD06-105 (Command) ---
+// [Main] Deploy 1 [Gundam Calibarn] ((Academy) AP5 HP3 <High-Maneuver>) Unit token or 1 [Gundam
+// Aerial Rebuild] ((Quiet Zero) AP3 HP5 <Breach 3>) Unit token. Defaults to Calibarn (the higher
+// raw AP option) absent a hooks.chooseToken callback.
+const GUNDAM_CALIBARN_TOKEN = Object.freeze({
+  number: 'TOKEN-CALIBARN', name: 'Gundam Calibarn', type: 'unit', color: 'green',
+  traits: ['Academy'], ap: 5, hp: 3, isToken: true, keywords: { highManeuver: true }
+});
+const GUNDAM_AERIAL_REBUILD_TOKEN = Object.freeze({
+  number: 'TOKEN-AERIAL-REBUILD', name: 'Gundam Aerial Rebuild', type: 'unit', color: 'green',
+  traits: ['Quiet Zero'], ap: 3, hp: 5, isToken: true, keywords: { breach: 3 }
+});
+function graceUnderPressureGD06105Command(state, player, instance, context) {
+  const wantsAerial = context && context.hooks && context.hooks.chooseToken && context.hooks.chooseToken() === 'aerial';
+  deployUnit(state, player, wantsAerial ? GUNDAM_AERIAL_REBUILD_TOKEN : GUNDAM_CALIBARN_TOKEN);
+}
+
+// --- Presence Detected GD06-106 (Command) ---
+// [Action] During this battle, your shield area cards can't receive damage from enemy Units with
+// 6 or less AP (new shieldDamageImmuneAPCap player-level flag -- see combat.js's predictShieldHits
+// and resolveDamageStep, and effects.js's clearBattleBuffs).
+function presenceDetectedGD06106Command(state, player) {
+  player.shieldDamageImmuneAPCap = 6;
+}
+
+// --- Wheel Spoke Formation GD06-107 (Command, pilotMode: Sweatson Stero) ---
+// [Main] If you have a (Ghingnham Fleet) Unit in play, choose 1 enemy Unit with <Blocker> and 3 or
+// less AP. Destroy it.
+function wheelSpokeFormationGD06107Command(state, player) {
+  if (!player.battleArea.some((u) => (u.def.traits || []).includes('Ghingnham Fleet'))) return;
+  const opponent = opponentOf(state, player);
+  const target = opponent.battleArea.filter((u) => getKeywords(u).blocker && getAP(u) <= 3).sort((a, b) => getAP(b) - getAP(a))[0];
+  if (target) destroyOutrightAndFireEffect(state, opponent, target);
+}
+
+// --- On Edge GD06-108 (Command, pilotMode: Chara Soon) ---
+// [Main] All friendly (Neo Zeon) Units that are Lv.4 or lower get AP+2 during this turn.
+function onEdgeGD06108Command(state, player) {
+  for (const u of player.battleArea) {
+    if ((u.def.traits || []).includes('Neo Zeon') && (u.def.level || 0) <= 4) u.buffs.push({ ap: 2, scope: 'turn' });
+  }
+}
+
+// --- God of War Ghingnham GD06-109 (Command) ---
+// [Main] Deploy 1 rested [Turn X (Arms)] Unit token or 1 rested [Turn X (Legs)] Unit token.
+function godOfWarGhingnhamGD06109Command(state, player, instance, context) {
+  const wantsLegs = context && context.hooks && context.hooks.chooseToken && context.hooks.chooseToken() === 'legs';
+  const token = deployUnit(state, player, wantsLegs ? TURN_X_LEGS_TOKEN : TURN_X_ARMS_TOKEN);
+  token.rested = true;
+}
+
+// --- Familial Love GD06-110 (Command) ---
+// [Burst] Add this card to your hand. [Action] Choose 1 of your Units. It gets AP+2 during this
+// battle. Then, if you have 3 or less cards in hand, draw 1.
+function familialLoveGD06110Command(state, player) {
+  const target = player.battleArea.sort((a, b) => getAP(b) - getAP(a))[0];
+  if (target) target.buffs.push({ ap: 2, scope: 'battle' });
+  if (player.hand.length <= 3) drawCard(state, player);
+}
+
+// --- Steely Loyalty GD06-111 (Command, pilotMode: Julieta Juris) ---
+// [Action] If there are 4+ (Gjallarhorn) cards in your trash, choose 1 enemy Unit. Deal 2 damage to it.
+function steelyLoyaltyGD06111Command(state, player) {
+  if (player.trash.filter((c) => (c.def.traits || []).includes('Gjallarhorn')).length < 4) return;
+  const opponent = opponentOf(state, player);
+  const target = opponent.battleArea.sort((a, b) => getRemainingHP(a) - getRemainingHP(b))[0];
+  if (target) {
+    dealDamage(target, 2);
+    destroyAndFireEffect(state, opponent, target);
+  }
+}
+
+// --- Rivalry with Roux GD06-112 (Command, pilotMode: Elle Vianno) ---
+// [Action] Choose 1 enemy Unit battling a friendly (AEUG) Unit. Deal 2 damage to it. (Same
+// defending-side-only context.attackingUnit/context.underAttack shape as A Wind Against Fires
+// (R+) GD05-119 -- the Action-step reactive window is only ever offered to the defending player.)
+function rivalryWithRouxGD06112Command(state, player, instance, context) {
+  const underAttack = context && context.underAttack;
+  if (!underAttack || underAttack.def.type !== 'unit' || !(underAttack.def.traits || []).includes('AEUG')) return;
+  const target = context.attackingUnit;
+  if (!target) return;
+  const opponent = opponentOf(state, player);
+  dealDamage(target, 2);
+  destroyAndFireEffect(state, opponent, target);
+}
+
+// --- Unsanctioned Ordnance GD06-113 (Command) ---
+// [Burst] Choose 1 enemy Unit. Deal 2 damage to it.
+// [Main]/[Action] Choose 1 damaged enemy Unit. Deal 5 damage to it.
+function unsanctionedOrdnanceGD06113Burst(state, player) {
+  const opponent = opponentOf(state, player);
+  const target = opponent.battleArea.sort((a, b) => getRemainingHP(a) - getRemainingHP(b))[0];
+  if (target) {
+    dealDamage(target, 2);
+    destroyAndFireEffect(state, opponent, target);
+  }
+}
+function unsanctionedOrdnanceGD06113Command(state, player) {
+  const opponent = opponentOf(state, player);
+  const target = opponent.battleArea.filter((u) => u.damage > 0).sort((a, b) => getRemainingHP(a) - getRemainingHP(b))[0];
+  if (target) {
+    dealDamage(target, 5);
+    destroyAndFireEffect(state, opponent, target);
+  }
+}
+
+// --- Alphaciders GD06-114 (Command) ---
+// [Action] Choose 1 of the following: destroy 1 enemy Unit that is Lv.2 or lower (preferred if
+// available), or grant 1 friendly (Alphacide) Unit battle-damage reduction 3 this battle.
+function alphacidersGD06114Command(state, player) {
+  const opponent = opponentOf(state, player);
+  const destroyTarget = opponent.battleArea.filter((u) => (u.def.level || 0) <= 2).sort((a, b) => getAP(b) - getAP(a))[0];
+  if (destroyTarget) {
+    destroyOutrightAndFireEffect(state, opponent, destroyTarget);
+    return;
+  }
+  const buffTarget = player.battleArea.filter((u) => (u.def.traits || []).includes('Alphacide')).sort((a, b) => getAP(b) - getAP(a))[0];
+  if (buffTarget) buffTarget.buffs.push({ battleDamageReduction: 3, scope: 'battle' });
+}
+
+// --- Teaching New Techniques GD06-115 (Command) ---
+// [Main] Choose 1 enemy Unit that is Lv.4 or lower. Destroy it. Then, deploy 1 [Sazabi] Unit
+// token. The destroyed Unit's owner deploys 1 [Nu Gundam] Unit token.
+const SAZABI_TOKEN = Object.freeze({ number: 'TOKEN-SAZABI', name: 'Sazabi', type: 'unit', color: 'purple', traits: ['Neo Zeon'], ap: 4, hp: 4, isToken: true, keywords: {} });
+const NU_GUNDAM_TOKEN = Object.freeze({ number: 'TOKEN-NU-GUNDAM', name: 'Nu Gundam', type: 'unit', color: 'white', traits: ['Londo Bell'], ap: 3, hp: 3, isToken: true, keywords: { firstStrike: true } });
+function teachingNewTechniquesGD06115Command(state, player) {
+  const opponent = opponentOf(state, player);
+  const target = opponent.battleArea.filter((u) => (u.def.level || 0) <= 4).sort((a, b) => getAP(b) - getAP(a))[0];
+  if (!target) return;
+  destroyOutrightAndFireEffect(state, opponent, target);
+  deployUnit(state, player, SAZABI_TOKEN);
+  deployUnit(state, opponent, NU_GUNDAM_TOKEN);
+}
+
+// --- Afterglow of Zeon GD06-116 (Command) ---
+// [Burst] Add this card to your hand. [Main] Choose 1 purple (Zeon) Unit card that is Lv.5 or
+// lower from your trash. Deploy it.
+function afterglowOfZeonGD06116Command(state, player) {
+  const candidates = player.trash.filter((c) => c.def.type === 'unit' && c.def.color === 'purple' && (c.def.traits || []).includes('Zeon') && (c.def.level || 0) <= 5);
+  if (candidates.length === 0) return;
+  const card = candidates.sort((a, b) => (b.def.cost || 0) - (a.def.cost || 0))[0];
+  removeFromTrash(player, card);
+  deployUnit(state, player, card.def);
+}
+
+// --- Veterans Joining Forces GD06-117 (Command, pilotMode: Karius) ---
+// [Action] Choose 1 rested friendly (Delaz Fleet) Unit. Change a battling enemy Unit's attack
+// target to it (same context.battleTarget mutation shape as Master League Begins EB01-077).
+function veteransJoiningForcesGD06117Command(state, player, instance, context) {
+  const target = player.battleArea.filter((u) => u.rested && (u.def.traits || []).includes('Delaz Fleet')).sort((a, b) => getRemainingHP(b) - getRemainingHP(a))[0];
+  if (!target || !context || !context.battleTarget) return;
+  context.battleTarget.type = 'unit';
+  context.battleTarget.instance = target;
+}
+
+// --- Infinite Variations GD06-118 (Command) ---
+// [Main]/[Action] Choose a number of enemy Units up to the number of white Units with <Blocker>
+// you have in play. They get AP-2 during this turn.
+function infiniteVariationsGD06118Command(state, player) {
+  const count = player.battleArea.filter((u) => u.def.color === 'white' && getKeywords(u).blocker).length;
+  if (count === 0) return;
+  const opponent = opponentOf(state, player);
+  const targets = opponent.battleArea.sort((a, b) => getAP(b) - getAP(a)).slice(0, count);
+  for (const u of targets) u.buffs.push({ ap: -2, scope: 'turn' });
+}
+
+// --- Sturm und Drang GD06-119 (Command, pilotMode: Schwarz Bruder) ---
+// [Action] Choose 1 enemy Unit with 3 or less HP. Rest it. "After activating this card's [Action],
+// you may pair this card from your trash with one of your (MF) Units" is data-only
+// (pairableFromTrash: "MF", same existing mechanism Cyclone Punch GD05-121 already uses) --
+// playCommand itself needed no change, since it always resolves the command handler against a
+// throwaway instance and only pushes THAT to trash afterward; pairPilotFromTrash then just pulls it
+// back out. The only real gap was that the two Action-timing command call sites that don't already
+// go through runCommands/resolveCommandSubset -- heuristic.js's actionStep (the defending player's
+// reactive window) and actionStepPriority.js's applyActionStepResponse (the real Action Step) --
+// never checked pairableFromTrash on their own playCommand call, so this clause silently never fired
+// for ANY Action-timing pairableFromTrash card, not just this one. Both now do.
+function sturmUndDrangGD06119Command(state, player) {
+  const opponent = opponentOf(state, player);
+  const target = opponent.battleArea.filter((u) => getRemainingHP(u) <= 3).sort((a, b) => getAP(b) - getAP(a))[0];
+  if (target) restEnemyByEffect(state, player, opponent, target);
+}
+
+// --- Hoping for Peace GD06-120 (Command) ---
+// [Burst] Choose 1 enemy Unit with 5 or less HP. Rest it.
+// [Main]/[Action] Choose 1 enemy Unit. Rest it.
+function hopingForPeaceGD06120Burst(state, player) {
+  const opponent = opponentOf(state, player);
+  const target = opponent.battleArea.filter((u) => getRemainingHP(u) <= 5).sort((a, b) => getAP(b) - getAP(a))[0];
+  if (target) restEnemyByEffect(state, player, opponent, target);
+}
+function hopingForPeaceGD06120Command(state, player) {
+  const opponent = opponentOf(state, player);
+  const target = opponent.battleArea.sort((a, b) => getAP(b) - getAP(a))[0];
+  if (target) restEnemyByEffect(state, player, opponent, target);
+}
+
+// --- Crybaby Poe GD06-121 (Command, pilotMode: Poe Aijee) ---
+// [Action] Choose 1 enemy Unit. It gets AP-2 during this battle. If it has <High-Maneuver>, AP-6
+// instead. Targets the actual battling enemy (context.attackingUnit) when cast reactively.
+function crybabyPoeGD06121Command(state, player, instance, context) {
+  const target = (context && context.attackingUnit) || opponentOf(state, player).battleArea.sort((a, b) => getAP(b) - getAP(a))[0];
+  if (!target) return;
+  const amount = getKeywords(target).highManeuver ? 6 : 2;
+  target.buffs.push({ ap: -amount, scope: 'battle' });
+}
+
+// --- Albion GD06-122 (Base) ---
+// [Burst] Deploy this card (shared simpleBurstBase). [Deploy] Add 1 Shield to hand. Then, choose 1
+// enemy Unit that is Lv.2 or lower. Return it to its owner's hand.
+function albionGD06122Deploy(state, player) {
+  simpleBaseDeployAddShield(state, player);
+  const opponent = opponentOf(state, player);
+  const target = opponent.battleArea.filter((u) => (u.def.level || 0) <= 2).sort((a, b) => getAP(b) - getAP(a))[0];
+  if (target) returnUnitToHand(opponent, target);
+}
+
+// --- Endra GD06-123 (Base) ---
+// [Burst] Deploy this card. [Deploy] Add 1 Shield to hand. Then, if it is your turn and you have a
+// (Neo Zeon) Unit paired with a Pilot that is Lv.3 or lower in play, choose 1 enemy Unit with
+// <Blocker> and 3 or less AP. Destroy it.
+function endraGD06123Deploy(state, player) {
+  simpleBaseDeployAddShield(state, player);
+  if (state.players[state.activePlayerIdx] !== player) return;
+  const hasQualifying = player.battleArea.some((u) => (u.def.traits || []).includes('Neo Zeon') && u.pilot && (u.pilot.def.level || 0) <= 3);
+  if (!hasQualifying) return;
+  const opponent = opponentOf(state, player);
+  const target = opponent.battleArea.filter((u) => getKeywords(u).blocker && getAP(u) <= 3).sort((a, b) => getAP(b) - getAP(a))[0];
+  if (target) destroyOutrightAndFireEffect(state, opponent, target);
+}
+
+// --- Aspite GD06-124 (Base) ---
+// [Burst] Deploy this card. [Deploy] Add 1 Shield to hand.
+// [Activate*Main] Rest this Base: If you have 3+ (Ghingnham Fleet)/(Long-Range Weapon) Units in
+// play, all your (Ghingnham Fleet) Units get AP+1 during this turn.
+function aspiteGD06124Deploy(state, player) {
+  simpleBaseDeployAddShield(state, player);
+}
+function aspiteGD06124ActivateMain(state, player, instance) {
+  if (instance.rested) return false;
+  instance.rested = true;
+  const count = player.battleArea.filter((u) => (u.def.traits || []).includes('Ghingnham Fleet') || (u.def.traits || []).includes('Long-Range Weapon')).length;
+  if (count >= 3) {
+    for (const u of player.battleArea) {
+      if ((u.def.traits || []).includes('Ghingnham Fleet')) u.buffs.push({ ap: 1, scope: 'turn' });
+    }
+  }
+  return true;
+}
+
+// --- Argama GD06-125 (Base) ---
+// [Burst] Deploy this card. [Deploy] Add 1 Shield to hand.
+// [Once per Turn] When this Base receives battle damage while you have a rested (AEUG) Unit in
+// play, choose 1 enemy Unit. Deal 1 damage to it (existing receivesBattleDamageFromEnemy event).
+function argamaGD06125Deploy(state, player) {
+  simpleBaseDeployAddShield(state, player);
+}
+function argamaGD06125ReceivesBattleDamageFromEnemy(state, player, instance) {
+  if (instance.activationsUsed.pingOnDamage) return;
+  if (!player.battleArea.some((u) => u.rested && (u.def.traits || []).includes('AEUG'))) return;
+  instance.activationsUsed.pingOnDamage = true;
+  const opponent = opponentOf(state, player);
+  const target = opponent.battleArea.sort((a, b) => getRemainingHP(a) - getRemainingHP(b))[0];
+  if (target) {
+    dealDamage(target, 1);
+    destroyAndFireEffect(state, opponent, target);
+  }
+}
+
+// --- Skipjack-class Warship GD06-126 (Base) ---
+// [Burst] Deploy this card. [Deploy] Add 1 Shield to hand. Then, if a friendly (Gjallarhorn) Unit
+// is in play, choose 1 damaged enemy Unit. Deal 1 damage to it.
+function skipjackClassWarshipGD06126Deploy(state, player) {
+  simpleBaseDeployAddShield(state, player);
+  if (!player.battleArea.some((u) => (u.def.traits || []).includes('Gjallarhorn'))) return;
+  const opponent = opponentOf(state, player);
+  const target = opponent.battleArea.filter((u) => u.damage > 0).sort((a, b) => getRemainingHP(a) - getRemainingHP(b))[0];
+  if (target) {
+    dealDamage(target, 1);
+    destroyAndFireEffect(state, opponent, target);
+  }
+}
+
+// --- Yomagn'tho GD06-127 (Base) ---
+// [Burst] Deploy this card. [Deploy] Add 1 Shield to hand. Then, if it is your turn, place the top
+// 2 cards of your deck into your trash. If you place an (Alphacide) card with this effect, choose
+// 1 enemy Unit with 2 or less AP. Destroy it.
+function yomagnthoGD06127Deploy(state, player) {
+  simpleBaseDeployAddShield(state, player);
+  if (state.players[state.activePlayerIdx] !== player) return;
+  const milled = millToTrash(player, 2);
+  if (!milled.some((c) => (c.def.traits || []).includes('Alphacide'))) return;
+  const opponent = opponentOf(state, player);
+  const target = opponent.battleArea.filter((u) => getAP(u) <= 2).sort((a, b) => getAP(b) - getAP(a))[0];
+  if (target) destroyOutrightAndFireEffect(state, opponent, target);
+}
+
+// --- Gwaden GD06-128 (Base) ---
+// [Burst] Deploy this card. [Deploy] Add 1 Shield to hand.
+// [Activate*Main] Rest this Base: Choose 1 friendly (Zeon) Unit. During this turn, when it
+// receives enemy battle damage, reduce it by 1.
+function gwadenGD06128Deploy(state, player) {
+  simpleBaseDeployAddShield(state, player);
+}
+function gwadenGD06128ActivateMain(state, player, instance) {
+  if (instance.rested) return false;
+  const target = player.battleArea.filter((u) => (u.def.traits || []).includes('Zeon')).sort((a, b) => getAP(b) - getAP(a))[0];
+  if (!target) return false;
+  instance.rested = true;
+  target.buffs.push({ battleDamageReduction: 1, scope: 'turn' });
+  return true;
+}
+
+// --- 5th Luna GD06-129 (Base) ---
+// [Burst] Deploy this card (shared simpleBurstBase). [Deploy] Add 1 Shield to hand.
+// [Destroyed] If you have any Shields in play, deploy 1 [Axis] ((Neo Zeon) HP5) Base token.
+const AXIS_TOKEN = Object.freeze({ number: 'TOKEN-AXIS', name: 'Axis', type: 'base', color: 'purple', traits: ['Neo Zeon'], hp: 5, isToken: true, keywords: {} });
+function fifthLunaGD06129Deploy(state, player) {
+  simpleBaseDeployAddShield(state, player);
+}
+function fifthLunaGD06129Destroyed(state, player) {
+  if (player.shields.length === 0) return;
+  deployBase(state, player, AXIS_TOKEN);
+}
+
+// --- Soleil GD06-130 (Base) ---
+// [Burst] Deploy this card. [Deploy] Add 1 Shield to hand. Then, choose 1 enemy Unit with no
+// paired Pilot. Reduce its AP by an amount equal to the number of friendly (Dianna
+// Counter)/(Militia) Units during this turn.
+function soleilGD06130Deploy(state, player) {
+  simpleBaseDeployAddShield(state, player);
+  const opponent = opponentOf(state, player);
+  const target = opponent.battleArea.filter((u) => !u.pilot).sort((a, b) => getAP(b) - getAP(a))[0];
+  if (!target) return;
+  const count = player.battleArea.filter((u) => (u.def.traits || []).includes('Dianna Counter') || (u.def.traits || []).includes('Militia')).length;
+  if (count > 0) target.buffs.push({ ap: -count, scope: 'turn' });
+}
+
 module.exports = {
+  gundamGP01FbGD06001Attacked,
+  infiniteJusticeGundamGD06002DestroysEnemy,
+  infiniteJusticeGundamGD06002Deploy,
+  gQuuuuuuXReleasedGD06003StartOfTurn,
+  gQuuuuuuXReleasedGD06003Attack,
+  gundamGP01GD06004Destroyed,
+  akatsukiShiranuiGD06005Attack,
+  gQuuuuuuXGD06006Deploy,
+  kikerogaMSModeGD06007Deploy,
+  poweredGMGD06008Attack,
+  gmCustomGD06009Deploy,
+  gmCannonIIGD06010WhenLinked,
+  redGundamGD06011WhenLinked,
+  gmTypeCGD06014StartOfTurn,
+  gQuuuuuuXGD06017StartOfTurn,
+  elpeoPlesQubeleyMkII018ActivateAction,
+  turnXGD06019Attack,
+  hammaHammaGD06020FriendlyUnitDestroysEnemy,
+  turnXTopGD06021Deploy,
+  merrybellsBanditGD06022WhenLinked,
+  gallussJGD06023Deploy,
+  rJarjaGD06024Destroyed,
+  sterosMahirooGD06026Attack,
+  mashymresZssaGD06027Deploy,
+  mahirooGD06030StartOfTurn,
+  bellonaGD06032Destroyed,
+  zzGundamGD06033Deploy,
+  gundamBaelGD06034Deploy,
+  zetaGundamGD06035DestroysEnemy,
+  gundamVidarGD06036WhenLinked,
+  gundamKimarisVidarGD06038WhenPaired,
+  neoCoreFighterGD06039ActivateMain,
+  neoLorrnokesWindamGD06041Deploy,
+  destroyGundamMAModeGD06042Deploy,
+  julietasReginlazeGD06043StartOfTurn,
+  coreBaseGD06045Destroyed,
+  hyakuShikiGD06046Attack,
+  helmwigeReincarGD06048Deploy,
+  gundamGP02AGD06049WhenPaired,
+  gundamGP02AGD06049Destroyed,
+  legendGundamGD06050Deploy,
+  gfredGD06051ActivateMain,
+  gfredGD06051Deploy,
+  valWaloGD06052StartOfTurn,
+  valWaloGD06052Deploy,
+  xaviersGyanHakujiPacksGD06053Destroyed,
+  gfredGD06054Deploy,
+  gundamGP02A055Attack,
+  xamelGD06056Attack,
+  kariusRickDomIIGD06057StartOfTurn,
+  zakuIIF2GD06060StartOfTurn,
+  altronGundamEWGD06064StartOfTurn,
+  sumoGoldTypeGD06065ActivateMain,
+  shadowGundamGD06066Attack,
+  gundamSandrockCustomEWGD06067WhenPaired,
+  gundamHeavyarmsCustomEWGD06068Deploy,
+  sumoSilverTypeGD06069ActivateAction,
+  eagailGD06070Deploy,
+  eagailGD06070Attack,
+  shiningGundamMeikyoShisuiGD06071FriendlyPlaysCommand,
+  gundamDeathscytheHellEWGD06072Destroyed,
+  wingGundamZeroEWGD06073DestroysShield,
+  waDomGD06076Deploy,
+  waDGD06078ActivateMain,
+  kouUrakiGD06080ActivateAction,
+  athrunZalaGD06082WhenPaired,
+  elpeoPleGD06084WhenPaired,
+  gymGhingnhamGD06085StartOfTurn,
+  merrybellGadgetGD06087Attack,
+  judauAshtaGD06088Destroyed,
+  mcgillisFareedGD06089DestroysShield,
+  vidarGD06090Attack,
+  neoLorrnokeGD06092WhenPaired,
+  anavelGatoGD06093Attack,
+  nyaanGD06094WhenPaired,
+  kelleyLayznerGD06095Attack,
+  xavierOlivetteGD06096Attack,
+  harryOrdGD06097ActivatesBlocker,
+  changWufeiGD06099Attack,
+  theGundamSaysGD06101Burst,
+  theGundamSaysGD06101Command,
+  aMiracleGD06102Command,
+  restoreTheFrontLineGD06103Command,
+  steadySupportGD06104Command,
+  graceUnderPressureGD06105Command,
+  presenceDetectedGD06106Command,
+  wheelSpokeFormationGD06107Command,
+  onEdgeGD06108Command,
+  godOfWarGhingnhamGD06109Command,
+  familialLoveGD06110Command,
+  steelyLoyaltyGD06111Command,
+  rivalryWithRouxGD06112Command,
+  unsanctionedOrdnanceGD06113Burst,
+  unsanctionedOrdnanceGD06113Command,
+  alphacidersGD06114Command,
+  teachingNewTechniquesGD06115Command,
+  afterglowOfZeonGD06116Command,
+  veteransJoiningForcesGD06117Command,
+  infiniteVariationsGD06118Command,
+  sturmUndDrangGD06119Command,
+  hopingForPeaceGD06120Burst,
+  hopingForPeaceGD06120Command,
+  crybabyPoeGD06121Command,
+  albionGD06122Deploy,
+  endraGD06123Deploy,
+  aspiteGD06124Deploy,
+  aspiteGD06124ActivateMain,
+  argamaGD06125Deploy,
+  argamaGD06125ReceivesBattleDamageFromEnemy,
+  skipjackClassWarshipGD06126Deploy,
+  yomagnthoGD06127Deploy,
+  gwadenGD06128Deploy,
+  gwadenGD06128ActivateMain,
+  fifthLunaGD06129Deploy,
+  fifthLunaGD06129Destroyed,
+  soleilGD06130Deploy,
   addSelfToHandBurst,
   noinsTaurusDestroyed,
   gundamHeavyarmsCustomEWActivateMain,

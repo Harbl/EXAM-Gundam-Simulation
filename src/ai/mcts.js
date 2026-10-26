@@ -142,8 +142,17 @@ function collectPairCandidates(state, playerIdx) {
   const targets = player.battleArea.filter((u) => u.def.type === 'unit' && !u.pilot && !u.def.cannotBePaired);
   if (targets.length === 0) return [];
   return player.hand.filter((c) => {
-    if (!(c.def.type === 'pilot' || c.def.pilotMode) || !canAfford(player, c.def, { state })) return false;
+    if (!(c.def.type === 'pilot' || c.def.pilotMode)) return false;
     const best = bestLinkMatch(targets, c);
+    // Christina Mackenzie GD03-085 / Mashymre Cello GD06-086 / Corin Nander GD06-100: the pair-cost
+    // discount is gated on opts.pairUnit, so affordability must be checked against the best-case pair
+    // target -- same reasoning as heuristic.js's runPairings/resolvePairingSubset.
+    const pairUnit = c.def.freeCostIfPairUnitNameIncludes
+      ? targets.find((u) => (u.def.name || '').includes(c.def.freeCostIfPairUnitNameIncludes))
+      : c.def.costReductionIfPairUnit
+        ? best
+        : undefined;
+    if (!canAfford(player, c.def, { pairUnit, state })) return false;
     const bestLevel = best ? (best.def.level || 0) : -1;
     return !hasBetterLinkTargetInDeck(player, c, bestLevel);
   });
@@ -218,8 +227,9 @@ function applyAction(state, playerIdx, action, hooks) {
   if (action.type === 'pair') {
     const targets = player.battleArea.filter((u) => u.def.type === 'unit' && !u.pilot && !u.def.cannotBePaired);
     const pilot = player.hand.find((c) => c.id === action.cardId);
-    if (!pilot || targets.length === 0 || !canAfford(player, pilot.def, { state })) return;
+    if (!pilot || targets.length === 0) return;
     const unit = bestLinkMatch(targets, pilot) || targets[0];
+    if (!canAfford(player, pilot.def, { pairUnit: unit, state })) return;
     payCost(player, pilot.def, { pairUnit: unit, state });
     pairPilot(state, player, unit, pilot);
     return;

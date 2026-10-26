@@ -30,6 +30,10 @@ const { drawCard } = require('./phases');
  */
 function fireAttackTriggers(state, attackingPlayer, attacker, target) {
   attacker.rested = true;
+  // A Miracle GD06-102: "If it is your opponent's turn and no enemy Units have attacked this turn"
+  // -- a persistent per-turn flag, the attack-step equivalent of player.drewWithEffectThisTurn.
+  // Cleared each start phase (phases.js's runStartPhase).
+  attackingPlayer.attackedThisTurn = true;
   fireCardEffect(state, attackingPlayer, attacker, 'attack', { target });
   // The-O (LR+) GD03-002: "[During Pair] When one of your other Units with <Repair> attacks..." --
   // the only card so far reacting to an ally's attack rather than its own, so broadcast a new
@@ -37,6 +41,14 @@ function fireAttackTriggers(state, attackingPlayer, attacker, target) {
   for (const ally of attackingPlayer.battleArea) {
     if (ally === attacker) continue;
     fireCardEffect(state, attackingPlayer, ally, 'allyAttack', { attacker, target });
+  }
+  // Gundam GP01Fb GD06-001: "[Once per Turn] When this Unit is attacked, draw 1." -- the first card
+  // needing a defender-side "this Unit was declared as an attack's target" reaction, fired here (the
+  // declare-attack step, before block) rather than at the damage step, since the card text triggers
+  // off being targeted, not off actually taking damage.
+  if (target.type === 'unit') {
+    const defendingPlayer = state.players.find((p) => p !== attackingPlayer);
+    fireCardEffect(state, defendingPlayer, target.instance, 'attacked', { attacker });
   }
 }
 
@@ -80,12 +92,15 @@ function resolveAttack(state, attackerPlayerIdx, attacker, declaredTarget, hooks
  * the resulting target to resolveFromBlockDecision as `declaredTarget` with `chosenBlocker: null` so it
  * isn't reapplied.
  */
-function applyBlockDecision(attacker, declaredTarget, chosenBlocker) {
+function applyBlockDecision(state, defendingPlayer, attacker, declaredTarget, chosenBlocker) {
   if (chosenBlocker.rested) throw new Error('Blocker must be active (13-1-4)');
   if (declaredTarget.type === 'unit' && declaredTarget.instance === chosenBlocker) {
     throw new Error("The original attack target can't activate its own Blocker (8-3-3)");
   }
   chosenBlocker.rested = true;
+  // Harry Ord GD06-097: "[Once per Turn] When this Unit activates <Blocker>, set it as active" --
+  // the first card reacting to this specific moment, so it's a new chokepoint.
+  fireCardEffect(state, defendingPlayer, chosenBlocker, 'activatesBlocker', {});
   attacker.buffs.push({ wasBlockedThisBattle: true, scope: 'battle' });
   return { type: 'unit', instance: chosenBlocker };
 }
@@ -100,7 +115,7 @@ function resolveFromBlockDecision(state, attackerPlayerIdx, attacker, declaredTa
     target.type === 'player' || defendingPlayer.battleArea.includes(target.instance);
 
   if (attackerStillIn() && targetStillIn() && chosenBlocker) {
-    target = applyBlockDecision(attacker, target, chosenBlocker);
+    target = applyBlockDecision(state, defendingPlayer, attacker, target, chosenBlocker);
   }
 
   // --- Action step (8-4) ---
@@ -172,7 +187,16 @@ function destroyOutrightAndFireEffect(state, player, instance, extraContext = {}
  */
 function isBaseImmuneToLowLevelDamage(defendingPlayer, attacker) {
   const base = defendingPlayer.base;
-  const cap = base && base.def.lowLevelDamageImmuneCap;
+  if (!base) return false;
+  // Duo Maxwell GD06-098: "[During Link] While this Unit is rested, friendly Bases can't receive
+  // damage from enemy Units whose Lv. is equal to or lower than this Unit" -- a Pilot-granted
+  // immunity keyed off that specific Unit's own live Lv. (not a fixed cap like the Base-data shape
+  // below), so it's checked as its own independent branch rather than folded into lowLevelDamageImmuneCap.
+  const linkGuard = defendingPlayer.battleArea.find(
+    (u) => u.isLinkUnit && u.rested && u.pilot && u.pilot.def.duringLinkBaseDamageImmuneIfRestedSelf
+  );
+  if (linkGuard && (attacker.def.level || 0) <= (linkGuard.def.level || 0)) return true;
+  const cap = base.def.lowLevelDamageImmuneCap;
   if (cap === undefined) return false;
   if (attacker.def.isToken && !base.def.lowLevelDamageImmuneIncludesTokens) return false;
   if ((attacker.def.level || 0) > cap) return false;
@@ -213,6 +237,15 @@ function predictShieldHits(defendingPlayer, attacker) {
   ) {
     return [];
   }
+  // Presence Detected GD06-106: "During this battle, your shield area cards can't receive damage
+  // from enemy Units with 6 or less AP" -- same battle-scoped player-level shape as
+  // shieldDamageImmuneLevelCap above, just keyed on AP instead of Lv.
+  if (
+    defendingPlayer.shieldDamageImmuneAPCap !== undefined &&
+    getAP(attacker) <= defendingPlayer.shieldDamageImmuneAPCap
+  ) {
+    return [];
+  }
   if (defendingPlayer.battleArea.some((u) => u.rested && u.def.shieldDamageImmuneWhileRested)) return [];
   const hitCount = getKeywords(attacker).suppression ? Math.min(2, defendingPlayer.shields.length) : Math.min(1, defendingPlayer.shields.length);
   return defendingPlayer.shields.slice(0, hitCount);
@@ -246,6 +279,13 @@ function resolveDamageStep(state, attackingPlayer, defendingPlayer, attacker, ta
     if (
       defendingPlayer.shieldDamageImmuneLevelCap !== undefined &&
       (attacker.def.level || 0) <= defendingPlayer.shieldDamageImmuneLevelCap
+    ) {
+      return;
+    }
+    // Presence Detected GD06-106: see predictShieldHits above.
+    if (
+      defendingPlayer.shieldDamageImmuneAPCap !== undefined &&
+      attackerAP <= defendingPlayer.shieldDamageImmuneAPCap
     ) {
       return;
     }
@@ -389,6 +429,21 @@ function isImmuneToLowAPEnemyDamageOncePerTurnWhilePaired(instance, enemyAP) {
 }
 
 /**
+ * ZZ Gundam GD06-033: "When your (AEUG) cards deal damage to enemy Units, increase the damage
+ * dealt by 1." A team-wide damage amplifier read from a static aura flag on any friendly card
+ * (mirrors the teamRepairAura shape in effects.js), applied here for the battle-damage path and in
+ * effects.js's dealEffectDamage for the effect-damage path -- the two chokepoints all damage to an
+ * enemy Unit already funnels through. `sourceTraits` is the actual dealing card's own traits (the
+ * attacker in combat, or state.resolvingSource in dealEffectDamage), not the aura holder's.
+ */
+function teamDamageAmpAgainstUnits(player, sourceTraits) {
+  const auraHolder = player.battleArea.find((u) => u.def.teamDamageAmpAgainstUnitsIfTrait);
+  if (!auraHolder) return 0;
+  const cfg = auraHolder.def.teamDamageAmpAgainstUnitsIfTrait;
+  return (sourceTraits || []).includes(cfg.trait) ? cfg.amount : 0;
+}
+
+/**
  * Modification EB01-079: "Choose 1 friendly (G Generation) Unit. It can't receive battle damage
  * from enemy Units that are Lv.3 or lower during this turn" -- a turn-scoped buff, same
  * lowAPEnemyDamageImmuneCap shape as above but keyed on the enemy's level and checked on both sides
@@ -425,11 +480,20 @@ function resolveUnitBattleDamage(state, attackingPlayer, defendingPlayer, attack
   // Olba Frost GD02-093 needs the destroyed enemy's paired Pilot after destroyCard has already
   // nulled its pilot, so it's captured here before either destruction branch below runs.
   const defenderPilot = defenderRecipient.pilot;
+  // ZZ Gundam GD06-033: see teamDamageAmpAgainstUnits above -- only amplifies the attacker's own
+  // outgoing damage to the enemy Unit, never the return damage dealt back to the attacker.
+  const ampToDefender = teamDamageAmpAgainstUnits(attackingPlayer, attacker.def.traits);
   // Carta's Graze Ritter (Ground Type) (R+) GD02-073: "During your opponent's turn, the enemy Unit
   // battling this Unit gains <First Strike>" -- since a Unit is only ever the defender during its
   // own controller's opponent's turn (attacks only happen on the attacking player's turn), the "your
   // opponent's turn" clause is always true whenever this fires, so it collapses to a flat grant.
   if (defender.def.attackerGainsFirstStrike) keywords.firstStrike = true;
+  // Reginlaze Julia GD06-037: "During your turn, while this Unit is battling a damaged enemy Unit,
+  // it gains <First Strike>" -- an attacker-own static condition on the DEFENDER's damage, mirroring
+  // attackerGainsFirstStrike above but keyed on the attacker's own def and the defender's live
+  // damage instead. "During your turn" collapses to a flat grant (a Unit only ever attacks on its
+  // own controller's turn), same reasoning as attackerGainsFirstStrike's own doc comment.
+  if (attacker.def.firstStrikeIfDefenderDamaged && defender.damage > 0) keywords.firstStrike = true;
 
   if (keywords.firstStrike) {
     if (
@@ -440,7 +504,7 @@ function resolveUnitBattleDamage(state, attackingPlayer, defendingPlayer, attack
       !isImmuneViaNamedToken(defendingPlayer, defender) &&
       !isImmuneToLowLevelEnemyDamageWhilePaired(defender, defendingPlayer, attackingPlayer, attacker.def.level || 0)
     ) {
-      dealDamage(defenderRecipient, attackerAP, { isBattleDamage: true, isEnemyDamage: true, player: defendingPlayer });
+      dealDamage(defenderRecipient, attackerAP + ampToDefender, { isBattleDamage: true, isEnemyDamage: true, player: defendingPlayer });
     }
     fireDealsBattleDamage(state, attackingPlayer, defendingPlayer, attacker, defender);
     const defenderDied = destroyAndFireEffect(state, defendingPlayer, defenderRecipient, { viaBattleDamage: true });
@@ -475,7 +539,7 @@ function resolveUnitBattleDamage(state, attackingPlayer, defendingPlayer, attack
     !isImmuneViaNamedToken(defendingPlayer, defender) &&
     !isImmuneToLowLevelEnemyDamageWhilePaired(defender, defendingPlayer, attackingPlayer, attacker.def.level || 0)
   ) {
-    dealDamage(defenderRecipient, attackerAP, { isBattleDamage: true });
+    dealDamage(defenderRecipient, attackerAP + ampToDefender, { isBattleDamage: true });
   }
   fireDealsBattleDamage(state, attackingPlayer, defendingPlayer, attacker, defender);
   if (
@@ -670,4 +734,4 @@ function resolveBurst(state, defendingPlayer, shieldInstance, hooks) {
   }
 }
 
-module.exports = { resolveAttack, resolveFromBlockDecision, fireAttackTriggers, applyBlockDecision, resolveUnitBattleDamage, applyBreach, destroyAndFireEffect, destroyOutrightAndFireEffect, fireDestroysShield, resolveBurst, predictShieldHits };
+module.exports = { resolveAttack, resolveFromBlockDecision, fireAttackTriggers, applyBlockDecision, resolveUnitBattleDamage, applyBreach, destroyAndFireEffect, destroyOutrightAndFireEffect, fireDestroysShield, fireDealsBattleDamage, resolveBurst, predictShieldHits, teamDamageAmpAgainstUnits, isBaseImmuneToLowLevelDamage };
